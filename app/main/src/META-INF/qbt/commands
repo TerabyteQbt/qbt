@@ -1,0 +1,17 @@
+qbt.mains.BuildPlumbing
+qbt.mains.BuildPorcelain
+qbt.mains.CheckManifestFastForward
+qbt.mains.DiffManifests
+qbt.mains.GetOverridePlumbing
+qbt.mains.GetOverridePorcelain
+qbt.mains.MergeManifests
+qbt.mains.PushPins
+qbt.mains.ResolveManifestCumulativeVersions
+qbt.mains.RunArtifact
+qbt.mains.RunOverridesPlumbing
+qbt.mains.RunOverridesPorcelain
+qbt.mains.RunPackage
+qbt.mains.UpdateManifestPlumbing
+qbt.mains.UpdateManifestPorcelain
+qbt.mains.UpdateOverridesPlumbing
+qbt.mains.UpdateOverridesPorcelain
