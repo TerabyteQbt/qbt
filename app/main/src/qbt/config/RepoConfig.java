@@ -5,7 +5,7 @@ import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
-import qbt.vcs.CachedRemote;
+import qbt.repo.RemoteRepoAccessor;
 
 public final class RepoConfig {
     private final ImmutableList<RepoConfigEntry> entries;
@@ -24,13 +24,9 @@ public final class RepoConfig {
         throw new IllegalArgumentException("Could not find repo for " + repo);
     }
 
-    public interface RequireRepoRemoteResult {
-        public CachedRemote getRemote();
-    }
-
-    public RequireRepoRemoteResult requireRepoRemote(PackageTip repo, VcsVersionDigest version) {
+    public RemoteRepoAccessor requireRepoRemote(PackageTip repo, VcsVersionDigest version) {
         for(RepoConfigEntry e : entries) {
-            RequireRepoRemoteResult r = e.findRepoRemote(repo, version);
+            RemoteRepoAccessor r = e.findRepoRemote(repo, version);
             if(r != null) {
                 return r;
             }

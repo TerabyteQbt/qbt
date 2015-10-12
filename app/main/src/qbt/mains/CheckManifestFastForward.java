@@ -13,10 +13,10 @@ import qbt.QbtManifest;
 import qbt.QbtTempDir;
 import qbt.RepoManifest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.diffmanifests.MapDiffer;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
+import qbt.repo.RemoteRepoAccessor;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
 
@@ -58,11 +58,11 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void edit(PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
-                RepoConfig.RequireRepoRemoteResult lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
-                RepoConfig.RequireRepoRemoteResult rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+                RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
+                RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
 
-                CachedRemote lhsRemote = lhsResult.getRemote();
-                CachedRemote rhsRemote = rhsResult.getRemote();
+                CachedRemote lhsRemote = lhsResult.remote;
+                CachedRemote rhsRemote = rhsResult.remote;
                 if(!lhsRemote.matchedLocal(rhsRemote)) {
                     throw new RuntimeException("Mismatched remotes: " + lhsRemote + " / " + rhsRemote);
                 }

@@ -24,7 +24,6 @@ import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ParallelismOptionsDelegate;
@@ -32,6 +31,7 @@ import qbt.options.RepoActionOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
 import qbt.repo.LocalRepoAccessor;
+import qbt.repo.RemoteRepoAccessor;
 import qbt.utils.ProcessHelper;
 
 public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.Options> {
@@ -108,8 +108,8 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                         String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
                         if(version != null) {
                             if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
-                                RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-                                requireRepoRemoteResult.getRemote().findCommit(localRepoAccessor.dir, ImmutableList.of(version));
+                                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+                                remoteRepoAccessor.remote.findCommit(localRepoAccessor.dir, ImmutableList.of(version));
                             }
                         }
                         p = p.putEnv(envName, version == null ? "" : version.getRawDigest().toString());

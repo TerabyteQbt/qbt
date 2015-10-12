@@ -5,6 +5,7 @@ import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
+import qbt.repo.RemoteRepoAccessor;
 
 public final class RepoConfigEntry {
     public final LocalRepoConfigEntry localConfig;
@@ -33,9 +34,9 @@ public final class RepoConfigEntry {
         return null;
     }
 
-    public RepoConfig.RequireRepoRemoteResult findRepoRemote(PackageTip repo, VcsVersionDigest version) {
+    public RemoteRepoAccessor findRepoRemote(PackageTip repo, VcsVersionDigest version) {
         for(RemoteRepoConfigEntry remoteConfig : remoteConfigs) {
-            RepoConfig.RequireRepoRemoteResult r = remoteConfig.findRepoRemote(repo, version);
+            RemoteRepoAccessor r = remoteConfig.findRepoRemote(repo, version);
             if(r != null) {
                 return r;
             }

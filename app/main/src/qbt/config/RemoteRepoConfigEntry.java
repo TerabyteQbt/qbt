@@ -51,16 +51,11 @@ public final class RemoteRepoConfigEntry {
         return new RemoteRepoAccessor(new CachedRemote(remote, remoteVcs), version);
     }
 
-    public RepoConfig.RequireRepoRemoteResult findRepoRemote(final PackageTip repo, final VcsVersionDigest version) {
+    public RemoteRepoAccessor findRepoRemote(final PackageTip repo, final VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;
         }
-        return new RepoConfig.RequireRepoRemoteResult() {
-            @Override
-            public CachedRemote getRemote() {
-                return new CachedRemote(remote, remoteVcs);
-            }
-        };
+        return new RemoteRepoAccessor(new CachedRemote(remote, remoteVcs), version);
     }
 }

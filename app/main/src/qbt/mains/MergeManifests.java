@@ -35,12 +35,12 @@ import qbt.QbtTempDir;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.metadata.PackageMetadataType;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
+import qbt.repo.RemoteRepoAccessor;
 import qbt.utils.ProcessHelper;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
@@ -273,14 +273,14 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
     private static final Merger<PackageTip, VcsVersionDigest> versionMerger = new Merger<PackageTip, VcsVersionDigest>() {
         @Override
         protected Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergeConflict(Context context, String label, PackageTip repo, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
-            RepoConfig.RequireRepoRemoteResult lhsResult = context.config.repoConfig.requireRepoRemote(repo, lhs);
-            CachedRemote lhsRemote = lhsResult.getRemote();
+            RemoteRepoAccessor lhsResult = context.config.repoConfig.requireRepoRemote(repo, lhs);
+            CachedRemote lhsRemote = lhsResult.remote;
 
-            RepoConfig.RequireRepoRemoteResult mhsResult = context.config.repoConfig.requireRepoRemote(repo, mhs);
-            CachedRemote mhsRemote = mhsResult.getRemote();
+            RemoteRepoAccessor mhsResult = context.config.repoConfig.requireRepoRemote(repo, mhs);
+            CachedRemote mhsRemote = mhsResult.remote;
 
-            RepoConfig.RequireRepoRemoteResult rhsResult = context.config.repoConfig.requireRepoRemote(repo, rhs);
-            CachedRemote rhsRemote = rhsResult.getRemote();
+            RemoteRepoAccessor rhsResult = context.config.repoConfig.requireRepoRemote(repo, rhs);
+            CachedRemote rhsRemote = rhsResult.remote;
 
             if(!lhsRemote.matchedLocal(mhsRemote) || !rhsRemote.matchedLocal(mhsRemote)) {
                 LOGGER.error("[" + label + "] Found mis-matched VCS: " + lhsRemote + ", " + mhsRemote + ", " + rhsRemote);

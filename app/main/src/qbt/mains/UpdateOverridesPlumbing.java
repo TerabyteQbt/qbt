@@ -18,11 +18,11 @@ import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
+import qbt.repo.RemoteRepoAccessor;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -94,8 +94,8 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
                 }
             }
             if(!repository.commitExists(version)) {
-                RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-                requireRepoRemoteResult.getRemote().findCommit(dir, ImmutableList.of(version));
+                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+                remoteRepoAccessor.remote.findCommit(dir, ImmutableList.of(version));
             }
             repository.checkout(version);
             LOGGER.info("Updated " + repo + " from " + oldVersion.getRawDigest() + " to " + version.getRawDigest());

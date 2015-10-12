@@ -20,12 +20,12 @@ import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.diffmanifests.MapDiffer;
 import qbt.diffmanifests.NoEditMapDiffer;
 import qbt.diffmanifests.Runner;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
+import qbt.repo.RemoteRepoAccessor;
 
 public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
     @QbtCommandName("diffManifests")
@@ -101,10 +101,10 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         return r;
     }
 
-    private Runner runnerAddRepo(Runner r, String suffix, VcsVersionDigest version, RepoConfig.RequireRepoRemoteResult result) {
-        r = r.findCommit(result.getRemote(), version);
+    private Runner runnerAddRepo(Runner r, String suffix, VcsVersionDigest version, RemoteRepoAccessor result) {
+        r = r.findCommit(result.remote, version);
         r = r.addEnv("REPO_VERSION" + suffix, version.getRawDigest().toString());
-        r = r.addEnv("REPO_TREE" + suffix, result.getRemote().getSubtree(version, "").getRawDigest().toString());
+        r = r.addEnv("REPO_TREE" + suffix, result.remote.getSubtree(version, "").getRawDigest().toString());
         return r;
     }
 
@@ -112,7 +112,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void add(PackageTip repo, RepoManifest rhs) {
-                RepoConfig.RequireRepoRemoteResult rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+                RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoAdd), repo);
@@ -123,9 +123,9 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                    r = r.findCommit(rhsResult.getRemote(), rhs.version);
-                    r = r.addEnv("REPO_TREE_LHS", rhsResult.getRemote().getLocalVcs().emptyTree().getRawDigest().toString());
-                    r = r.addEnv("REPO_TREE_RHS", rhsResult.getRemote().getSubtree(rhs.version, "").getRawDigest().toString());
+                    r = r.findCommit(rhsResult.remote, rhs.version);
+                    r = r.addEnv("REPO_TREE_LHS", rhsResult.remote.getLocalVcs().emptyTree().getRawDigest().toString());
+                    r = r.addEnv("REPO_TREE_RHS", rhsResult.remote.getSubtree(rhs.version, "").getRawDigest().toString());
                     r = r.checkout(rhs.version);
                     r.run();
                 }
@@ -137,13 +137,13 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             protected void del(PackageTip repo, RepoManifest lhs) {
                 diffRepo(options, config, repo, lhs, RepoManifest.builder(lhs.version).build());
 
-                RepoConfig.RequireRepoRemoteResult lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
+                RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                    r = r.findCommit(lhsResult.getRemote(), lhs.version);
-                    r = r.addEnv("REPO_TREE_LHS", lhsResult.getRemote().getSubtree(lhs.version, "").getRawDigest().toString());
-                    r = r.addEnv("REPO_TREE_RHS", lhsResult.getRemote().getLocalVcs().emptyTree().getRawDigest().toString());
+                    r = r.findCommit(lhsResult.remote, lhs.version);
+                    r = r.addEnv("REPO_TREE_LHS", lhsResult.remote.getSubtree(lhs.version, "").getRawDigest().toString());
+                    r = r.addEnv("REPO_TREE_RHS", lhsResult.remote.getLocalVcs().emptyTree().getRawDigest().toString());
                     r = r.checkout(lhs.version);
                     r.run();
                 }
@@ -165,8 +165,8 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
     private void diffRepo(final OptionsResults<? extends Options> options, final QbtConfig config, final PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
         if(!lhs.version.equals(rhs.version)) {
-            RepoConfig.RequireRepoRemoteResult lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
-            RepoConfig.RequireRepoRemoteResult rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+            RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
+            RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
 
             {
                 Runner r = repoRunner(options, options.get(Options.onRepoEdit), repo);
@@ -178,10 +178,10 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
             {
                 Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                r = r.findCommit(lhsResult.getRemote(), lhs.version);
-                r = r.findCommit(rhsResult.getRemote(), rhs.version);
-                r = r.addEnv("REPO_TREE_LHS", lhsResult.getRemote().getSubtree(lhs.version, "").getRawDigest().toString());
-                r = r.addEnv("REPO_TREE_RHS", rhsResult.getRemote().getSubtree(rhs.version, "").getRawDigest().toString());
+                r = r.findCommit(lhsResult.remote, lhs.version);
+                r = r.findCommit(rhsResult.remote, rhs.version);
+                r = r.addEnv("REPO_TREE_LHS", lhsResult.remote.getSubtree(lhs.version, "").getRawDigest().toString());
+                r = r.addEnv("REPO_TREE_RHS", rhsResult.remote.getSubtree(rhs.version, "").getRawDigest().toString());
                 r = r.checkout(rhs.version);
                 r.run();
             }

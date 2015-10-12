@@ -14,10 +14,10 @@ import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.config.RepoConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
+import qbt.repo.RemoteRepoAccessor;
 
 public class PushPins extends QbtCommand<PushPins.Options> {
     private static final Logger LOGGER = LoggerFactory.getLogger(PushPins.class);
@@ -56,8 +56,8 @@ public class PushPins extends QbtCommand<PushPins.Options> {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-            int count = requireRepoRemoteResult.getRemote().flushPins();
+            RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+            int count = remoteRepoAccessor.remote.flushPins();
             if(count > 0) {
                 LOGGER.info("[" + repo + "] Pushed " + count + " pin(s)");
             }

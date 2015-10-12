@@ -10,8 +10,8 @@ import qbt.repo.CommonRepoAccessor;
 import qbt.vcs.CachedRemote;
 
 public final class RemoteRepoAccessor implements CommonRepoAccessor {
-    private final CachedRemote remote;
-    private final VcsVersionDigest version;
+    public final CachedRemote remote;
+    public final VcsVersionDigest version;
 
     public RemoteRepoAccessor(CachedRemote remote, VcsVersionDigest version) {
         this.remote = remote;
