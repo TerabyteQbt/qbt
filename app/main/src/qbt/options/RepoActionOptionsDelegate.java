@@ -76,7 +76,7 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
 
     private static void addOverrides(ImmutableSet.Builder<PackageTip> reposBuilder, QbtConfig config, QbtManifest manifest) {
         for(Map.Entry<PackageTip, RepoManifest> e : manifest.repos.entrySet()) {
-            if(config.repoConfig.findLocalRepo(e.getKey()) != null) {
+            if(config.localRepoFinder.findLocalRepo(e.getKey()) != null) {
                 reposBuilder.add(e.getKey());
             }
         }

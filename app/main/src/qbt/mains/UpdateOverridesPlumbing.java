@@ -71,7 +71,7 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+            LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
             if(localRepoAccessor == null) {
                 continue;
             }
@@ -94,7 +94,7 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
                 }
             }
             if(!repository.commitExists(version)) {
-                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
                 remoteRepoAccessor.remote.findCommit(dir, ImmutableList.of(version));
             }
             repository.checkout(version);

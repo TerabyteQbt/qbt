@@ -73,7 +73,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+            LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
             if(localRepoAccessor == null) {
                 continue;
             }
@@ -100,7 +100,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                 }
             }
             if(!newVersion.equals(version)) {
-                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
                 remoteRepoAccessor.remote.findCommit(localRepoAccessor.dir, ImmutableList.of(version));
                 if(!options.get(Options.allowNonFf) && !repository.isAncestorOf(version, newVersion)) {
                     LOGGER.error("Updating " + repo + " from " + version.getRawDigest() + " to " + newVersion.getRawDigest() + " is not fast-forward!");

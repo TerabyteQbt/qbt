@@ -58,8 +58,8 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void edit(PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
-                RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
-                RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+                RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
+                RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
 
                 CachedRemote lhsRemote = lhsResult.remote;
                 CachedRemote rhsRemote = rhsResult.remote;

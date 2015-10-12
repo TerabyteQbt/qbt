@@ -56,7 +56,7 @@ public class PushPins extends QbtCommand<PushPins.Options> {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+            RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
             int count = remoteRepoAccessor.remote.flushPins();
             if(count > 0) {
                 LOGGER.info("[" + repo + "] Pushed " + count + " pin(s)");

@@ -98,7 +98,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);
                 }
                 VcsVersionDigest version = repoManifest.version;
-                final LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+                final LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
                 if(localRepoAccessor == null) {
                     return ObjectUtils.NULL;
                 }
@@ -108,7 +108,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                         String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
                         if(version != null) {
                             if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
-                                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRepoRemote(repo, version);
+                                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
                                 remoteRepoAccessor.remote.findCommit(localRepoAccessor.dir, ImmutableList.of(version));
                             }
                         }

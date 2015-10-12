@@ -43,7 +43,7 @@ public final class RemoteRepoConfigEntry {
         return remote;
     }
 
-    public CommonRepoAccessor findRepo(PackageTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor findRepoXXX(PackageTip repo, VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;
@@ -51,7 +51,7 @@ public final class RemoteRepoConfigEntry {
         return new RemoteRepoAccessor(new CachedRemote(remote, remoteVcs), version);
     }
 
-    public RemoteRepoAccessor findRepoRemote(final PackageTip repo, final VcsVersionDigest version) {
+    public RemoteRepoAccessor findRemoteRepo(final PackageTip repo, final VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;

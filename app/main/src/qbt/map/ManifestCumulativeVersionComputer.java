@@ -26,7 +26,7 @@ public abstract class ManifestCumulativeVersionComputer<K> extends CumulativeVer
 
     @Override
     protected CommonRepoAccessor requireRepo(PackageTip repo, VcsVersionDigest version) {
-        return config.repoConfig.requireRepo(repo, version);
+        return config.requireCommonRepo(repo, version);
     }
 
     public ManifestCumulativeVersionComputer(QbtConfig config, QbtManifest manifest) {

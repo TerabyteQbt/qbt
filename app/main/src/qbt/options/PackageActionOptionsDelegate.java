@@ -89,7 +89,7 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
 
     private static void addOverrides(ImmutableSet.Builder<PackageTip> packagesBuilder, QbtConfig config, QbtManifest manifest) {
         for(Map.Entry<PackageTip, RepoManifest> e : manifest.repos.entrySet()) {
-            if(config.repoConfig.findLocalRepo(e.getKey()) != null) {
+            if(config.localRepoFinder.findLocalRepo(e.getKey()) != null) {
                 for(String pkg : e.getValue().packages.keySet()) {
                     packagesBuilder.add(e.getKey().replacePackage(pkg));
                 }

@@ -112,7 +112,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void add(PackageTip repo, RepoManifest rhs) {
-                RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+                RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoAdd), repo);
@@ -137,7 +137,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             protected void del(PackageTip repo, RepoManifest lhs) {
                 diffRepo(options, config, repo, lhs, RepoManifest.builder(lhs.version).build());
 
-                RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
+                RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
@@ -165,8 +165,8 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
     private void diffRepo(final OptionsResults<? extends Options> options, final QbtConfig config, final PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
         if(!lhs.version.equals(rhs.version)) {
-            RemoteRepoAccessor lhsResult = config.repoConfig.requireRepoRemote(repo, lhs.version);
-            RemoteRepoAccessor rhsResult = config.repoConfig.requireRepoRemote(repo, rhs.version);
+            RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
+            RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
 
             {
                 Runner r = repoRunner(options, options.get(Options.onRepoEdit), repo);
