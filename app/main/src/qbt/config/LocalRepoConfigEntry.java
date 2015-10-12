@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.PackageTip;
+import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
@@ -42,6 +43,16 @@ public final class LocalRepoConfigEntry {
             return null;
         }
         LOGGER.debug("Local repo check for " + repo + " at " + repoDir + " hit");
+        return new LocalRepoAccessor(localVcs, repoDir);
+    }
+
+    public LocalRepoAccessor createLocalRepo(PackageTip repo) {
+        final Path repoDir = formatDirectory(repo);
+        if(repoDir.toFile().exists()) {
+            throw new IllegalArgumentException("Local repo for " + repo + " already exists in " + repoDir);
+        }
+        QbtUtils.mkdirs(repoDir);
+        localVcs.createWorkingRepo(repoDir);
         return new LocalRepoAccessor(localVcs, repoDir);
     }
 }

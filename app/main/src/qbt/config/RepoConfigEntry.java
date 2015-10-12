@@ -35,7 +35,7 @@ public final class RepoConfigEntry {
 
     public RepoConfig.RequireRepoRemoteResult findRepoRemote(PackageTip repo, VcsVersionDigest version) {
         for(RemoteRepoConfigEntry remoteConfig : remoteConfigs) {
-            RepoConfig.RequireRepoRemoteResult r = remoteConfig.findRepoRemote(localConfig, repo, version);
+            RepoConfig.RequireRepoRemoteResult r = remoteConfig.findRepoRemote(repo, version);
             if(r != null) {
                 return r;
             }
@@ -47,6 +47,13 @@ public final class RepoConfigEntry {
     public LocalRepoAccessor findRepoLocal(PackageTip repo) {
         if(localConfig != null) {
             return localConfig.findRepoLocal(repo);
+        }
+        return null;
+    }
+
+    public LocalRepoAccessor createLocalRepo(PackageTip repo) {
+        if(localConfig != null) {
+            return localConfig.createLocalRepo(repo);
         }
         return null;
     }

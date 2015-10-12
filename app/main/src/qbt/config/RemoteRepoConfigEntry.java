@@ -1,7 +1,6 @@
 package qbt.config;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +51,7 @@ public final class RemoteRepoConfigEntry {
         return new RemoteRepoAccessor(remoteVcs, remote, version);
     }
 
-    public RepoConfig.RequireRepoRemoteResult findRepoRemote(final LocalRepoConfigEntry localConfig, final PackageTip repo, final VcsVersionDigest version) {
+    public RepoConfig.RequireRepoRemoteResult findRepoRemote(final PackageTip repo, final VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;
@@ -61,14 +60,6 @@ public final class RemoteRepoConfigEntry {
             @Override
             public CachedRemote getRemote() {
                 return new CachedRemote(remote, remoteVcs);
-            }
-
-            @Override
-            public Path getLocalDirectory() {
-                if(localConfig == null) {
-                    return null;
-                }
-                return localConfig.formatDirectory(repo);
             }
         };
     }

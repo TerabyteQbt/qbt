@@ -2,8 +2,6 @@ package qbt.mains;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collection;
 import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
@@ -14,7 +12,6 @@ import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtManifest;
-import qbt.QbtUtils;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
@@ -22,6 +19,7 @@ import qbt.config.RepoConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
+import qbt.repo.LocalRepoAccessor;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
 
@@ -69,26 +67,22 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
             }
             VcsVersionDigest version = repoManifest.version;
             RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-            Path localDirectory = requireRepoRemoteResult.getLocalDirectory();
-            if(localDirectory == null) {
+            LocalRepoAccessor newLocal = config.repoConfig.createLocalRepo(repo);
+            if(newLocal == null) {
                 throw new IllegalArgumentException("Requested override of " + repo + " which has no associated local directory");
             }
             CachedRemote remote = requireRepoRemoteResult.getRemote();
             LocalVcs localVcs = remote.getLocalVcs();
-
-            if(Files.isDirectory(localDirectory)) {
-                LOGGER.info("Skipped " + repo + " which already exists.");
-                continue;
+            if(!localVcs.equals(newLocal.vcs)) {
+                throw new IllegalStateException("Mismatch of local VCS between remote " + remote + " and local " + newLocal.vcs);
             }
 
-            QbtUtils.mkdirs(localDirectory);
-            localVcs.createWorkingRepo(localDirectory);
-            remote.addAsRemote(localDirectory, "origin");
-            remote.getRawRemoteVcs().fetchRemote(localDirectory, "origin");
-            remote.findCommit(localDirectory, ImmutableList.of(version));
-            localVcs.getRepository(localDirectory).checkout(version);
+            remote.addAsRemote(newLocal.dir, "origin");
+            remote.getRawRemoteVcs().fetchRemote(newLocal.dir, "origin");
+            remote.findCommit(newLocal.dir, ImmutableList.of(version));
+            localVcs.getRepository(newLocal.dir).checkout(version);
 
-            LOGGER.info("Overrode " + repo + " from " + remote.getRemoteString() + " to " + localDirectory + " at " + version.getRawDigest() + ".");
+            LOGGER.info("Overrode " + repo + " from " + remote.getRemoteString() + " to " + newLocal.dir + " at " + version.getRawDigest() + ".");
         }
         return 0;
     }

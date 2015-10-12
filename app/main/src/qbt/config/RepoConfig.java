@@ -1,7 +1,6 @@
 package qbt.config;
 
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
@@ -27,7 +26,6 @@ public final class RepoConfig {
 
     public interface RequireRepoRemoteResult {
         public CachedRemote getRemote();
-        public Path getLocalDirectory();
     }
 
     public RequireRepoRemoteResult requireRepoRemote(PackageTip repo, VcsVersionDigest version) {
@@ -43,6 +41,16 @@ public final class RepoConfig {
     public LocalRepoAccessor findLocalRepo(PackageTip repo) {
         for(RepoConfigEntry e : entries) {
             LocalRepoAccessor r = e.findRepoLocal(repo);
+            if(r != null) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    public LocalRepoAccessor createLocalRepo(PackageTip repo) {
+        for(RepoConfigEntry e : entries) {
+            LocalRepoAccessor r = e.createLocalRepo(repo);
             if(r != null) {
                 return r;
             }
