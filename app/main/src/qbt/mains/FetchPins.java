@@ -1,9 +1,13 @@
 package qbt.mains;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collection;
+import misc1.commons.concurrent.WorkPool;
+import misc1.commons.concurrent.ctree.ComputationTree;
+import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
@@ -20,6 +24,7 @@ import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
+import qbt.options.ParallelismOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.remote.QbtRemote;
 import qbt.vcs.RawRemote;
@@ -31,6 +36,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
     public static interface Options extends QbtCommandOptions {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
+        public static final ParallelismOptionsDelegate<Options> parallelism = new ParallelismOptionsDelegate<Options>();
         public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(RepoActionOptionsDelegate.NoArgsBehaviour.THROW);
         public static final OptionsFragment<Options, ?, ImmutableList<String>> remote = new UnparsedOptionsFragment<Options>("QBT remote from which to fetch", false, 1, 1);
     }
@@ -52,35 +58,58 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
 
     @Override
     public int run(OptionsResults<? extends Options> options) throws IOException {
-        QbtConfig config = Options.config.getConfig(options);
-        QbtManifest manifest = Options.manifest.getResult(options).parse();
+        final QbtConfig config = Options.config.getConfig(options);
+        final QbtManifest manifest = Options.manifest.getResult(options).parse();
         Collection<PackageTip> repos = Options.repos.getRepos(config, manifest, options);
         String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
-        QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
-        boolean fail = false;
-        for(PackageTip repo : repos) {
-            RepoManifest repoManifest = manifest.repos.get(repo);
-            if(repoManifest == null) {
-                throw new IllegalArgumentException("No such repo [tip]: " + repo);
+        final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
+
+        ComputationTree<ImmutableList<Boolean>> computationTree = ComputationTree.transformIterable(repos, new Function<PackageTip, Boolean>() {
+            @Override
+            public Boolean apply(PackageTip repo) {
+                RepoManifest repoManifest = manifest.repos.get(repo);
+                if(repoManifest == null) {
+                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
+                }
+                VcsVersionDigest version = repoManifest.version;
+
+                if(config.localPinsRepo.findPin(repo, version) != null) {
+                    LOGGER.debug("[" + repo + "] Already have " + version);
+                    return true;
+                }
+
+                RawRemote remote = qbtRemote.requireRemote(repo);
+
+                LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+
+                config.localPinsRepo.fetchPins(repo, remote);
+
+                if(config.localPinsRepo.findPin(repo, version) == null) {
+                    LOGGER.error("[" + repo + "] But did not find " + version + "!");
+                    return false;
+                }
+
+                return true;
             }
-            VcsVersionDigest version = repoManifest.version;
-
-            if(config.localPinsRepo.findPin(repo, version) != null) {
-                LOGGER.debug("[" + repo + "] Already have " + version);
-                continue;
-            }
-
-            RawRemote remote = qbtRemote.requireRemote(repo);
-
-            LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
-
-            config.localPinsRepo.fetchPins(repo, remote);
-
-            if(config.localPinsRepo.findPin(repo, version) == null) {
-                LOGGER.error("[" + repo + "] But did not find " + version + "!");
-                fail = true;
+        });
+        final WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool();
+        ImmutableList<Boolean> oks;
+        try {
+            oks = new ComputationTreeComputer() {
+                @Override
+                protected void submit(Runnable r) {
+                    workPool.submit(r);
+                }
+            }.await(computationTree).getCommute();
+        }
+        finally {
+            workPool.shutdown();
+        }
+        for(Boolean ok : oks) {
+            if(!ok) {
+                return 1;
             }
         }
-        return fail ? 1 : 0;
+        return 0;
     }
 }
