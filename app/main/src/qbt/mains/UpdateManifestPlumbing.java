@@ -22,7 +22,7 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
-import qbt.repo.RemoteRepoAccessor;
+import qbt.repo.PinnedRepoAccessor;
 import qbt.vcs.Repository;
 
 public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumbing.Options> {
@@ -100,14 +100,14 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                 }
             }
             if(!newVersion.equals(version)) {
-                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
-                remoteRepoAccessor.remote.findCommit(localRepoAccessor.dir, ImmutableList.of(version));
+                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
+                pinnedAccessor.findCommit(localRepoAccessor.dir);
                 if(!options.get(Options.allowNonFf) && !repository.isAncestorOf(version, newVersion)) {
                     LOGGER.error("Updating " + repo + " from " + version.getRawDigest() + " to " + newVersion.getRawDigest() + " is not fast-forward!");
                     fail = true;
                     continue;
                 }
-                remoteRepoAccessor.remote.addPin(localRepoAccessor.dir, newVersion);
+                pinnedAccessor.addPin(localRepoAccessor.dir, newVersion);
                 repoManifest = repoManifest.builder().withVersion(newVersion).build();
                 newManifest = newManifest.with(repo, repoManifest);
                 LOGGER.info(String.format("Updated repo %s from %s to %s...", repo, version.getRawDigest(), newVersion.getRawDigest()));

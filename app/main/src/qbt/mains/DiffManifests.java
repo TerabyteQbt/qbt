@@ -25,7 +25,7 @@ import qbt.diffmanifests.NoEditMapDiffer;
 import qbt.diffmanifests.Runner;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
-import qbt.repo.RemoteRepoAccessor;
+import qbt.repo.PinnedRepoAccessor;
 
 public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
     @QbtCommandName("diffManifests")
@@ -101,10 +101,10 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         return r;
     }
 
-    private Runner runnerAddRepo(Runner r, String suffix, VcsVersionDigest version, RemoteRepoAccessor result) {
-        r = r.findCommit(result.remote, version);
+    private Runner runnerAddRepo(Runner r, String suffix, VcsVersionDigest version, PinnedRepoAccessor result) {
+        r = r.findCommit(result);
         r = r.addEnv("REPO_VERSION" + suffix, version.getRawDigest().toString());
-        r = r.addEnv("REPO_TREE" + suffix, result.remote.getSubtree(version, "").getRawDigest().toString());
+        r = r.addEnv("REPO_TREE" + suffix, result.getSubtree("").getRawDigest().toString());
         return r;
     }
 
@@ -112,7 +112,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void add(PackageTip repo, RepoManifest rhs) {
-                RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
+                PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoAdd), repo);
@@ -123,9 +123,9 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                    r = r.findCommit(rhsResult.remote, rhs.version);
-                    r = r.addEnv("REPO_TREE_LHS", rhsResult.remote.getLocalVcs().emptyTree().getRawDigest().toString());
-                    r = r.addEnv("REPO_TREE_RHS", rhsResult.remote.getSubtree(rhs.version, "").getRawDigest().toString());
+                    r = r.findCommit(rhsResult);
+                    r = r.addEnv("REPO_TREE_LHS", rhsResult.getLocalVcs().emptyTree().getRawDigest().toString());
+                    r = r.addEnv("REPO_TREE_RHS", rhsResult.getSubtree("").getRawDigest().toString());
                     r = r.checkout(rhs.version);
                     r.run();
                 }
@@ -137,13 +137,13 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             protected void del(PackageTip repo, RepoManifest lhs) {
                 diffRepo(options, config, repo, lhs, RepoManifest.builder(lhs.version).build());
 
-                RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
+                PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
 
                 {
                     Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                    r = r.findCommit(lhsResult.remote, lhs.version);
-                    r = r.addEnv("REPO_TREE_LHS", lhsResult.remote.getSubtree(lhs.version, "").getRawDigest().toString());
-                    r = r.addEnv("REPO_TREE_RHS", lhsResult.remote.getLocalVcs().emptyTree().getRawDigest().toString());
+                    r = r.findCommit(lhsResult);
+                    r = r.addEnv("REPO_TREE_LHS", lhsResult.getSubtree("").getRawDigest().toString());
+                    r = r.addEnv("REPO_TREE_RHS", lhsResult.getLocalVcs().emptyTree().getRawDigest().toString());
                     r = r.checkout(lhs.version);
                     r.run();
                 }
@@ -165,8 +165,8 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
     private void diffRepo(final OptionsResults<? extends Options> options, final QbtConfig config, final PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
         if(!lhs.version.equals(rhs.version)) {
-            RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
-            RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
+            PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
+            PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
 
             {
                 Runner r = repoRunner(options, options.get(Options.onRepoEdit), repo);
@@ -178,10 +178,10 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
 
             {
                 Runner r = repoRunner(options, options.get(Options.onRepoEditPlus), repo);
-                r = r.findCommit(lhsResult.remote, lhs.version);
-                r = r.findCommit(rhsResult.remote, rhs.version);
-                r = r.addEnv("REPO_TREE_LHS", lhsResult.remote.getSubtree(lhs.version, "").getRawDigest().toString());
-                r = r.addEnv("REPO_TREE_RHS", rhsResult.remote.getSubtree(rhs.version, "").getRawDigest().toString());
+                r = r.findCommit(lhsResult);
+                r = r.findCommit(rhsResult);
+                r = r.addEnv("REPO_TREE_LHS", lhsResult.getSubtree("").getRawDigest().toString());
+                r = r.addEnv("REPO_TREE_RHS", rhsResult.getSubtree("").getRawDigest().toString());
                 r = r.checkout(rhs.version);
                 r.run();
             }

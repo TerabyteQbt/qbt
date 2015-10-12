@@ -1,11 +1,10 @@
 package qbt.diffmanifests;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import qbt.QbtTempDir;
 import qbt.VcsVersionDigest;
+import qbt.repo.PinnedRepoAccessor;
 import qbt.utils.ProcessHelper;
-import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
 
 public abstract class Runner {
@@ -13,7 +12,7 @@ public abstract class Runner {
     }
 
     public abstract Runner addEnv(String key, String value);
-    public abstract Runner findCommit(CachedRemote remote, VcsVersionDigest version);
+    public abstract Runner findCommit(PinnedRepoAccessor pinnedAccessor);
     public abstract Runner checkout(VcsVersionDigest version);
     public abstract void run();
 
@@ -24,7 +23,7 @@ public abstract class Runner {
         }
 
         @Override
-        public Runner findCommit(CachedRemote remote, VcsVersionDigest version) {
+        public Runner findCommit(PinnedRepoAccessor pinnedAccessor) {
             return this;
         }
 
@@ -62,17 +61,17 @@ public abstract class Runner {
         }
 
         @Override
-        public Runner findCommit(CachedRemote remote, VcsVersionDigest version) {
+        public Runner findCommit(PinnedRepoAccessor pinnedAccessor) {
             if(localVcs == null) {
-                localVcs = remote.getLocalVcs();
+                localVcs = pinnedAccessor.getLocalVcs();
                 localVcs.createWorkingRepo(dir.path);
             }
             else {
-                if(!localVcs.equals(remote.getLocalVcs())) {
-                    throw new RuntimeException("Mismatched local VCSs: " + localVcs + " / " + remote.getLocalVcs());
+                if(!localVcs.equals(pinnedAccessor.getLocalVcs())) {
+                    throw new RuntimeException("Mismatched local VCSs: " + localVcs + " / " + pinnedAccessor.getLocalVcs());
                 }
             }
-            remote.findCommit(dir.path, ImmutableList.of(version));
+            pinnedAccessor.findCommit(dir.path);
             return this;
         }
 

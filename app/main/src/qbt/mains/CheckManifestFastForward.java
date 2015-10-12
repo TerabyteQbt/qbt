@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import misc1.commons.options.OptionsResults;
@@ -16,8 +15,7 @@ import qbt.config.QbtConfig;
 import qbt.diffmanifests.MapDiffer;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
-import qbt.repo.RemoteRepoAccessor;
-import qbt.vcs.CachedRemote;
+import qbt.repo.PinnedRepoAccessor;
 import qbt.vcs.LocalVcs;
 
 public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForward.Options> {
@@ -58,21 +56,21 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
         new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
             @Override
             protected void edit(PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
-                RemoteRepoAccessor lhsResult = config.repoConfig.requireRemoteRepo(repo, lhs.version);
-                RemoteRepoAccessor rhsResult = config.repoConfig.requireRemoteRepo(repo, rhs.version);
+                PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
+                PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
 
-                CachedRemote lhsRemote = lhsResult.remote;
-                CachedRemote rhsRemote = rhsResult.remote;
-                if(!lhsRemote.matchedLocal(rhsRemote)) {
-                    throw new RuntimeException("Mismatched remotes: " + lhsRemote + " / " + rhsRemote);
+                LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
+                LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
+                if(!lhsLocalVcs.equals(rhsLocalVcs)) {
+                    throw new RuntimeException("Mismatched local vcs: " + lhsLocalVcs + " / " + rhsLocalVcs);
                 }
-                LocalVcs localVcs = lhsRemote.getLocalVcs();
+                LocalVcs localVcs = lhsLocalVcs;
 
                 try(QbtTempDir tempDir = new QbtTempDir()) {
                     Path dir = tempDir.path;
                     localVcs.createWorkingRepo(dir);
-                    lhsRemote.findCommit(dir, ImmutableList.of(lhs.version));
-                    rhsRemote.findCommit(dir, ImmutableList.of(rhs.version));
+                    lhsResult.findCommit(dir);
+                    rhsResult.findCommit(dir);
 
                     if(!localVcs.getRepository(dir).isAncestorOf(lhs.version, rhs.version)) {
                         throw new RuntimeException("Not fast forward: " + repo + ": " + lhs.version.getRawDigest() + " -> " + rhs.version.getRawDigest());

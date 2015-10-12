@@ -2,6 +2,7 @@ qbt.mains.BuildPlumbing
 qbt.mains.BuildPorcelain
 qbt.mains.CheckManifestFastForward
 qbt.mains.DiffManifests
+qbt.mains.FetchPins
 qbt.mains.GetOverridePlumbing
 qbt.mains.GetOverridePorcelain
 qbt.mains.MergeManifests

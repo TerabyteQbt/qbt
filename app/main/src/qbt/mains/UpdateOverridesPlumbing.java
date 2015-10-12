@@ -22,7 +22,7 @@ import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
-import qbt.repo.RemoteRepoAccessor;
+import qbt.repo.PinnedRepoAccessor;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -94,8 +94,8 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
                 }
             }
             if(!repository.commitExists(version)) {
-                RemoteRepoAccessor remoteRepoAccessor = config.repoConfig.requireRemoteRepo(repo, version);
-                remoteRepoAccessor.remote.findCommit(dir, ImmutableList.of(version));
+                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
+                pinnedAccessor.findCommit(dir);
             }
             repository.checkout(version);
             LOGGER.info("Updated " + repo + " from " + oldVersion.getRawDigest() + " to " + version.getRawDigest());

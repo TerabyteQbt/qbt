@@ -40,9 +40,8 @@ import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
-import qbt.repo.RemoteRepoAccessor;
+import qbt.repo.PinnedRepoAccessor;
 import qbt.utils.ProcessHelper;
-import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -273,32 +272,32 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
     private static final Merger<PackageTip, VcsVersionDigest> versionMerger = new Merger<PackageTip, VcsVersionDigest>() {
         @Override
         protected Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergeConflict(Context context, String label, PackageTip repo, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
-            RemoteRepoAccessor lhsResult = context.config.repoConfig.requireRemoteRepo(repo, lhs);
-            CachedRemote lhsRemote = lhsResult.remote;
+            PinnedRepoAccessor lhsResult = context.config.localPinsRepo.requirePin(repo, lhs);
+            LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
 
-            RemoteRepoAccessor mhsResult = context.config.repoConfig.requireRemoteRepo(repo, mhs);
-            CachedRemote mhsRemote = mhsResult.remote;
+            PinnedRepoAccessor mhsResult = context.config.localPinsRepo.requirePin(repo, mhs);
+            LocalVcs mhsLocalVcs = mhsResult.getLocalVcs();
 
-            RemoteRepoAccessor rhsResult = context.config.repoConfig.requireRemoteRepo(repo, rhs);
-            CachedRemote rhsRemote = rhsResult.remote;
+            PinnedRepoAccessor rhsResult = context.config.localPinsRepo.requirePin(repo, rhs);
+            LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
 
-            if(!lhsRemote.matchedLocal(mhsRemote) || !rhsRemote.matchedLocal(mhsRemote)) {
-                LOGGER.error("[" + label + "] Found mis-matched VCS: " + lhsRemote + ", " + mhsRemote + ", " + rhsRemote);
+            if(!lhsLocalVcs.equals(mhsLocalVcs) || !rhsLocalVcs.equals(mhsLocalVcs)) {
+                LOGGER.error("[" + label + "] Found mis-matched VCS: " + lhsLocalVcs + ", " + mhsLocalVcs + ", " + rhsLocalVcs);
                 return Triple.of(lhs, mhs, rhs);
             }
-            LocalVcs localVcs = lhsRemote.getLocalVcs();
+            LocalVcs localVcs = lhsLocalVcs;
 
             try(QbtTempDir tempDir = new QbtTempDir()) {
                 Path repoDir = tempDir.path;
                 localVcs.createWorkingRepo(repoDir);
-                lhsRemote.findCommit(repoDir, ImmutableList.of(lhs));
-                mhsRemote.findCommit(repoDir, ImmutableList.of(mhs));
-                rhsRemote.findCommit(repoDir, ImmutableList.of(rhs));
+                lhsResult.findCommit(repoDir);
+                mhsResult.findCommit(repoDir);
+                rhsResult.findCommit(repoDir);
                 Repository repository = localVcs.getRepository(repoDir);
                 context.strategy.invoke(repo, repository, lhs, mhs, rhs);
                 VcsVersionDigest result = repository.getCurrentCommit();
-                lhsRemote.addPin(repoDir, result);
-                rhsRemote.addPin(repoDir, result);
+                lhsResult.addPin(repoDir, result);
+                rhsResult.addPin(repoDir, result);
 
                 return Triple.of(result, result, result);
             }
