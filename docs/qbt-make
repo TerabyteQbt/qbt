@@ -3,6 +3,11 @@
 set -e
 
 mkdir -p $OUTPUT_ARTIFACTS_DIR/docs/markdown
-cp -rp *.md $OUTPUT_ARTIFACTS_DIR/docs/markdown
+cp -rp markdown $OUTPUT_ARTIFACTS_DIR/docs/
 
-# TODO: build html from markdown and install that too
+# build our markdown processor
+javac -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g') src/org/cmyers/qbt/docs/MarkdownGenerator.java
+
+# build our HTML
+mkdir -p $OUTPUT_ARTIFACTS_DIR/docs/html
+cd markdown && java -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g'):../src org.cmyers.qbt.docs.MarkdownGenerator $OUTPUT_ARTIFACTS_DIR/docs/html *
