@@ -2,7 +2,7 @@
 
 set -e
 
-mkdir -p $OUTPUT_ARTIFACTS_DIR/markdown
-cp -rp *.md $OUTPUT_ARTIFACTS_DIR/markdown
+mkdir -p $OUTPUT_ARTIFACTS_DIR/docs/markdown
+cp -rp *.md $OUTPUT_ARTIFACTS_DIR/docs/markdown
 
 # TODO: build html from markdown and install that too
