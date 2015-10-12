@@ -48,7 +48,7 @@ public final class RemoteRepoConfigEntry {
         if(remote == null) {
             return null;
         }
-        return new RemoteRepoAccessor(remoteVcs, remote, version);
+        return new RemoteRepoAccessor(new CachedRemote(remote, remoteVcs), version);
     }
 
     public RepoConfig.RequireRepoRemoteResult findRepoRemote(final PackageTip repo, final VcsVersionDigest version) {

@@ -35,6 +35,10 @@ public class CachedRemote extends RawRemote {
         return vcs.getSubtree(remote, version, subpath);
     }
 
+    public void checkoutTree(VcsVersionDigest version, String subpath, Path dir) {
+        vcs.checkoutTree(remote, version, subpath, dir);
+    }
+
     public boolean matchedLocal(CachedRemote other) {
         return getLocalVcs().equals(other.getLocalVcs());
     }

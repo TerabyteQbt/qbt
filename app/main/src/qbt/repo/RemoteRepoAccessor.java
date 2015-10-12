@@ -7,15 +7,13 @@ import qbt.QbtTempDir;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
-import qbt.vcs.CachedRemoteVcs;
+import qbt.vcs.CachedRemote;
 
 public final class RemoteRepoAccessor implements CommonRepoAccessor {
-    private final CachedRemoteVcs remoteVcs;
-    private final String remote;
+    private final CachedRemote remote;
     private final VcsVersionDigest version;
 
-    public RemoteRepoAccessor(CachedRemoteVcs remoteVcs, String remote, VcsVersionDigest version) {
-        this.remoteVcs = remoteVcs;
+    public RemoteRepoAccessor(CachedRemote remote, VcsVersionDigest version) {
         this.remote = remote;
         this.version = version;
     }
@@ -25,7 +23,7 @@ public final class RemoteRepoAccessor implements CommonRepoAccessor {
         final QbtTempDir packageDir = new QbtTempDir();
         // We could leak packageDir if this checkout crashes but oh
         // well.
-        remoteVcs.checkoutTree(remote, version, prefix, packageDir.path);
+        remote.checkoutTree(version, prefix, packageDir.path);
         return new PackageDirectory() {
             @Override
             public Path getDir() {
@@ -42,10 +40,10 @@ public final class RemoteRepoAccessor implements CommonRepoAccessor {
     @Override
     public VcsTreeDigest getEffectiveTree(Maybe<String> prefix) {
         if(prefix.isPresent()) {
-            return remoteVcs.getSubtree(remote, version, prefix.get(null));
+            return remote.getSubtree(version, prefix.get(null));
         }
         else {
-            return remoteVcs.getRawRemoteVcs().getLocalVcs().emptyTree();
+            return remote.getLocalVcs().emptyTree();
         }
     }
 
