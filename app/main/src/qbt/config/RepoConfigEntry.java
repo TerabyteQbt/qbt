@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
+import qbt.repo.LocalRepoAccessor;
 
 public final class RepoConfigEntry {
     public final LocalRepoConfigEntry localConfig;
@@ -43,7 +44,7 @@ public final class RepoConfigEntry {
         return null;
     }
 
-    public RepoConfig.RequireRepoLocalResult findRepoLocal(PackageTip repo) {
+    public LocalRepoAccessor findRepoLocal(PackageTip repo) {
         if(localConfig != null) {
             return localConfig.findRepoLocal(repo);
         }

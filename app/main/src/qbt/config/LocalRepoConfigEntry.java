@@ -35,23 +35,13 @@ public final class LocalRepoConfigEntry {
         return new LocalRepoAccessor(localVcs, repoDir);
     }
 
-    public RepoConfig.RequireRepoLocalResult findRepoLocal(final PackageTip repo) {
+    public LocalRepoAccessor findRepoLocal(final PackageTip repo) {
         final Path repoDir = formatDirectory(repo);
         if(!localVcs.isRepo(repoDir)) {
             LOGGER.debug("Local repo check for " + repo + " at " + repoDir + " missed");
             return null;
         }
         LOGGER.debug("Local repo check for " + repo + " at " + repoDir + " hit");
-        return new RepoConfig.RequireRepoLocalResult() {
-            @Override
-            public LocalVcs getLocalVcs() {
-                return localVcs;
-            }
-
-            @Override
-            public Path getDirectory() {
-                return repoDir;
-            }
-        };
+        return new LocalRepoAccessor(localVcs, repoDir);
     }
 }

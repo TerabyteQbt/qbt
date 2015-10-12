@@ -22,6 +22,7 @@ import qbt.config.RepoConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
+import qbt.repo.LocalRepoAccessor;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -70,12 +71,12 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            RepoConfig.RequireRepoLocalResult requireRepoLocalResult = config.repoConfig.findLocalRepo(repo);
-            if(requireRepoLocalResult == null) {
+            LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+            if(localRepoAccessor == null) {
                 continue;
             }
-            Path dir = requireRepoLocalResult.getDirectory();
-            LocalVcs localVcs = requireRepoLocalResult.getLocalVcs();
+            Path dir = localRepoAccessor.dir;
+            LocalVcs localVcs = localRepoAccessor.vcs;
             Repository repository = localVcs.getRepository(dir);
             VcsVersionDigest oldVersion = repository.getCurrentCommit();
             if(oldVersion.equals(version)) {

@@ -22,6 +22,7 @@ import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
 import qbt.options.RepoActionOptionsDelegate;
+import qbt.repo.LocalRepoAccessor;
 import qbt.vcs.Repository;
 
 public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumbing.Options> {
@@ -72,11 +73,11 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             VcsVersionDigest version = repoManifest.version;
-            RepoConfig.RequireRepoLocalResult requireRepoLocalResult = config.repoConfig.findLocalRepo(repo);
-            if(requireRepoLocalResult == null) {
+            LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+            if(localRepoAccessor == null) {
                 continue;
             }
-            Repository repository = requireRepoLocalResult.getLocalVcs().getRepository(requireRepoLocalResult.getDirectory());
+            Repository repository = localRepoAccessor.vcs.getRepository(localRepoAccessor.dir);
             VcsVersionDigest newVersion = repository.getCurrentCommit();
             if(!repository.isClean()) {
                 String prefix;
@@ -100,13 +101,13 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
             }
             if(!newVersion.equals(version)) {
                 RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-                requireRepoRemoteResult.getRemote().findCommit(requireRepoLocalResult.getDirectory(), ImmutableList.of(version));
+                requireRepoRemoteResult.getRemote().findCommit(localRepoAccessor.dir, ImmutableList.of(version));
                 if(!options.get(Options.allowNonFf) && !repository.isAncestorOf(version, newVersion)) {
                     LOGGER.error("Updating " + repo + " from " + version.getRawDigest() + " to " + newVersion.getRawDigest() + " is not fast-forward!");
                     fail = true;
                     continue;
                 }
-                requireRepoRemoteResult.getRemote().addPin(requireRepoLocalResult.getDirectory(), newVersion);
+                requireRepoRemoteResult.getRemote().addPin(localRepoAccessor.dir, newVersion);
                 repoManifest = repoManifest.builder().withVersion(newVersion).build();
                 newManifest = newManifest.with(repo, repoManifest);
                 LOGGER.info(String.format("Updated repo %s from %s to %s...", repo, version.getRawDigest(), newVersion.getRawDigest()));

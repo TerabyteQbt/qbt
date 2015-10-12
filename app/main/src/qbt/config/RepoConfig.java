@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
+import qbt.repo.LocalRepoAccessor;
 import qbt.vcs.CachedRemote;
-import qbt.vcs.LocalVcs;
 
 public final class RepoConfig {
     private final ImmutableList<RepoConfigEntry> entries;
@@ -41,14 +41,9 @@ public final class RepoConfig {
         throw new IllegalArgumentException("Could not find remote repo for " + repo);
     }
 
-    public interface RequireRepoLocalResult {
-        LocalVcs getLocalVcs();
-        Path getDirectory();
-    }
-
-    public RequireRepoLocalResult findLocalRepo(PackageTip repo) {
+    public LocalRepoAccessor findLocalRepo(PackageTip repo) {
         for(RepoConfigEntry e : entries) {
-            RequireRepoLocalResult r = e.findRepoLocal(repo);
+            LocalRepoAccessor r = e.findRepoLocal(repo);
             if(r != null) {
                 return r;
             }

@@ -31,6 +31,7 @@ import qbt.options.ParallelismOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
+import qbt.repo.LocalRepoAccessor;
 import qbt.utils.ProcessHelper;
 
 public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.Options> {
@@ -97,18 +98,18 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);
                 }
                 VcsVersionDigest version = repoManifest.version;
-                final RepoConfig.RequireRepoLocalResult requireRepoLocalResult = config.repoConfig.findLocalRepo(repo);
-                if(requireRepoLocalResult == null) {
+                final LocalRepoAccessor localRepoAccessor = config.repoConfig.findLocalRepo(repo);
+                if(localRepoAccessor == null) {
                     return ObjectUtils.NULL;
                 }
-                ProcessHelper p = new ProcessHelper(requireRepoLocalResult.getDirectory(), shellActionOptionsResult.commandArray);
+                ProcessHelper p = new ProcessHelper(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
                 class VersionAdder {
                     public ProcessHelper addVersion(ProcessHelper p, String name, VcsVersionDigest version) {
                         String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
                         if(version != null) {
-                            if(!requireRepoLocalResult.getLocalVcs().getRepository(requireRepoLocalResult.getDirectory()).commitExists(version)) {
+                            if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
                                 RepoConfig.RequireRepoRemoteResult requireRepoRemoteResult = config.repoConfig.requireRepoRemote(repo, version);
-                                requireRepoRemoteResult.getRemote().findCommit(requireRepoLocalResult.getDirectory(), ImmutableList.of(version));
+                                requireRepoRemoteResult.getRemote().findCommit(localRepoAccessor.dir, ImmutableList.of(version));
                             }
                         }
                         p = p.putEnv(envName, version == null ? "" : version.getRawDigest().toString());

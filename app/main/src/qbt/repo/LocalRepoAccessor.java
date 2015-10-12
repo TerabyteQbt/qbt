@@ -15,16 +15,16 @@ import qbt.vcs.LocalVcs;
 public class LocalRepoAccessor implements CommonRepoAccessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalRepoAccessor.class);
 
-    private final LocalVcs localVcs;
-    private final Path repoDir;
+    public final LocalVcs vcs;
+    public final Path dir;
 
-    public LocalRepoAccessor(LocalVcs localVcs, Path repoDir) {
-        this.localVcs = localVcs;
-        this.repoDir = repoDir;
+    public LocalRepoAccessor(LocalVcs vcs, Path dir) {
+        this.vcs = vcs;
+        this.dir = dir;
     }
 
     private Path packageDir(String prefix) {
-        return prefix.isEmpty() ? repoDir : repoDir.resolve(prefix);
+        return prefix.isEmpty() ? dir : dir.resolve(prefix);
     }
 
     @Override
@@ -46,10 +46,10 @@ public class LocalRepoAccessor implements CommonRepoAccessor {
     @Override
     public VcsTreeDigest getEffectiveTree(Maybe<String> prefix) {
         if(prefix.isPresent()) {
-            return localVcs.getRepository(repoDir).getEffectiveTree(Paths.get(prefix.get(null)));
+            return vcs.getRepository(dir).getEffectiveTree(Paths.get(prefix.get(null)));
         }
         else {
-            return localVcs.emptyTree();
+            return vcs.emptyTree();
         }
     }
 
@@ -61,12 +61,12 @@ public class LocalRepoAccessor implements CommonRepoAccessor {
     private final ArrayTreeLock<String> inUse = new ArrayTreeLock<String>();
 
     private void lock(String prefix) {
-        LOGGER.debug("Local repo locking " + repoDir.resolve(prefix));
+        LOGGER.debug("Local repo locking " + dir.resolve(prefix));
         inUse.lock(ArrayTreeLockPath.split(prefix, '/'));
     }
 
     private void unlock(String prefix) {
-        LOGGER.debug("Local repo unlocking " + repoDir.resolve(prefix));
+        LOGGER.debug("Local repo unlocking " + dir.resolve(prefix));
         inUse.unlock(ArrayTreeLockPath.split(prefix, '/'));
     }
 }
