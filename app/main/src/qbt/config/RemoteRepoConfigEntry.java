@@ -3,15 +3,12 @@ package qbt.config;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Map;
-import misc1.commons.Maybe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import qbt.PackageDirectory;
 import qbt.PackageTip;
-import qbt.QbtTempDir;
-import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.repo.CommonRepoAccessor;
+import qbt.repo.RemoteRepoAccessor;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.CachedRemoteVcs;
 
@@ -47,46 +44,12 @@ public final class RemoteRepoConfigEntry {
         return remote;
     }
 
-    public CommonRepoAccessor findRepo(PackageTip repo, final VcsVersionDigest version) {
+    public CommonRepoAccessor findRepo(PackageTip repo, VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;
         }
-        return new CommonRepoAccessor() {
-            @Override
-            public PackageDirectory makePackageDirectory(String prefix) {
-                final QbtTempDir packageDir = new QbtTempDir();
-                // We could leak packageDir if this checkout crashes but oh
-                // well.
-                remoteVcs.checkoutTree(remote, version, prefix, packageDir.path);
-                return new PackageDirectory() {
-                    @Override
-                    public Path getDir() {
-                        return packageDir.path;
-                    }
-
-                    @Override
-                    public void close() {
-                        packageDir.close();
-                    }
-                };
-            }
-
-            @Override
-            public VcsTreeDigest getEffectiveTree(Maybe<String> prefix) {
-                if(prefix.isPresent()) {
-                    return remoteVcs.getSubtree(remote, version, prefix.get(null));
-                }
-                else {
-                    return remoteVcs.getRawRemoteVcs().getLocalVcs().emptyTree();
-                }
-            }
-
-            @Override
-            public boolean isOverride() {
-                return false;
-            }
-        };
+        return new RemoteRepoAccessor(remoteVcs, remote, version);
     }
 
     public RepoConfig.RequireRepoRemoteResult findRepoRemote(final LocalRepoConfigEntry localConfig, final PackageTip repo, final VcsVersionDigest version) {
