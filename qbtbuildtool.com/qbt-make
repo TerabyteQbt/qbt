@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+cp -rp docroot/* $OUTPUT_ARTIFACTS_DIR/
+(cd $INPUT_ARTIFACTS_DIR/weak/meta_tools.release/strong/meta_tools.release && tar -czf $OUTPUT_ARTIFACTS_DIR/qbt-release.tar.gz *)
+
