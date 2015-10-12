@@ -64,15 +64,6 @@ public final class RemoteRepoConfigEntry {
             }
 
             @Override
-            public CachedRemote getVanityRemote() {
-                CachedRemote ret = vanityRemotes.get(repo.pkg);
-                if(ret == null) {
-                    ret = getRemote();
-                }
-                return ret;
-            }
-
-            @Override
             public Path getLocalDirectory() {
                 if(localConfig == null) {
                     return null;

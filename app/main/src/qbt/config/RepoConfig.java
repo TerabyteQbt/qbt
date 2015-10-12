@@ -27,7 +27,6 @@ public final class RepoConfig {
 
     public interface RequireRepoRemoteResult {
         public CachedRemote getRemote();
-        public CachedRemote getVanityRemote();
         public Path getLocalDirectory();
     }
 

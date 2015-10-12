@@ -74,10 +74,6 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
                 throw new IllegalArgumentException("Requested override of " + repo + " which has no associated local directory");
             }
             CachedRemote remote = requireRepoRemoteResult.getRemote();
-            CachedRemote vanityRemote = requireRepoRemoteResult.getVanityRemote();
-            if(!remote.matchedRaw(vanityRemote)) {
-                throw new RuntimeException("Mismatched remotes " + remote + "/" + vanityRemote);
-            }
             LocalVcs localVcs = remote.getLocalVcs();
 
             if(Files.isDirectory(localDirectory)) {
@@ -87,12 +83,12 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
 
             QbtUtils.mkdirs(localDirectory);
             localVcs.createWorkingRepo(localDirectory);
-            vanityRemote.addAsRemote(localDirectory, "origin");
+            remote.addAsRemote(localDirectory, "origin");
             remote.getRawRemoteVcs().fetchRemote(localDirectory, "origin");
             remote.findCommit(localDirectory, ImmutableList.of(version));
             localVcs.getRepository(localDirectory).checkout(version);
 
-            LOGGER.info("Overrode " + repo + " from " + vanityRemote.getRemoteString() + " to " + localDirectory + " at " + version.getRawDigest() + ".");
+            LOGGER.info("Overrode " + repo + " from " + remote.getRemoteString() + " to " + localDirectory + " at " + version.getRawDigest() + ".");
         }
         return 0;
     }
