@@ -2,11 +2,9 @@ package qbt.config;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import misc1.commons.Maybe;
-import qbt.PackageDirectory;
 import qbt.PackageTip;
-import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
+import qbt.repo.CommonRepoAccessor;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.LocalVcs;
 
@@ -17,15 +15,9 @@ public final class RepoConfig {
         this.entries = entries;
     }
 
-    public interface RequireRepoResult {
-        public PackageDirectory makePackageDirectory(String prefix);
-        public VcsTreeDigest getEffectiveTree(Maybe<String> prefix);
-        public boolean isOverride();
-    }
-
-    public RequireRepoResult requireRepo(PackageTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor requireRepo(PackageTip repo, VcsVersionDigest version) {
         for(RepoConfigEntry e : entries) {
-            RequireRepoResult r = e.findRepo(repo, version);
+            CommonRepoAccessor r = e.findRepo(repo, version);
             if(r != null) {
                 return r;
             }

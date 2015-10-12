@@ -43,7 +43,7 @@ public final class PackageMapperHelper {
                     // This is sort of a crummy way to do this.
                     // Additionally, this is only checking overrides
                     // since non-overrides have a fixed effective tree.
-                    VcsTreeDigest currentTree = bd.requireRepoResult.getEffectiveTree(bd.metadata.get(PackageMetadataType.PREFIX));
+                    VcsTreeDigest currentTree = bd.commonRepoAccessor.getEffectiveTree(bd.metadata.get(PackageMetadataType.PREFIX));
                     if(!bd.v.getEffectiveTree().equals(currentTree)) {
                         throw new IllegalStateException("The effective tree for " + bd.v.getPackageName() + " has changed from " + bd.v.getEffectiveTree().getRawDigest() + " to " + currentTree.getRawDigest() + suffix + "!");
                     }

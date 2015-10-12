@@ -3,10 +3,10 @@ package qbt;
 import java.nio.file.Path;
 import misc1.commons.Maybe;
 import qbt.build.BuildData;
-import qbt.config.RepoConfig;
 import qbt.map.CumulativeVersionComputer;
 import qbt.metadata.Metadata;
 import qbt.metadata.PackageMetadataType;
+import qbt.repo.CommonRepoAccessor;
 
 public final class PackageDirectories {
     private PackageDirectories() {
@@ -14,17 +14,17 @@ public final class PackageDirectories {
     }
 
     public static PackageDirectory forBuildData(BuildData bd) {
-        return forCommon(bd.metadata, bd.requireRepoResult);
+        return forCommon(bd.metadata, bd.commonRepoAccessor);
     }
 
     public static PackageDirectory forCvcResult(CumulativeVersionComputer.Result result) {
-        return forCommon(result.packageManifest.metadata, result.requireRepoResult);
+        return forCommon(result.packageManifest.metadata, result.commonRepoAccessor);
     }
 
-    private static PackageDirectory forCommon(Metadata<PackageMetadataType> metadata, RepoConfig.RequireRepoResult requireRepoResult) {
+    private static PackageDirectory forCommon(Metadata<PackageMetadataType> metadata, CommonRepoAccessor commonRepoAccessor) {
         Maybe<String> prefix = metadata.get(PackageMetadataType.PREFIX);
         if(prefix.isPresent()) {
-            return requireRepoResult.makePackageDirectory(prefix.get(null));
+            return commonRepoAccessor.makePackageDirectory(prefix.get(null));
         }
         else {
             final QbtTempDir packageDir = new QbtTempDir();

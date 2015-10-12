@@ -3,6 +3,7 @@ package qbt.config;
 import com.google.common.collect.ImmutableList;
 import qbt.PackageTip;
 import qbt.VcsVersionDigest;
+import qbt.repo.CommonRepoAccessor;
 
 public final class RepoConfigEntry {
     public final LocalRepoConfigEntry localConfig;
@@ -13,16 +14,16 @@ public final class RepoConfigEntry {
         this.remoteConfigs = remoteConfigs;
     }
 
-    public RepoConfig.RequireRepoResult findRepo(PackageTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor findRepo(PackageTip repo, VcsVersionDigest version) {
         if(localConfig != null) {
-            RepoConfig.RequireRepoResult r = localConfig.findRepo(repo, version);
+            CommonRepoAccessor r = localConfig.findRepo(repo, version);
             if(r != null) {
                 return r;
             }
         }
 
         for(RemoteRepoConfigEntry remoteConfig : remoteConfigs) {
-            RepoConfig.RequireRepoResult r = remoteConfig.findRepo(repo, version);
+            CommonRepoAccessor r = remoteConfig.findRepo(repo, version);
             if(r != null) {
                 return r;
             }

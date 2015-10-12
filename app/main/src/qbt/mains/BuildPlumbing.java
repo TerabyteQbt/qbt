@@ -201,9 +201,9 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
             public ComputationTree<ObjectUtils.Null> run(final PackageMapperHelper.PackageMapperHelperCallbackCallback cb) {
                 CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>> computationMapper = new CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>>() {
                     @Override
-                    protected CvRecursivePackageData<ArtifactReference> map(CvRecursivePackageData<CumulativeVersionComputer.Result> requireRepoResults, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
-                        BuildData bd = new BuildData(requireRepoResults, dependencyResults);
-                        CumulativeVersion v = requireRepoResults.v;
+                    protected CvRecursivePackageData<ArtifactReference> map(CvRecursivePackageData<CumulativeVersionComputer.Result> commonRepoAccessor, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
+                        BuildData bd = new BuildData(commonRepoAccessor, dependencyResults);
+                        CumulativeVersion v = commonRepoAccessor.v;
                         Pair<Result<ArtifactReference>, ArtifactReference> result = cb.runBuildFailable(bd);
                         ArtifactReference reports = result.getRight();
                         if(reports != null && reportsDir != null) {
@@ -237,7 +237,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                         }
                         ArtifactReference artifactReference = artifactResult.getCommute();
                         runPublish(PublishTime.all, null, v, artifactReference);
-                        return new CvRecursivePackageData<ArtifactReference>(requireRepoResults.v, artifactReference, dependencyResults);
+                        return new CvRecursivePackageData<ArtifactReference>(commonRepoAccessor.v, artifactReference, dependencyResults);
                     }
                 };
 

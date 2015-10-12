@@ -98,8 +98,8 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
                 public ComputationTree<Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>> run(final PackageMapperHelper.PackageMapperHelperCallbackCallback cb) {
                     CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>> computationMapper = new CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>>() {
                         @Override
-                        protected CvRecursivePackageData<ArtifactReference> map(CvRecursivePackageData<CumulativeVersionComputer.Result> requireRepoResults, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
-                            return new CvRecursivePackageData<ArtifactReference>(requireRepoResults.v, cb.runBuild(new BuildData(requireRepoResults, dependencyResults)), dependencyResults);
+                        protected CvRecursivePackageData<ArtifactReference> map(CvRecursivePackageData<CumulativeVersionComputer.Result> commonRepoAccessor, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
+                            return new CvRecursivePackageData<ArtifactReference>(commonRepoAccessor.v, cb.runBuild(new BuildData(commonRepoAccessor, dependencyResults)), dependencyResults);
                         }
                     };
 

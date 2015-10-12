@@ -11,6 +11,7 @@ import qbt.PackageTip;
 import qbt.QbtTempDir;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
+import qbt.repo.CommonRepoAccessor;
 import qbt.vcs.CachedRemote;
 import qbt.vcs.CachedRemoteVcs;
 
@@ -46,12 +47,12 @@ public final class RemoteRepoConfigEntry {
         return remote;
     }
 
-    public RepoConfig.RequireRepoResult findRepo(PackageTip repo, final VcsVersionDigest version) {
+    public CommonRepoAccessor findRepo(PackageTip repo, final VcsVersionDigest version) {
         final String remote = find(repo, version);
         if(remote == null) {
             return null;
         }
-        return new RepoConfig.RequireRepoResult() {
+        return new CommonRepoAccessor() {
             @Override
             public PackageDirectory makePackageDirectory(String prefix) {
                 final QbtTempDir packageDir = new QbtTempDir();

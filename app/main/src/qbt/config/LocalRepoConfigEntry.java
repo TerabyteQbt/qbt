@@ -14,6 +14,7 @@ import qbt.PackageDirectory;
 import qbt.PackageTip;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
+import qbt.repo.CommonRepoAccessor;
 import qbt.vcs.LocalVcs;
 
 public final class LocalRepoConfigEntry {
@@ -31,14 +32,14 @@ public final class LocalRepoConfigEntry {
         return Paths.get(format.replace("%r", packageTip.pkg).replace("%t", packageTip.tip));
     }
 
-    public RepoConfig.RequireRepoResult findRepo(final PackageTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor findRepo(final PackageTip repo, VcsVersionDigest version) {
         final Path repoDir = formatDirectory(repo);
         if(!localVcs.isRepo(repoDir)) {
             LOGGER.debug("Local repo check for " + repo + " at " + repoDir + " missed");
             return null;
         }
         LOGGER.debug("Local repo check for " + repo + " at " + repoDir + " hit");
-        return new RepoConfig.RequireRepoResult() {
+        return new CommonRepoAccessor() {
             private Path packageDir(String prefix) {
                 return prefix.isEmpty() ? repoDir : repoDir.resolve(prefix);
             }
