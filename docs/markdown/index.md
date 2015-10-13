@@ -122,12 +122,18 @@ the two primary authors of QBT, and you can see how to add your own "universe".
 Once you have written this file to `qbt-config` next to `qbt-manifest` in the
 meta repo you cloned, you can invoke qbt.
 
+    # qbt fetchPins amling --all
     $ qbt build --package meta_tools.release --output requested,directory,$HOME/qbt-release-%v
 
-This command will build a "release" of QBT itself, which you could then use
-instead of the binary distribution you downloaded, if you wish.  "meta_tools" is
-the package that includes both QBT's core and the tools written around that core
-to manipulate manifest files.
+The first command fetches "pins" - this grabs all commits of the "package
+repositories" that are mentioned in your manifest file.  TODO: you can instead
+specify --package or --repo, but it doesn't include all dependencies, so at this
+time, it is easiest to just invoke it with --all.
+
+The second command will build a "release" of QBT itself, which you could then
+use instead of the binary distribution you downloaded, if you wish.
+"meta_tools" is the package that includes both QBT's core and the tools written
+around that core to manipulate manifest files.
 
 You could now build every package in the universe by doing:
 
