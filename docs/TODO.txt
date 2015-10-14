@@ -1,0 +1,20 @@
+Documentation to write:
+
+* clean up the getting started page (should go from zero to making a change and submitting a PR, including creating a new universe)
+* architecture
+* anatomy of a build / IAD / OAD
+* runPackage versus runArtifact
+* code review options
+* merge driver
+* pins
+* third party
+* using eclipse
+* optioanl settings (logging, artifact caching, pin remotes, etc)
+* document TODOs
+** eclipsegen (intellij, others?)
+** figure out how to build c/c++/ruby/python/go
+** figure out better CR options
+** import third party packages
+** think about having qbt delegate to `runArtifact qbt` so we always get the newest qbt
+
+
