@@ -1,9 +1,9 @@
 package qbt.config;
 
-import qbt.PackageTip;
 import qbt.repo.LocalRepoAccessor;
+import qbt.tip.RepoTip;
 
 public interface LocalRepoFinder {
-    public LocalRepoAccessor findLocalRepo(PackageTip repo);
-    public LocalRepoAccessor createLocalRepo(PackageTip repo);
+    public LocalRepoAccessor findLocalRepo(RepoTip repo);
+    public LocalRepoAccessor createLocalRepo(RepoTip repo);
 }

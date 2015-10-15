@@ -10,10 +10,11 @@ import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import qbt.PackageTip;
 import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.config.QbtConfig;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, ImmutableList<String>> repos = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--repo"), "Act on this repo");
@@ -33,18 +34,18 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
         THROW;
     }
 
-    public Collection<PackageTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
+    public Collection<RepoTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
         boolean hadNoArgs = true;
 
-        ImmutableSet.Builder<PackageTip> reposBuilder = ImmutableSet.builder();
+        ImmutableSet.Builder<RepoTip> reposBuilder = ImmutableSet.builder();
         for(String arg : options.get(repos)) {
             hadNoArgs = false;
-            reposBuilder.add(PackageTip.parseRequire(arg, "repo"));
+            reposBuilder.add(RepoTip.TYPE.parseRequire(arg));
         }
         for(String arg : options.get(packages)) {
             hadNoArgs = false;
-            PackageTip pkg = PackageTip.parseRequire(arg, "package");
-            PackageTip repo = manifest.packageToRepo.get(pkg);
+            PackageTip pkg = PackageTip.TYPE.parseRequire(arg);
+            RepoTip repo = manifest.packageToRepo.get(pkg);
             if(repo == null) {
                 throw new IllegalArgumentException("No such package [tip]: " + pkg);
             }
@@ -74,8 +75,8 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
         return reposBuilder.build();
     }
 
-    private static void addOverrides(ImmutableSet.Builder<PackageTip> reposBuilder, QbtConfig config, QbtManifest manifest) {
-        for(Map.Entry<PackageTip, RepoManifest> e : manifest.repos.entrySet()) {
+    private static void addOverrides(ImmutableSet.Builder<RepoTip> reposBuilder, QbtConfig config, QbtManifest manifest) {
+        for(Map.Entry<RepoTip, RepoManifest> e : manifest.repos.entrySet()) {
             if(config.localRepoFinder.findLocalRepo(e.getKey()) != null) {
                 reposBuilder.add(e.getKey());
             }

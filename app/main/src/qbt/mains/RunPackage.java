@@ -12,7 +12,6 @@ import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -37,6 +36,7 @@ import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
 import qbt.recursive.cvrpd.CvRecursivePackageDataTransformer;
 import qbt.recursive.utils.RecursiveDataUtils;
+import qbt.tip.PackageTip;
 import qbt.utils.ProcessHelper;
 
 public class RunPackage extends QbtCommand<RunPackage.Options> {
@@ -83,7 +83,7 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
         };
         ShellActionOptionsResult shellActionOptionsResult = Options.shellAction.getResults(options);
 
-        PackageTip packageTip = PackageTip.parseRequire(options.get(Options.pkg), "package");
+        PackageTip packageTip = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         final CvRecursivePackageData<CumulativeVersionComputer.Result> r = cumulativeVersionComputer.compute(packageTip);
 
         try(final ArtifactScope artifactScope = new ArtifactScope()) {

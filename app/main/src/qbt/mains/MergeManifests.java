@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -41,6 +40,8 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 import qbt.utils.ProcessHelper;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
@@ -78,13 +79,13 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
     }
 
     public interface Strategy {
-        void invoke(PackageTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs);
+        void invoke(RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs);
     }
 
     public static enum StrategyEnum implements Strategy {
         merge {
             @Override
-            public void invoke(PackageTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
+            public void invoke(RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
                 if(!repository.isAncestorOf(mhs, lhs)) {
                     throw new RuntimeException("Actual merge of " + lhs.getRawDigest() + " (and " + rhs.getRawDigest() + ") over " + mhs.getRawDigest() + " is not fast-forward!");
                 }
@@ -97,7 +98,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         },
         rebase {
             @Override
-            public void invoke(PackageTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
+            public void invoke(RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
                 repository.checkout(lhs);
                 repository.rebase(mhs, rhs);
             }
@@ -120,7 +121,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         if(shellActionOptionsResult != null) {
             b.add(new Strategy() {
                 @Override
-                public void invoke(final PackageTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
+                public void invoke(final RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
                     repository.checkout(lhs);
                     ProcessHelper p = new ProcessHelper(repository.getRoot(), shellActionOptionsResult.commandArray);
                     p = p.putEnv("LHS", lhs.getRawDigest().toString());
@@ -184,7 +185,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         String mhsName = options.get(Options.mhsName);
         String rhsName = options.get(Options.rhsName);
 
-        ImmutableSet.Builder<PackageTip> repos = ImmutableSet.builder();
+        ImmutableSet.Builder<RepoTip> repos = ImmutableSet.builder();
         repos.addAll(lhs.repos.keySet());
         repos.addAll(mhs.repos.keySet());
         repos.addAll(rhs.repos.keySet());
@@ -269,9 +270,9 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         }
     }
 
-    private static final Merger<PackageTip, VcsVersionDigest> versionMerger = new Merger<PackageTip, VcsVersionDigest>() {
+    private static final Merger<RepoTip, VcsVersionDigest> versionMerger = new Merger<RepoTip, VcsVersionDigest>() {
         @Override
-        protected Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergeConflict(Context context, String label, PackageTip repo, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
+        protected Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergeConflict(Context context, String label, RepoTip repo, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
             PinnedRepoAccessor lhsResult = context.config.localPinsRepo.requirePin(repo, lhs);
             LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
 
@@ -312,7 +313,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Map<String, Pair<NormalDependencyType, String>>> normalDepsMerger = new MapMerger<ObjectUtils.Null, String, Pair<NormalDependencyType, String>>(Ordering.<String>natural(), new TrivialMerger<Pair<ObjectUtils.Null, String>, Pair<NormalDependencyType, String>>());
 
-    private static final Merger<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsMerger = new MapMerger<ObjectUtils.Null, PackageTip, String>(PackageTip.COMPARATOR, new TrivialMerger<Pair<ObjectUtils.Null, PackageTip>, String>());
+    private static final Merger<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsMerger = new MapMerger<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, new TrivialMerger<Pair<ObjectUtils.Null, PackageTip>, String>());
 
     private static final Merger<Pair<ObjectUtils.Null, String>, PackageManifest> packageManifestMerger = new Merger<Pair<ObjectUtils.Null, String>, PackageManifest>() {
         @Override
@@ -329,10 +330,10 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Map<String, PackageManifest>> repoManifestMapMerger = new MapMerger<ObjectUtils.Null, String, PackageManifest>(Ordering.<String>natural(), packageManifestMerger);
 
-    private static final Merger<Pair<ObjectUtils.Null, PackageTip>, RepoManifest> repoManifestMerger = new Merger<Pair<ObjectUtils.Null, PackageTip>, RepoManifest>() {
+    private static final Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest> repoManifestMerger = new Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest>() {
         @Override
-        protected Triple<RepoManifest, RepoManifest, RepoManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, PackageTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
-            PackageTip repo = k.getRight();
+        protected Triple<RepoManifest, RepoManifest, RepoManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
+            RepoTip repo = k.getRight();
             Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergedVersions = versionMerger.merge(context, combineLabel(label, "version"), repo, lhs.version, mhs.version, rhs.version);
             Triple<Map<String, PackageManifest>, Map<String, PackageManifest>, Map<String, PackageManifest>> mergedPackages = repoManifestMapMerger.merge(context, combineLabel(label, "packages"), ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
             RepoManifest newLhs = RepoManifest.of(mergedVersions.getLeft(), mergedPackages.getLeft());
@@ -342,12 +343,12 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         }
     };
 
-    private static final Merger<ObjectUtils.Null, Map<PackageTip, RepoManifest>> qbtManifestMapMerger = new MapMerger<ObjectUtils.Null, PackageTip, RepoManifest>(PackageTip.COMPARATOR, repoManifestMerger);
+    private static final Merger<ObjectUtils.Null, Map<RepoTip, RepoManifest>> qbtManifestMapMerger = new MapMerger<ObjectUtils.Null, RepoTip, RepoManifest>(RepoTip.TYPE.COMPARATOR, repoManifestMerger);
 
     private static final Merger<ObjectUtils.Null, QbtManifest> qbtManifestMerger = new Merger<ObjectUtils.Null, QbtManifest>() {
         @Override
         protected Triple<QbtManifest, QbtManifest, QbtManifest> mergeConflict(Context context, String label, ObjectUtils.Null k, QbtManifest lhs, QbtManifest mhs, QbtManifest rhs) {
-            Triple<Map<PackageTip, RepoManifest>, Map<PackageTip, RepoManifest>, Map<PackageTip, RepoManifest>> merged = qbtManifestMapMerger.merge(context, label, ObjectUtils.NULL, lhs.repos, mhs.repos, rhs.repos);
+            Triple<Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>> merged = qbtManifestMapMerger.merge(context, label, ObjectUtils.NULL, lhs.repos, mhs.repos, rhs.repos);
             return Triple.of(QbtManifest.of(merged.getLeft()), QbtManifest.of(merged.getMiddle()), QbtManifest.of(merged.getRight()));
         }
     };

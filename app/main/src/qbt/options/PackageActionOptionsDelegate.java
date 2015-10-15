@@ -13,12 +13,13 @@ import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
-import qbt.PackageTip;
 import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.config.QbtConfig;
 import qbt.map.DependencyComputer;
 import qbt.map.SimpleDependencyComputer;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, ImmutableList<String>> packages = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--package"), "Act on this package");
@@ -45,17 +46,17 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
         ImmutableSet.Builder<PackageTip> packagesBuilder = ImmutableSet.builder();
         for(String arg : options.get(packages)) {
             hadNoArgs = false;
-            packagesBuilder.add(PackageTip.parseRequire(arg, "package"));
+            packagesBuilder.add(PackageTip.TYPE.parseRequire(arg));
         }
         for(String arg : options.get(repos)) {
             hadNoArgs = false;
-            PackageTip repo = PackageTip.parseRequire(arg, "repo");
+            RepoTip repo = RepoTip.TYPE.parseRequire(arg);
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
             for(String packageName : repoManifest.packages.keySet()) {
-                packagesBuilder.add(repo.replacePackage(packageName));
+                packagesBuilder.add(repo.toPackage(packageName));
             }
         }
         if(options.get(overrides)) {
@@ -88,10 +89,10 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
     }
 
     private static void addOverrides(ImmutableSet.Builder<PackageTip> packagesBuilder, QbtConfig config, QbtManifest manifest) {
-        for(Map.Entry<PackageTip, RepoManifest> e : manifest.repos.entrySet()) {
+        for(Map.Entry<RepoTip, RepoManifest> e : manifest.repos.entrySet()) {
             if(config.localRepoFinder.findLocalRepo(e.getKey()) != null) {
                 for(String pkg : e.getValue().packages.keySet()) {
-                    packagesBuilder.add(e.getKey().replacePackage(pkg));
+                    packagesBuilder.add(e.getKey().toPackage(pkg));
                 }
             }
         }

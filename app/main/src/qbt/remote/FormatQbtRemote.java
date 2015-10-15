@@ -1,6 +1,6 @@
 package qbt.remote;
 
-import qbt.PackageTip;
+import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
 
@@ -13,12 +13,12 @@ public final class FormatQbtRemote extends AbstractQbtRemote {
         this.format = format;
     }
 
-    private String formatRemote(PackageTip packageTip) {
-        return format.replace("%r", packageTip.pkg).replace("%t", packageTip.tip);
+    private String formatRemote(RepoTip repo) {
+        return format.replace("%r", repo.name).replace("%t", repo.tip);
     }
 
     @Override
-    public RawRemote findRemote(PackageTip repo) {
+    public RawRemote findRemote(RepoTip repo) {
         String remote = formatRemote(repo);
         return new RawRemote(remote, vcs);
     }

@@ -16,7 +16,6 @@ import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.ObjectUtils;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -32,6 +31,7 @@ import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.utils.ProcessHelper;
 
 public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.Options> {
@@ -77,7 +77,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
     public static <O extends RunOverridesCommonOptions> int run(final OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         final QbtConfig config = RunOverridesCommonOptions.config.getConfig(options);
         final QbtManifest manifest = RunOverridesCommonOptions.manifest.getResult(options).parse();
-        Collection<PackageTip> repos = reposOption.getRepos(config, manifest, options);
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         final ShellActionOptionsResult shellActionOptionsResult = RunOverridesCommonOptions.shellAction.getResults(options);
 
         ImmutableMap.Builder<String, QbtManifest> extraManifestsBuilder = ImmutableMap.builder();
@@ -90,9 +90,9 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
         }
         final Map<String, QbtManifest> extraManifests = extraManifestsBuilder.build();
 
-        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<PackageTip, ObjectUtils.Null>() {
+        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
             @Override
-            public ObjectUtils.Null apply(final PackageTip repo) {
+            public ObjectUtils.Null apply(final RepoTip repo) {
                 RepoManifest repoManifest = manifest.repos.get(repo);
                 if(repoManifest == null) {
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);
@@ -117,7 +117,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                     }
                 }
                 VersionAdder va = new VersionAdder(); // exists only as a dirty trick to avoid a static addVersion() with a thousand arguments
-                p = p.putEnv("REPO_NAME", repo.pkg);
+                p = p.putEnv("REPO_NAME", repo.name);
                 p = p.putEnv("REPO_TIP", repo.tip);
                 p = va.addVersion(p, null, version);
                 for(Map.Entry<String, QbtManifest> e : extraManifests.entrySet()) {

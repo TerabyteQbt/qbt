@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import misc1.commons.options.OptionsResults;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -16,6 +15,7 @@ import qbt.diffmanifests.MapDiffer;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.LocalVcs;
 
 public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForward.Options> {
@@ -53,9 +53,9 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
         QbtManifest lhs = Options.lhs.getResult(options).parse();
         QbtManifest rhs = Options.rhs.getResult(options).parse();
 
-        new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
+        new MapDiffer<RepoTip, RepoManifest>(lhs.repos, rhs.repos, RepoTip.TYPE.COMPARATOR) {
             @Override
-            protected void edit(PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
+            protected void edit(RepoTip repo, RepoManifest lhs, RepoManifest rhs) {
                 PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
                 PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
 
@@ -79,11 +79,11 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
             }
 
             @Override
-            protected void add(PackageTip repo, RepoManifest manifest) {
+            protected void add(RepoTip repo, RepoManifest manifest) {
             }
 
             @Override
-            protected void del(PackageTip repo, RepoManifest manifest) {
+            protected void del(RepoTip repo, RepoManifest manifest) {
             }
         }.diff();
 

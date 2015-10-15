@@ -3,10 +3,10 @@ package qbt.pins;
 import com.google.common.base.Function;
 import java.nio.file.Path;
 import org.apache.commons.lang3.ObjectUtils;
-import qbt.PackageTip;
 import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
 
@@ -19,8 +19,8 @@ public final class SimpleLocalPinsRepo extends AbstractLocalPinsRepo {
         this.root = root;
     }
 
-    private Path materializeCache(PackageTip repo) {
-        Path cache = root.resolve(repo.pkg);
+    private Path materializeCache(RepoTip repo) {
+        Path cache = root.resolve(repo.name);
 
         QbtUtils.semiAtomicDirCache(cache, "", new Function<Path, ObjectUtils.Null>() {
             @Override
@@ -34,7 +34,7 @@ public final class SimpleLocalPinsRepo extends AbstractLocalPinsRepo {
     }
 
     @Override
-    public PinnedRepoAccessor findPin(PackageTip repo, VcsVersionDigest version) {
+    public PinnedRepoAccessor findPin(RepoTip repo, VcsVersionDigest version) {
         Path cache = materializeCache(repo);
 
         if(!vcs.getLocalVcs().getRepository(cache).commitExists(version)) {
@@ -45,7 +45,7 @@ public final class SimpleLocalPinsRepo extends AbstractLocalPinsRepo {
     }
 
     @Override
-    public void fetchPins(PackageTip repo, RawRemote remote) {
+    public void fetchPins(RepoTip repo, RawRemote remote) {
         Path cache = materializeCache(repo);
 
         RawRemoteVcs remoteVcs = remote.getRawRemoteVcs();

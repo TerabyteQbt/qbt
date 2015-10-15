@@ -6,6 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import qbt.metadata.Metadata;
 import qbt.metadata.MetadataItem;
 import qbt.metadata.PackageMetadataType;
+import qbt.tip.PackageTip;
 
 public final class PackageManifest {
     public final Metadata<PackageMetadataType> metadata;
@@ -44,7 +45,7 @@ public final class PackageManifest {
         }
 
         public Builder withNormalDep(PackageTip p, NormalDependencyType type) {
-            normalDeps.put(p.pkg, Pair.of(type, p.tip));
+            normalDeps.put(p.name, Pair.of(type, p.tip));
             return this;
         }
 

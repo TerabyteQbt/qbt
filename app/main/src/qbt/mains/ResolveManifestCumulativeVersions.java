@@ -8,7 +8,6 @@ import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -23,6 +22,7 @@ import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.PackageActionOptionsDelegate;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
+import qbt.tip.PackageTip;
 
 public class ResolveManifestCumulativeVersions extends QbtCommand<ResolveManifestCumulativeVersions.Options> {
     @QbtCommandName("resolveManifestCumulativeVersions")

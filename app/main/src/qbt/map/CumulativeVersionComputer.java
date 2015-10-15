@@ -6,7 +6,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
-import qbt.PackageTip;
 import qbt.RepoManifest;
 import qbt.VcsVersionDigest;
 import qbt.metadata.PackageMetadataType;
@@ -17,6 +16,8 @@ import qbt.recursive.cvrpd.CvRecursivePackageDataVersionAdder;
 import qbt.recursive.srpd.SimpleRecursivePackageData;
 import qbt.recursive.srpd.SimpleRecursivePackageDataCanonicalizer;
 import qbt.repo.CommonRepoAccessor;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public abstract class CumulativeVersionComputer<K> {
     public static final class Result {
@@ -36,14 +37,14 @@ public abstract class CumulativeVersionComputer<K> {
     private final DependencyComputer<?, SimpleRecursivePackageData<Result>> dependencyComputer = new DependencyComputer<Result, SimpleRecursivePackageData<Result>>() {
         @Override
         protected Result premap(PackageTip packageTip) {
-            Triple<PackageTip, RepoManifest, PackageManifest> requireManifestTriple = requireManifest(packageTip);
-            PackageTip repo = requireManifestTriple.getLeft();
+            Triple<RepoTip, RepoManifest, PackageManifest> requireManifestTriple = requireManifest(packageTip);
+            RepoTip repo = requireManifestTriple.getLeft();
             RepoManifest repoManifest = requireManifestTriple.getMiddle();
             PackageManifest packageManifest = requireManifestTriple.getRight();
             VcsVersionDigest version = repoManifest.version;
             CommonRepoAccessor commonRepoAccessor = requireRepo(repo, version);
             Maybe<String> prefix = packageManifest.metadata.get(PackageMetadataType.PREFIX);
-            CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.pkg, commonRepoAccessor.getEffectiveTree(prefix), CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
+            CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.name, commonRepoAccessor.getEffectiveTree(prefix), CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
             return new Result(packageTip, commonRepoAccessor, packageManifest, cumulativeVersionNodeData);
         }
 
@@ -93,8 +94,8 @@ public abstract class CumulativeVersionComputer<K> {
         return versioned;
     }
 
-    protected abstract Triple<PackageTip, RepoManifest, PackageManifest> requireManifest(PackageTip packageTip);
-    protected abstract CommonRepoAccessor requireRepo(PackageTip repo, VcsVersionDigest version);
+    protected abstract Triple<RepoTip, RepoManifest, PackageManifest> requireManifest(PackageTip packageTip);
+    protected abstract CommonRepoAccessor requireRepo(RepoTip repo, VcsVersionDigest version);
     protected abstract K canonicalizationKey(Result result);
     protected abstract Map<String, String> getQbtEnv();
 }

@@ -12,7 +12,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -26,6 +25,8 @@ import qbt.diffmanifests.Runner;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
     @QbtCommandName("diffManifests")
@@ -80,22 +81,22 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         return 0;
     }
 
-    private Runner repoRunner(OptionsResults<? extends Options> options, String command, PackageTip repo) {
+    private Runner repoRunner(OptionsResults<? extends Options> options, String command, RepoTip repo) {
         if(command == null) {
             return Runner.dead();
         }
         Runner r = Runner.real(options.get(Options.noPrefix) ? null: repo.toString(), command);
-        r = r.addEnv("REPO_NAME", repo.pkg);
+        r = r.addEnv("REPO_NAME", repo.name);
         r = r.addEnv("REPO_TIP", repo.tip);
         return r;
     }
 
-    private Runner packageRunner(OptionsResults<? extends Options> options, String command, PackageTip repo, String pkg) {
+    private Runner packageRunner(OptionsResults<? extends Options> options, String command, RepoTip repo, String pkg) {
         if(command == null) {
             return Runner.dead();
         }
-        Runner r = Runner.real(options.get(Options.noPrefix) ? null: repo.replacePackage(pkg).toString(), command);
-        r = r.addEnv("REPO_NAME", repo.pkg);
+        Runner r = Runner.real(options.get(Options.noPrefix) ? null: repo.toPackage(pkg).toString(), command);
+        r = r.addEnv("REPO_NAME", repo.name);
         r = r.addEnv("REPO_TIP", repo.tip);
         r = r.addEnv("PACKAGE_NAME", pkg);
         return r;
@@ -109,9 +110,9 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
     }
 
     private void diffManifest(final OptionsResults<? extends Options> options, final QbtConfig config, QbtManifest lhs, QbtManifest rhs) {
-        new MapDiffer<PackageTip, RepoManifest>(lhs.repos, rhs.repos, PackageTip.COMPARATOR) {
+        new MapDiffer<RepoTip, RepoManifest>(lhs.repos, rhs.repos, RepoTip.TYPE.COMPARATOR) {
             @Override
-            protected void add(PackageTip repo, RepoManifest rhs) {
+            protected void add(RepoTip repo, RepoManifest rhs) {
                 PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
 
                 {
@@ -134,7 +135,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             }
 
             @Override
-            protected void del(PackageTip repo, RepoManifest lhs) {
+            protected void del(RepoTip repo, RepoManifest lhs) {
                 diffRepo(options, config, repo, lhs, RepoManifest.builder(lhs.version).build());
 
                 PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
@@ -157,13 +158,13 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             }
 
             @Override
-            protected void edit(PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
+            protected void edit(RepoTip repo, RepoManifest lhs, RepoManifest rhs) {
                 diffRepo(options, config, repo, lhs, rhs);
             }
         }.diff();
     }
 
-    private void diffRepo(final OptionsResults<? extends Options> options, final QbtConfig config, final PackageTip repo, RepoManifest lhs, RepoManifest rhs) {
+    private void diffRepo(final OptionsResults<? extends Options> options, final QbtConfig config, final RepoTip repo, RepoManifest lhs, RepoManifest rhs) {
         if(!lhs.version.equals(rhs.version)) {
             PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
             PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
@@ -207,7 +208,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         }.diff();
     }
 
-    private void diffPackage(final OptionsResults<? extends Options> options, QbtConfig config, final PackageTip repo, final String pkg, PackageManifest lhs, PackageManifest rhs) {
+    private void diffPackage(final OptionsResults<? extends Options> options, QbtConfig config, final RepoTip repo, final String pkg, PackageManifest lhs, PackageManifest rhs) {
         new NoEditMapDiffer<String, String>(lhs.metadata.toStringMap(), rhs.metadata.toStringMap(), Ordering.<String>natural()) {
             @Override
             protected void add(String key, String value) {
@@ -246,11 +247,11 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             }
         }.diff();
 
-        new NoEditMapDiffer<PackageTip, String>(lhs.replaceDeps, rhs.replaceDeps, PackageTip.COMPARATOR) {
+        new NoEditMapDiffer<PackageTip, String>(lhs.replaceDeps, rhs.replaceDeps, PackageTip.TYPE.COMPARATOR) {
             @Override
             protected void add(PackageTip dep, String toTip) {
                 Runner r = packageRunner(options, options.get(Options.onReplaceDepAdd), repo, pkg);
-                r = r.addEnv("DEPENDENCY_NAME", dep.pkg);
+                r = r.addEnv("DEPENDENCY_NAME", dep.name);
                 r = r.addEnv("DEPENDENCY_FROM_TIP", dep.tip);
                 r = r.addEnv("DEPENDENCY_TO_TIP", toTip);
                 r.run();
@@ -259,7 +260,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             @Override
             protected void del(PackageTip dep, String toTip) {
                 Runner r = packageRunner(options, options.get(Options.onReplaceDepDel), repo, pkg);
-                r = r.addEnv("DEPENDENCY_NAME", dep.pkg);
+                r = r.addEnv("DEPENDENCY_NAME", dep.name);
                 r = r.addEnv("DEPENDENCY_FROM_TIP", dep.tip);
                 r = r.addEnv("DEPENDENCY_TO_TIP", toTip);
                 r.run();

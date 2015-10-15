@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -51,6 +50,7 @@ import qbt.options.PackageActionOptionsDelegate;
 import qbt.recursive.cv.CumulativeVersion;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
+import qbt.tip.PackageTip;
 import qbt.utils.ProcessHelper;
 
 public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
@@ -127,7 +127,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                 if(pieces.length != 2) {
                     throw new IllegalArgumentException("Bad skip: " + arg);
                 }
-                b.add(Pair.of(PackageTip.parseRequire(pieces[0], "package"), QbtHashUtils.parse(pieces[1])));
+                b.add(Pair.of(PackageTip.TYPE.parseRequire(pieces[0]), QbtHashUtils.parse(pieces[1])));
             }
 
             private void addSkipsFromFile(String arg) throws IOException {

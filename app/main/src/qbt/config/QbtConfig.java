@@ -3,12 +3,12 @@ package qbt.config;
 import groovy.lang.GroovyShell;
 import java.nio.file.Path;
 import misc1.commons.ExceptionUtils;
-import qbt.PackageTip;
 import qbt.VcsVersionDigest;
 import qbt.artifactcacher.ArtifactCacher;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 
 public final class QbtConfig {
     public final LocalRepoFinder localRepoFinder;
@@ -34,7 +34,7 @@ public final class QbtConfig {
         }
     }
 
-    public CommonRepoAccessor requireCommonRepo(PackageTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor requireCommonRepo(RepoTip repo, VcsVersionDigest version) {
         LocalRepoAccessor local = localRepoFinder.findLocalRepo(repo);
         if(local != null) {
             return local;
