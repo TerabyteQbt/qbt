@@ -54,9 +54,11 @@ public abstract class AbstractTip<T extends AbstractTip<T>> {
     }
 
     public static abstract class Type<T extends AbstractTip> {
+        public final Class<T> clazz;
         private final String desc;
 
-        public Type(String desc) {
+        public Type(Class<T> clazz, String desc) {
+            this.clazz = clazz;
             this.desc = desc;
         }
 

@@ -10,14 +10,9 @@ import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import org.apache.commons.lang3.tuple.Pair;
-import qbt.NormalDependencyType;
-import qbt.PackageManifest;
 import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.config.QbtConfig;
-import qbt.map.DependencyComputer;
-import qbt.map.SimpleDependencyComputer;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
@@ -27,6 +22,7 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, Boolean> outward = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--outward"), "Act on all packages outward of [otherwise] specified packages");
     public final OptionsFragment<O, ?, Boolean> overrides = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--overrides"), "Act on all overridden packages");
     public final OptionsFragment<O, ?, Boolean> all = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--all"), "Act on all packages");
+    public final OptionsFragment<O, ?, ImmutableList<String>> groovyPackages = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--groovyPackages"), "Evaluate this groovy to choose packages");
 
     private final NoArgsBehaviour noArgsBehaviour;
 
@@ -67,6 +63,10 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
             hadNoArgs = false;
             packagesBuilder.addAll(manifest.packageToRepo.keySet());
         }
+        for(String groovy : options.get(groovyPackages)) {
+            hadNoArgs = false;
+            packagesBuilder.addAll(PackageRepoSelection.evalPackages(config, manifest, groovy));
+        }
         if(hadNoArgs) {
             switch(noArgsBehaviour) {
                 case EMPTY:
@@ -82,7 +82,7 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
         }
 
         if(options.get(outward)) {
-            addOutwards(packagesBuilder, manifest, packagesBuilder.build());
+            packagesBuilder.addAll(PackageRepoSelection.outwardsClosure(manifest, packagesBuilder.build()));
         }
 
         return packagesBuilder.build();
@@ -94,28 +94,6 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
                 for(String pkg : e.getValue().packages.keySet()) {
                     packagesBuilder.add(e.getKey().toPackage(pkg));
                 }
-            }
-        }
-    }
-
-    private static void addOutwards(ImmutableSet.Builder<PackageTip> packagesBuilder, QbtManifest manifest, final ImmutableSet<PackageTip> from) {
-        DependencyComputer<PackageManifest, Boolean> usesOutwardsComputer = new SimpleDependencyComputer<Boolean>(manifest) {
-            @Override
-            protected Boolean map(PackageManifest packageManifest, PackageTip packageTip, Map<String, Pair<NormalDependencyType, Boolean>> dependencyResults) {
-                if(from.contains(packageTip)) {
-                    return true;
-                }
-                for(Pair<NormalDependencyType, Boolean> dependencyResult : dependencyResults.values()) {
-                    if(dependencyResult.getRight()) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
-        for(PackageTip pkg : manifest.packageToRepo.keySet()) {
-            if(usesOutwardsComputer.compute(pkg)) {
-                packagesBuilder.add(pkg);
             }
         }
     }

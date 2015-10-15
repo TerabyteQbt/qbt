@@ -9,7 +9,7 @@ public final class RepoTip extends AbstractTip<RepoTip> {
         return PackageTip.TYPE.of(newName, tip);
     }
 
-    public static final Type<RepoTip> TYPE = new Type<RepoTip>("repo") {
+    public static final Type<RepoTip> TYPE = new Type<RepoTip>(RepoTip.class, "repo") {
         @Override
         public RepoTip of(String name, String tip) {
             return new RepoTip(name, tip);
