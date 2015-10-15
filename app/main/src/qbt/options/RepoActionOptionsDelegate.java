@@ -29,10 +29,28 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
         this.noArgsBehaviour = noArgsBehaviour;
     }
 
-    public enum NoArgsBehaviour {
-        EMPTY,
-        OVERRIDES,
-        THROW;
+    public interface NoArgsBehaviour {
+        public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest);
+
+        public static final NoArgsBehaviour EMPTY = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+            }
+        };
+
+        public static final NoArgsBehaviour OVERRIDES = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                addOverrides(b, config, manifest);
+            }
+        };
+
+        public static final NoArgsBehaviour THROW = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                throw new OptionsException("Some form of repo selection is required.");
+            }
+        };
     }
 
     public Collection<RepoTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
@@ -65,17 +83,7 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
             reposBuilder.addAll(PackageRepoSelection.evalRepos(config, manifest, groovy));
         }
         if(hadNoArgs) {
-            switch(noArgsBehaviour) {
-                case EMPTY:
-                    break;
-
-                case OVERRIDES:
-                    addOverrides(reposBuilder, config, manifest);
-                    break;
-
-                case THROW:
-                    throw new OptionsException("Some form of repo selection is required.");
-            }
+            noArgsBehaviour.run(reposBuilder, config, manifest);
         }
         return reposBuilder.build();
     }

@@ -30,10 +30,28 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
         this.noArgsBehaviour = noArgsBehaviour;
     }
 
-    public enum NoArgsBehaviour {
-        EMPTY,
-        OVERRIDES,
-        THROW;
+    public interface NoArgsBehaviour {
+        public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest);
+
+        public static final NoArgsBehaviour EMPTY = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
+            }
+        };
+
+        public static final NoArgsBehaviour OVERRIDES = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
+                addOverrides(b, config, manifest);
+            }
+        };
+
+        public static final NoArgsBehaviour THROW = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
+                throw new OptionsException("Some form of package selection is required.");
+            }
+        };
     }
 
     public Collection<PackageTip> getPackages(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
@@ -68,17 +86,7 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
             packagesBuilder.addAll(PackageRepoSelection.evalPackages(config, manifest, groovy));
         }
         if(hadNoArgs) {
-            switch(noArgsBehaviour) {
-                case EMPTY:
-                    break;
-
-                case OVERRIDES:
-                    addOverrides(packagesBuilder, config, manifest);
-                    break;
-
-                case THROW:
-                    throw new OptionsException("Some form of package selection is required.");
-            }
+            noArgsBehaviour.run(packagesBuilder, config, manifest);
         }
 
         if(options.get(outward)) {
