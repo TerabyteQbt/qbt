@@ -43,13 +43,7 @@ public final class PackageRepoSelection {
         shell.setVariable("overrides", new Closure<Object>(null) {
             @Override
             public Object call(Object... args) {
-                ImmutableSet.Builder<RepoTip> b = ImmutableSet.builder();
-                for(RepoTip repo : manifest.repos.keySet()) {
-                    if(config.localRepoFinder.findLocalRepo(repo) != null) {
-                        b.add(repo);
-                    }
-                }
-                return b.build();
+                return overrides(config, manifest);
             }
         });
         shell.setVariable("inward", new Closure<Object>(null) {
@@ -136,14 +130,7 @@ public final class PackageRepoSelection {
         @Override
         protected void coerce(ImmutableSet.Builder<PackageTip> b, Object o) {
             if(o instanceof RepoTip) {
-                RepoTip repo = (RepoTip)o;
-                RepoManifest repoManifest = manifest.repos.get(repo);
-                if(repoManifest == null) {
-                    throw new IllegalArgumentException("No such repo: " + repo);
-                }
-                for(String name : repoManifest.packages.keySet()) {
-                    b.add(repo.toPackage(name));
-                }
+                b.addAll(reposToPackages(manifest, ImmutableSet.of((RepoTip)o)));
                 return;
             }
 
@@ -159,12 +146,7 @@ public final class PackageRepoSelection {
         @Override
         protected void coerce(ImmutableSet.Builder<RepoTip> b, Object o) {
             if(o instanceof PackageTip) {
-                PackageTip pkg = (PackageTip)o;
-                RepoTip repo = manifest.packageToRepo.get(pkg);
-                if(repo == null) {
-                    throw new IllegalArgumentException("No such package: " + pkg);
-                }
-                b.add(repo);
+                b.addAll(packagesToRepos(manifest, ImmutableSet.of((PackageTip)o)));
                 return;
             }
 
@@ -211,6 +193,42 @@ public final class PackageRepoSelection {
             if(usesOutwardsComputer.compute(pkg)) {
                 b.add(pkg);
             }
+        }
+        return b.build();
+    }
+
+    public static ImmutableSet<RepoTip> overrides(QbtConfig config, QbtManifest manifest) {
+        ImmutableSet.Builder<RepoTip> b = ImmutableSet.builder();
+        for(RepoTip repo : manifest.repos.keySet()) {
+            if(config.localRepoFinder.findLocalRepo(repo) != null) {
+                b.add(repo);
+            }
+        }
+        return b.build();
+    }
+
+    public static ImmutableSet<PackageTip> reposToPackages(QbtManifest manifest, ImmutableSet<RepoTip> repos) {
+        ImmutableSet.Builder<PackageTip> b = ImmutableSet.builder();
+        for(RepoTip repo : repos) {
+            RepoManifest repoManifest = manifest.repos.get(repo);
+            if(repoManifest == null) {
+                throw new IllegalArgumentException("No such repo: " + repo);
+            }
+            for(String name : repoManifest.packages.keySet()) {
+                b.add(repo.toPackage(name));
+            }
+        }
+        return b.build();
+    }
+
+    public static ImmutableSet<RepoTip> packagesToRepos(QbtManifest manifest, ImmutableSet<PackageTip> packages) {
+        ImmutableSet.Builder<RepoTip> b = ImmutableSet.builder();
+        for(PackageTip pkg : packages) {
+            RepoTip repo = manifest.packageToRepo.get(pkg);
+            if(repo == null) {
+                throw new IllegalArgumentException("No such package: " + pkg);
+            }
+            b.add(repo);
         }
         return b.build();
     }
