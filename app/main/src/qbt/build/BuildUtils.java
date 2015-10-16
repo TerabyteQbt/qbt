@@ -88,7 +88,7 @@ public final class BuildUtils {
         materializeWeakArtifacts(root.resolve("weak"), ImmutableSet.of(NormalDependencyType.BUILDTIME_WEAK, NormalDependencyType.RUNTIME_WEAK), dependencyArtifacts);
     }
 
-    private static void materializeRuntimeArtifacts(Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
+    public static void materializeRuntimeArtifacts(Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
         materializeStrongArtifacts(root.resolve("strong"), artifactPile);
         materializeWeakArtifacts(root.resolve("weak"), ImmutableSet.of(NormalDependencyType.RUNTIME_WEAK), artifactPile.children);
     }
