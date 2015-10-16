@@ -90,14 +90,19 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                     return true;
                 }
 
-                RawRemote remote = qbtRemote.requireRemote(repo);
+                RawRemote remote = qbtRemote.findRemote(repo, false);
 
-                LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+                if(remote != null) {
+                    LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+                    config.localPinsRepo.fetchPins(repo, remote);
+                }
+                else {
+                    LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemoteString + "'");
+                }
 
-                config.localPinsRepo.fetchPins(repo, remote);
 
                 if(config.localPinsRepo.findPin(repo, version) == null) {
-                    LOGGER.error("[" + repo + "] But did not find " + version + "!");
+                    LOGGER.error("[" + repo + "] Could not find " + version + "!");
                     return false;
                 }
 
