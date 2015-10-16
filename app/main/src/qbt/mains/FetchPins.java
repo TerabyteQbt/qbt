@@ -90,9 +90,13 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                     return true;
                 }
 
-                RawRemote remote = qbtRemote.requireRemote(repo);
-
+                RawRemote remote = qbtRemote.findRemote(repo, false);
                 LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+
+                if(remote == null) {
+                    LOGGER.debug("[" + repo + "] But repo does not exist, nothing to fetch");
+                    return true;
+                }
 
                 config.localPinsRepo.fetchPins(repo, remote);
 
