@@ -4,7 +4,7 @@ import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
 
-public final class FormatQbtRemote extends AbstractQbtRemote {
+public final class FormatQbtRemote implements QbtRemote {
     private final RawRemoteVcs vcs;
     private final String format;
 
@@ -18,8 +18,12 @@ public final class FormatQbtRemote extends AbstractQbtRemote {
     }
 
     @Override
-    public RawRemote findRemote(RepoTip repo) {
+    public RawRemote findRemote(RepoTip repo, boolean autoVivify) {
         String remote = formatRemote(repo);
+        if(!vcs.remoteExists(remote) && !autoVivify) {
+            return null;
+        }
+        // If autoVivify asked for, which FormatQbtRemote doesn't support, return the RawRemote and let the fireworks happen elsewhere.
         return new RawRemote(remote, vcs);
     }
 }

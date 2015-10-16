@@ -71,7 +71,7 @@ public class PushPins extends QbtCommand<PushPins.Options> {
                 }
                 VcsVersionDigest version = repoManifest.version;
                 PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
-                RawRemote remote = qbtRemote.requireRemote(repo);
+                RawRemote remote = qbtRemote.findRemote(repo, true);
 
                 pinnedAccessor.pushToRemote(remote);
 
