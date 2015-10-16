@@ -9,7 +9,6 @@ import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -23,6 +22,7 @@ import qbt.options.ManifestOptionsResult;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.Repository;
 
 public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumbing.Options> {
@@ -64,10 +64,10 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
         QbtConfig config = UpdateManifestCommonOptions.config.getConfig(options);
         ManifestOptionsResult manifestResult = UpdateManifestCommonOptions.manifest.getResult(options);
         QbtManifest manifest = manifestResult.parse();
-        Collection<PackageTip> repos = reposOption.getRepos(config, manifest, options);
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         QbtManifest.Builder newManifest = manifest.builder();
         boolean fail = false;
-        for(PackageTip repo : repos) {
+        for(RepoTip repo : repos) {
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);

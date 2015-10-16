@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
-import qbt.PackageTip;
+import qbt.tip.PackageTip;
 
 public abstract class DependencyComputer<M, V> {
     private static final class CacheKey {
@@ -99,7 +99,7 @@ public abstract class DependencyComputer<M, V> {
             String dependencyTipName = e.getValue().getRight();
             V dependencyResult;
             try {
-                dependencyResult = compute(PackageTip.of(dependencyName, dependencyTipName), replacementsNext);
+                dependencyResult = compute(PackageTip.TYPE.of(dependencyName, dependencyTipName), replacementsNext);
             }
             catch(CycleException e1) {
                 throw new CycleException(packageTip, replacements, e1);

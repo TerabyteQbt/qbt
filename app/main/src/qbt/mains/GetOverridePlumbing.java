@@ -6,7 +6,6 @@ import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -19,6 +18,7 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.LocalVcs;
 
 public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Options> {
@@ -57,8 +57,8 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
     public static <O extends GetOverrideCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = GetOverrideCommonOptions.config.getConfig(options);
         QbtManifest manifest = GetOverrideCommonOptions.manifest.getResult(options).parse();
-        Collection<PackageTip> repos = reposOption.getRepos(config, manifest, options);
-        for(PackageTip repo : repos) {
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
+        for(RepoTip repo : repos) {
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip] " + repo);

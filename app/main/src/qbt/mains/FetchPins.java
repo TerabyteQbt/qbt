@@ -14,7 +14,6 @@ import misc1.commons.options.UnparsedOptionsFragment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -27,6 +26,7 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ParallelismOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.remote.QbtRemote;
+import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
 public class FetchPins extends QbtCommand<FetchPins.Options> {
@@ -60,13 +60,13 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
-        Collection<PackageTip> repos = Options.repos.getRepos(config, manifest, options);
+        Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
         String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
-        ComputationTree<ImmutableList<Boolean>> computationTree = ComputationTree.transformIterable(repos, new Function<PackageTip, Boolean>() {
+        ComputationTree<ImmutableList<Boolean>> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, Boolean>() {
             @Override
-            public Boolean apply(PackageTip repo) {
+            public Boolean apply(RepoTip repo) {
                 RepoManifest repoManifest = manifest.repos.get(repo);
                 if(repoManifest == null) {
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);

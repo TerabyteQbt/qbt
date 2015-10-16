@@ -10,7 +10,6 @@ import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -23,6 +22,7 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -63,9 +63,9 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
     public static <O extends UpdateOverridesCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = Options.config.getConfig(options);
         QbtManifest manifest = Options.manifest.getResult(options).parse();
-        Collection<PackageTip> repos = reposOption.getRepos(config, manifest, options);
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         boolean fail = false;
-        for(PackageTip repo : repos) {
+        for(RepoTip repo : repos) {
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);

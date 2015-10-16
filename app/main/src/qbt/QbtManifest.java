@@ -16,6 +16,8 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.Pair;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public final class QbtManifest {
     private static final Pattern REPO_PATTERN = Pattern.compile("^([0-9a-zA-Z._]*),([0-9a-zA-Z._]*):([0-9a-f]{40})$");
@@ -25,16 +27,16 @@ public final class QbtManifest {
     private static final Pattern NORMAL_DEP_PATTERN = Pattern.compile("^        ([A-Za-z]*):([0-9a-zA-Z._]*),([0-9a-zA-Z._]*)$");
     private static final Pattern REPLACE_DEP_PATTERN = Pattern.compile("^        (?:R|Replace):([0-9a-zA-Z._]*),([0-9a-zA-Z._]*),([0-9a-zA-Z._]*)$");
 
-    public final ImmutableMap<PackageTip, RepoManifest> repos;
-    public final ImmutableMap<PackageTip, PackageTip> packageToRepo;
+    public final ImmutableMap<RepoTip, RepoManifest> repos;
+    public final ImmutableMap<PackageTip, RepoTip> packageToRepo;
 
-    private QbtManifest(ImmutableMap<PackageTip, RepoManifest> repos) {
+    private QbtManifest(ImmutableMap<RepoTip, RepoManifest> repos) {
         this.repos = repos;
 
-        ImmutableMap.Builder<PackageTip, PackageTip> packageToRepoBuilder = ImmutableMap.builder();
-        for(Map.Entry<PackageTip, RepoManifest> e : repos.entrySet()) {
+        ImmutableMap.Builder<PackageTip, RepoTip> packageToRepoBuilder = ImmutableMap.builder();
+        for(Map.Entry<RepoTip, RepoManifest> e : repos.entrySet()) {
             for(String pkg : e.getValue().packages.keySet()) {
-                packageToRepoBuilder.put(PackageTip.of(pkg, e.getKey().tip), e.getKey());
+                packageToRepoBuilder.put(PackageTip.TYPE.of(pkg, e.getKey().tip), e.getKey());
             }
         }
         this.packageToRepo = packageToRepoBuilder.build();
@@ -45,7 +47,7 @@ public final class QbtManifest {
     }
 
     public static class Builder {
-        private final Map<PackageTip, RepoManifest> repos = Maps.newHashMap();
+        private final Map<RepoTip, RepoManifest> repos = Maps.newHashMap();
 
         private Builder() {
         }
@@ -54,7 +56,7 @@ public final class QbtManifest {
             repos.putAll(manifest.repos);
         }
 
-        public Builder with(PackageTip repo, RepoManifest manifest) {
+        public Builder with(RepoTip repo, RepoManifest manifest) {
             repos.put(repo, manifest);
             return this;
         }
@@ -70,7 +72,7 @@ public final class QbtManifest {
 
     private static final class Parser {
         private Builder b = new Builder();
-        private PackageTip currentRepo = null;
+        private RepoTip currentRepo = null;
         private RepoManifest.Builder repoBuilder = null;
         private String currentPackage = null;
         private PackageManifest.Builder packageBuilder = null;
@@ -101,7 +103,7 @@ public final class QbtManifest {
             Matcher repoMatcher = REPO_PATTERN.matcher(line);
             if(repoMatcher.matches()) {
                 closeRepo();
-                currentRepo = PackageTip.of(repoMatcher.group(1), repoMatcher.group(2));
+                currentRepo = RepoTip.TYPE.of(repoMatcher.group(1), repoMatcher.group(2));
                 repoBuilder = RepoManifest.builder(new VcsVersionDigest(QbtHashUtils.parse(repoMatcher.group(3))));
                 return;
             }
@@ -135,13 +137,13 @@ public final class QbtManifest {
 
             Matcher normalDepMatcher = NORMAL_DEP_PATTERN.matcher(line);
             if(normalDepMatcher.matches()) {
-                packageBuilder = packageBuilder.withNormalDep(PackageTip.of(normalDepMatcher.group(2), normalDepMatcher.group(3)), NormalDependencyType.fromTag(normalDepMatcher.group(1)));
+                packageBuilder = packageBuilder.withNormalDep(PackageTip.TYPE.of(normalDepMatcher.group(2), normalDepMatcher.group(3)), NormalDependencyType.fromTag(normalDepMatcher.group(1)));
                 return;
             }
 
             Matcher replaceDepMatcher = REPLACE_DEP_PATTERN.matcher(line);
             if(replaceDepMatcher.matches()) {
-                packageBuilder = packageBuilder.withReplaceDep(PackageTip.of(replaceDepMatcher.group(1), replaceDepMatcher.group(2)), replaceDepMatcher.group(3));
+                packageBuilder = packageBuilder.withReplaceDep(PackageTip.TYPE.of(replaceDepMatcher.group(1), replaceDepMatcher.group(2)), replaceDepMatcher.group(3));
                 return;
             }
 
@@ -286,13 +288,13 @@ public final class QbtManifest {
     private static final Deparser<Pair<ObjectUtils.Null, PackageTip>, String> replaceDepDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, PackageTip>, String>() {
         @Override
         protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, PackageTip> k, String v) {
-            b.add("        Replace:" + k.getRight().pkg + "," + k.getRight().tip + "," + v);
+            b.add("        Replace:" + k.getRight().name + "," + k.getRight().tip + "," + v);
         }
     };
 
-    private static final Deparser<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsDeparser = new MapDeparser<ObjectUtils.Null, PackageTip, String>(PackageTip.COMPARATOR, replaceDepDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsDeparser = new MapDeparser<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, replaceDepDeparser);
 
-    private static final Deparser<Pair<PackageTip, String>, PackageManifest> packageManifestDeparser = new Deparser<Pair<PackageTip, String>, PackageManifest>() {
+    private static final Deparser<Pair<RepoTip, String>, PackageManifest> packageManifestDeparser = new Deparser<Pair<RepoTip, String>, PackageManifest>() {
         private Map<NormalDependencyType, Map<String, String>> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {
             Map<NormalDependencyType, Map<String, String>> ret = Maps.newHashMap();
             for(Map.Entry<String, Pair<NormalDependencyType, String>> e : normalDeps.entrySet()) {
@@ -307,7 +309,7 @@ public final class QbtManifest {
         }
 
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<PackageTip, String> k, PackageManifest v) {
+        protected void deparseSimple(SimpleDeparseBuilder b, Pair<RepoTip, String> k, PackageManifest v) {
             b.add("    " + k.getRight());
             packageMetadataDeparser.deparseSimple(b, ObjectUtils.NULL, v.metadata.toStringMap());
             packageNormalDepsDeparser.deparseSimple(b, ObjectUtils.NULL, invertNormalDeps(v.normalDeps));
@@ -315,7 +317,7 @@ public final class QbtManifest {
         }
 
         @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, Pair<PackageTip, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
+        protected void deparseConflict(ConflictDeparseBuilder b, Pair<RepoTip, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
             b.add("    " + k.getRight());
             packageMetadataDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
             packageNormalDepsDeparser.deparseConflict(b, ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
@@ -323,24 +325,24 @@ public final class QbtManifest {
         }
     };
 
-    private static final Deparser<PackageTip, VcsVersionDigest> repoVersionDeparser = new ConflictMarkerDeparser<PackageTip, VcsVersionDigest>() {
+    private static final Deparser<RepoTip, VcsVersionDigest> repoVersionDeparser = new ConflictMarkerDeparser<RepoTip, VcsVersionDigest>() {
         @Override
-        public void deparseSimple(SimpleDeparseBuilder b, PackageTip repo, VcsVersionDigest v) {
-            b.add(repo.pkg + "," + repo.tip + ":" + v.getRawDigest());
+        public void deparseSimple(SimpleDeparseBuilder b, RepoTip repo, VcsVersionDigest v) {
+            b.add(repo.name + "," + repo.tip + ":" + v.getRawDigest());
         }
     };
 
-    private static final Deparser<PackageTip, Map<String, PackageManifest>> repoManifestMapDeparser = new MapDeparser<PackageTip, String, PackageManifest>(Ordering.<String>natural(), packageManifestDeparser);
+    private static final Deparser<RepoTip, Map<String, PackageManifest>> repoManifestMapDeparser = new MapDeparser<RepoTip, String, PackageManifest>(Ordering.<String>natural(), packageManifestDeparser);
 
-    private static final Deparser<Pair<ObjectUtils.Null, PackageTip>, RepoManifest> repoManifestDeparser = new Deparser<Pair<ObjectUtils.Null, PackageTip>, RepoManifest>() {
+    private static final Deparser<Pair<ObjectUtils.Null, RepoTip>, RepoManifest> repoManifestDeparser = new Deparser<Pair<ObjectUtils.Null, RepoTip>, RepoManifest>() {
         @Override
-        public void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, PackageTip> k, RepoManifest v) {
+        public void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest v) {
             repoVersionDeparser.deparseSimple(b, k.getRight(), v.version);
             repoManifestMapDeparser.deparseSimple(b, k.getRight(), v.packages);
         }
 
         @Override
-        public void deparseConflict(ConflictDeparseBuilder b, Pair<ObjectUtils.Null, PackageTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
+        public void deparseConflict(ConflictDeparseBuilder b, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
             repoVersionDeparser.deparse(b, k.getRight(), lhs.version, mhs.version, rhs.version);
             repoManifestMapDeparser.deparse(b, k.getRight(), lhs.packages, mhs.packages, rhs.packages);
         }
@@ -358,7 +360,7 @@ public final class QbtManifest {
         }
     };
 
-    private static final Deparser<ObjectUtils.Null, Map<PackageTip, RepoManifest>> qbtManifestMapDeparser = new MapDeparser<ObjectUtils.Null, PackageTip, RepoManifest>(PackageTip.COMPARATOR, repoManifestDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<RepoTip, RepoManifest>> qbtManifestMapDeparser = new MapDeparser<ObjectUtils.Null, RepoTip, RepoManifest>(RepoTip.TYPE.COMPARATOR, repoManifestDeparser);
 
     public static Pair<Boolean, Iterable<String>> deparseConflicts(final String lhsName, QbtManifest lhs, final String mhsName, QbtManifest mhs, final String rhsName, QbtManifest rhs) {
         final ImmutableList.Builder<String> ret = ImmutableList.builder();
@@ -416,7 +418,7 @@ public final class QbtManifest {
         return true;
     }
 
-    public static QbtManifest of(Map<PackageTip, RepoManifest> repos) {
+    public static QbtManifest of(Map<RepoTip, RepoManifest> repos) {
         return new QbtManifest(ImmutableMap.copyOf(repos));
     }
 }

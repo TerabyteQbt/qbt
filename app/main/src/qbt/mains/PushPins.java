@@ -13,7 +13,6 @@ import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
 import org.apache.commons.lang3.ObjectUtils;
 import qbt.HelpTier;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -27,6 +26,7 @@ import qbt.options.ParallelismOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.remote.QbtRemote;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
 public class PushPins extends QbtCommand<PushPins.Options> {
@@ -58,13 +58,13 @@ public class PushPins extends QbtCommand<PushPins.Options> {
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
-        Collection<PackageTip> repos = Options.repos.getRepos(config, manifest, options);
+        Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
         String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
-        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<PackageTip, ObjectUtils.Null>() {
+        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
             @Override
-            public ObjectUtils.Null apply(PackageTip repo) {
+            public ObjectUtils.Null apply(RepoTip repo) {
                 RepoManifest repoManifest = manifest.repos.get(repo);
                 if(repoManifest == null) {
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);

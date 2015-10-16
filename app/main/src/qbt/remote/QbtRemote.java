@@ -1,9 +1,9 @@
 package qbt.remote;
 
-import qbt.PackageTip;
+import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
 public interface QbtRemote {
-    public RawRemote findRemote(PackageTip repo);
-    public RawRemote requireRemote(PackageTip repo);
+    public RawRemote findRemote(RepoTip repo);
+    public RawRemote requireRemote(RepoTip repo);
 }

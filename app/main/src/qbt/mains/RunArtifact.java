@@ -16,7 +16,6 @@ import misc1.commons.options.UnparsedOptionsFragment;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
-import qbt.PackageTip;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
@@ -36,6 +35,7 @@ import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
+import qbt.tip.PackageTip;
 import qbt.utils.ProcessHelper;
 
 public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
@@ -75,7 +75,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
     public int run(final OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
-        final PackageTip packageTip = PackageTip.parseRequire(options.get(Options.pkg), "package");
+        final PackageTip packageTip = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
 
         try(final ArtifactScope artifactScope = new ArtifactScope()) {

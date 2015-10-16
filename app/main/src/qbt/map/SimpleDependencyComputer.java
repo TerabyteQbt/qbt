@@ -4,8 +4,9 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
-import qbt.PackageTip;
 import qbt.QbtManifest;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
 
 public abstract class SimpleDependencyComputer<V> extends DependencyComputer<PackageManifest, V> {
     private final QbtManifest manifest;
@@ -16,8 +17,8 @@ public abstract class SimpleDependencyComputer<V> extends DependencyComputer<Pac
 
     @Override
     protected PackageManifest premap(PackageTip packageTip) {
-        PackageTip repo = manifest.packageToRepo.get(packageTip);
-        return manifest.repos.get(repo).packages.get(packageTip.pkg);
+        RepoTip repo = manifest.packageToRepo.get(packageTip);
+        return manifest.repos.get(repo).packages.get(packageTip.name);
     }
 
     @Override
