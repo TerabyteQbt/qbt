@@ -60,4 +60,9 @@ public final class GitRawRemoteVcs extends SimpleRawRemoteVcs {
     public void rsyncBranches(Path dir, String localPrefix, String remote, String remotePrefix) {
         GitUtils.rsyncBranches(dir, localPrefix, remote, remotePrefix);
     }
+
+    @Override
+    public boolean remoteExists(String remote) {
+        return GitUtils.remoteExists(remote);
+    }
 }
