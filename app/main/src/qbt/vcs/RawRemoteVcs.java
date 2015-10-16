@@ -15,4 +15,5 @@ public interface RawRemoteVcs {
     public void publishBranch(Path dir, String remote, VcsVersionDigest commit, String name);
     public String getName();
     public void rsyncBranches(Path dir, String localPrefix, String remote, String remotePrefix);
+    public boolean remoteExists(String remote);
 }
