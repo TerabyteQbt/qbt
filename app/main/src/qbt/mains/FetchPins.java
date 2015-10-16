@@ -2,6 +2,7 @@ package qbt.mains;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collection;
@@ -23,9 +24,11 @@ import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
+import qbt.options.PackageRepoSelection;
 import qbt.options.ParallelismOptionsDelegate;
 import qbt.options.RepoActionOptionsDelegate;
 import qbt.remote.QbtRemote;
+import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
@@ -37,7 +40,16 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final ParallelismOptionsDelegate<Options> parallelism = new ParallelismOptionsDelegate<Options>();
-        public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(RepoActionOptionsDelegate.NoArgsBehaviour.THROW);
+        public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(new RepoActionOptionsDelegate.NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                ImmutableSet<RepoTip> s0 = PackageRepoSelection.overrides(config, manifest);
+                ImmutableSet<PackageTip> s1 = PackageRepoSelection.reposToPackages(manifest, s0);
+                ImmutableSet<PackageTip> s2 = PackageRepoSelection.inwardsClosure(manifest, s1);
+                ImmutableSet<RepoTip> s3 = PackageRepoSelection.packagesToRepos(manifest, s2);
+                b.addAll(s3);
+            }
+        });
         public static final OptionsFragment<Options, ?, ImmutableList<String>> remote = new UnparsedOptionsFragment<Options>("QBT remote from which to fetch", false, 1, 1);
     }
 

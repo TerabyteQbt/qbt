@@ -21,6 +21,7 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, ImmutableList<String>> packages = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--package"), "Act on the repo containing this package");
     public final OptionsFragment<O, ?, Boolean> overrides = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--overrides"), "Act on all overridden repos");
     public final OptionsFragment<O, ?, Boolean> all = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--all"), "Act on all repos");
+    public final OptionsFragment<O, ?, ImmutableList<String>> groovyRepos = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--groovyRepos"), "Evaluate this groovy to choose repos");
 
     private final NoArgsBehaviour noArgsBehaviour;
 
@@ -28,10 +29,28 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
         this.noArgsBehaviour = noArgsBehaviour;
     }
 
-    public enum NoArgsBehaviour {
-        EMPTY,
-        OVERRIDES,
-        THROW;
+    public interface NoArgsBehaviour {
+        public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest);
+
+        public static final NoArgsBehaviour EMPTY = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+            }
+        };
+
+        public static final NoArgsBehaviour OVERRIDES = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                addOverrides(b, config, manifest);
+            }
+        };
+
+        public static final NoArgsBehaviour THROW = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                throw new OptionsException("Some form of repo selection is required.");
+            }
+        };
     }
 
     public Collection<RepoTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
@@ -59,18 +78,12 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
             hadNoArgs = false;
             reposBuilder.addAll(manifest.repos.keySet());
         }
+        for(String groovy : options.get(groovyRepos)) {
+            hadNoArgs = false;
+            reposBuilder.addAll(PackageRepoSelection.evalRepos(config, manifest, groovy));
+        }
         if(hadNoArgs) {
-            switch(noArgsBehaviour) {
-                case EMPTY:
-                    break;
-
-                case OVERRIDES:
-                    addOverrides(reposBuilder, config, manifest);
-                    break;
-
-                case THROW:
-                    throw new OptionsException("Some form of repo selection is required.");
-            }
+            noArgsBehaviour.run(reposBuilder, config, manifest);
         }
         return reposBuilder.build();
     }
