@@ -3,6 +3,7 @@ package qbt.vcs.git;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
@@ -148,7 +149,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Map<VcsVersionDigest, CommitData> revWalk(VcsVersionDigest from, VcsVersionDigest to) {
+    public Map<VcsVersionDigest, CommitData> revWalk(Collection<VcsVersionDigest> from, Collection<VcsVersionDigest> to) {
         return GitUtils.revWalk(repositoryPath, from, to);
     }
 

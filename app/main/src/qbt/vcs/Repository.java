@@ -2,6 +2,7 @@ package qbt.vcs;
 
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
@@ -22,7 +23,7 @@ public interface Repository {
     public Path getRoot();
     public Iterable<String> getChangedPaths(VcsVersionDigest lhs, VcsVersionDigest rhs);
     public VcsTreeDigest getSubtree(VcsVersionDigest version, String subpath);
-    public Map<VcsVersionDigest, CommitData> revWalk(VcsVersionDigest from, VcsVersionDigest to);
+    public Map<VcsVersionDigest, CommitData> revWalk(Collection<VcsVersionDigest> from, Collection<VcsVersionDigest> to);
     public CommitData getCommitData(VcsVersionDigest commit);
     public VcsVersionDigest getUserSpecifiedCommit(String arg);
 

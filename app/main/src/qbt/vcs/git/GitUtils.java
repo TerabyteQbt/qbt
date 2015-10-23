@@ -418,8 +418,19 @@ public class GitUtils {
         return getCurrentCommit(dir);
     }
 
-    public static Map<VcsVersionDigest, CommitData> revWalk(Path dir, VcsVersionDigest from, VcsVersionDigest to) {
-        return parseRawLog(dir, "git", "log", "--format=raw", (from == null ? "" : (from.getRawDigest() + "..")) + to.getRawDigest());
+    public static Map<VcsVersionDigest, CommitData> revWalk(Path dir, Collection<VcsVersionDigest> from, Collection<VcsVersionDigest> to) {
+        if(to.isEmpty()) {
+            return ImmutableMap.of();
+        }
+        ImmutableList.Builder<String> args = ImmutableList.builder();
+        args.add("git", "log", "--format=raw");
+        for(VcsVersionDigest e : from) {
+            args.add("^" + e.getRawDigest());
+        }
+        for(VcsVersionDigest e : to) {
+            args.add(String.valueOf(e.getRawDigest()));
+        }
+        return parseRawLog(dir, args.build().toArray(new String[0]));
     }
 
     public static CommitData getCommitData(Path dir, VcsVersionDigest commit) {
