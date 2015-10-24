@@ -25,10 +25,10 @@ public final class CommitDataUtils {
         return Splitter.on('\n').split(commitData.message).iterator().next();
     }
 
-    public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, VcsVersionDigest commit) {
+    public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, Iterable<VcsVersionDigest> commits) {
         final ImmutableList.Builder<Pair<VcsVersionDigest, CommitData>> b = ImmutableList.builder();
         final Set<VcsVersionDigest> already = Sets.newHashSet();
-        class Builder {
+        class Helper {
             public void build(VcsVersionDigest commit) {
                 if(!already.add(commit)) {
                     return;
@@ -43,7 +43,10 @@ public final class CommitDataUtils {
                 b.add(Pair.of(commit, commitData));
             }
         }
-        new Builder().build(commit);
+        Helper h = new Helper();
+        for(VcsVersionDigest commit : commits) {
+            h.build(commit);
+        }
         return b.build().reverse();
     }
 }
