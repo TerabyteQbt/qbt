@@ -437,31 +437,55 @@ public class GitUtils {
         return parseRawLog(dir, "git", "log", "--format=raw", "-1", commit.getRawDigest().toString()).get(commit);
     }
 
-    private static final Pattern COMMITTER_PATTERN = Pattern.compile("^committer ([^<>]*) <([^<>]*)>.*$");
+    private static final Pattern COMMITTER_PATTERN = Pattern.compile("^committer ([^<>]*) <([^<>]*)> ([0-9]*).*$");
+    private static final Pattern AUTHOR_PATTERN = Pattern.compile("^author ([^<>]*) <([^<>]*)> ([0-9]*).*$");
 
     private static Map<VcsVersionDigest, CommitData> parseRawLog(Path dir, String... args) {
         class Parser {
             private final ImmutableMap.Builder<VcsVersionDigest, CommitData> b = ImmutableMap.builder();
             private VcsVersionDigest currentCommit = null;
+            private VcsTreeDigest currentTree = null;
+            private ImmutableList.Builder<VcsVersionDigest> currentParents = ImmutableList.builder();
+            private String authorName = null;
+            private String authorEmail = null;
+            private String authorDate = null;
             private String committerName = null;
             private String committerEmail = null;
+            private String committerDate = null;
             private StringBuilder currentMessage = new StringBuilder();
-            private ImmutableList.Builder<VcsVersionDigest> currentParents = ImmutableList.builder();
 
             private void flush() {
                 if(currentCommit != null) {
+                    if(currentTree == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorName == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorEmail == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorDate == null) {
+                        throw new IllegalStateException();
+                    }
                     if(committerName == null) {
                         throw new IllegalStateException();
                     }
                     if(committerEmail == null) {
                         throw new IllegalStateException();
                     }
-                    b.put(currentCommit, new CommitData(currentMessage.toString(), committerName, committerEmail, currentParents.build()));
+                    if(committerDate == null) {
+                        throw new IllegalStateException();
+                    }
+                    b.put(currentCommit, new CommitData(currentTree, currentParents.build(), authorName, authorEmail, authorDate, committerName, committerEmail, committerDate, currentMessage.toString()));
                     currentCommit = null;
+                    currentTree = null;
+                    currentParents = ImmutableList.builder();
+                    authorName = null;
+                    authorEmail = null;
                     committerName = null;
                     committerEmail = null;
                     currentMessage = new StringBuilder();
-                    currentParents = ImmutableList.builder();
                 }
             }
 
@@ -470,19 +494,29 @@ public class GitUtils {
                     flush();
                     currentCommit = new VcsVersionDigest(QbtHashUtils.parse(line.substring(7)));
                 }
+                if(line.startsWith("tree ")) {
+                    currentTree = new VcsTreeDigest(QbtHashUtils.parse(line.substring(5)));
+                }
                 if(line.startsWith("parent ")) {
                     currentParents.add(new VcsVersionDigest(QbtHashUtils.parse(line.substring(7))));
+                }
+                Matcher authorMatcher = AUTHOR_PATTERN.matcher(line);
+                if(authorMatcher.matches()) {
+                    authorName = authorMatcher.group(1);
+                    authorEmail = authorMatcher.group(2);
+                    authorDate = authorMatcher.group(3);
+                }
+                Matcher committerMatcher = COMMITTER_PATTERN.matcher(line);
+                if(committerMatcher.matches()) {
+                    committerName = committerMatcher.group(1);
+                    committerEmail = committerMatcher.group(2);
+                    committerDate = committerMatcher.group(3);
                 }
                 if(line.startsWith("    ")) {
                     if(currentMessage.length() > 0) {
                         currentMessage.append('\n');
                     }
                     currentMessage.append(line.substring(4));
-                }
-                Matcher committerMatcher = COMMITTER_PATTERN.matcher(line);
-                if(committerMatcher.matches()) {
-                    committerName = committerMatcher.group(1);
-                    committerEmail = committerMatcher.group(2);
                 }
             }
 
