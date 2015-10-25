@@ -78,6 +78,11 @@ public final class ProcessHelper {
         return this;
     }
 
+    public ProcessHelper fileOutput(Path path) {
+        pb = pb.redirectOutput(path.toFile());
+        return this;
+    }
+
     public ProcessHelper putEnv(String key, String value) {
         pb.environment().put(key, value);
         return this;

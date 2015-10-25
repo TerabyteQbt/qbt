@@ -22,13 +22,13 @@ public final class CommitDataUtils {
     }
 
     public static String getCommitSubject(CommitData commitData) {
-        return Splitter.on('\n').split(commitData.message).iterator().next();
+        return Splitter.on('\n').split(commitData.get(CommitData.MESSAGE)).iterator().next();
     }
 
-    public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, VcsVersionDigest commit) {
+    public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, Iterable<VcsVersionDigest> commits) {
         final ImmutableList.Builder<Pair<VcsVersionDigest, CommitData>> b = ImmutableList.builder();
         final Set<VcsVersionDigest> already = Sets.newHashSet();
-        class Builder {
+        class Helper {
             public void build(VcsVersionDigest commit) {
                 if(!already.add(commit)) {
                     return;
@@ -37,13 +37,16 @@ public final class CommitDataUtils {
                 if(commitData == null) {
                     return;
                 }
-                for(VcsVersionDigest parent : commitData.parents) {
+                for(VcsVersionDigest parent : commitData.get(CommitData.PARENTS)) {
                     build(parent);
                 }
                 b.add(Pair.of(commit, commitData));
             }
         }
-        new Builder().build(commit);
+        Helper h = new Helper();
+        for(VcsVersionDigest commit : commits) {
+            h.build(commit);
+        }
         return b.build().reverse();
     }
 }

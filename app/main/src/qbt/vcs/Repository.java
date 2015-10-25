@@ -15,6 +15,7 @@ public interface Repository {
     public VcsVersionDigest getCurrentCommit();
     public String getCurrentBranch();
     public Iterable<String> showFile(VcsVersionDigest commit, String path);
+    public Iterable<String> showFile(VcsTreeDigest commit, String path);
     public Iterable<VcsVersionDigest> mergeBases(VcsVersionDigest lhs, VcsVersionDigest rhs);
     public boolean commitExists(VcsVersionDigest version);
     public Multimap<String, String> getAllConfig();
@@ -47,4 +48,10 @@ public interface Repository {
     // after: [failure] throw, repo state unclear
     // after: [success] repo is at rebuild on previous place of [linear] from..to, clean
     public void rebase(VcsVersionDigest from, VcsVersionDigest to);
+
+    // create commit in the background
+    public VcsVersionDigest createCommit(CommitData commitData);
+
+    // operations on a tree in this repo
+    public TreeAccessor getTreeAccessor(VcsTreeDigest tree);
 }

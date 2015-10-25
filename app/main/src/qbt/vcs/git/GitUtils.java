@@ -7,7 +7,10 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.hash.HashCode;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import misc1.commons.ExceptionUtils;
+import misc1.commons.ds.StructBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
@@ -123,6 +128,12 @@ public class GitUtils {
 
     public static Iterable<String> showFile(Path repo, VcsVersionDigest commit, String path) {
         ProcessHelper p = new ProcessHelper(repo, "git", "show", commit.getRawDigest() + ":" + path);
+        p = p.inheritError();
+        return p.completeLines();
+    }
+
+    public static Iterable<String> showFile(Path repo, VcsTreeDigest tree, String path) {
+        ProcessHelper p = new ProcessHelper(repo, "git", "show", tree.getRawDigest() + ":" + path);
         p = p.inheritError();
         return p.completeLines();
     }
@@ -437,31 +448,65 @@ public class GitUtils {
         return parseRawLog(dir, "git", "log", "--format=raw", "-1", commit.getRawDigest().toString()).get(commit);
     }
 
-    private static final Pattern COMMITTER_PATTERN = Pattern.compile("^committer ([^<>]*) <([^<>]*)>.*$");
+    private static final Pattern COMMITTER_PATTERN = Pattern.compile("^committer ([^<>]*) <([^<>]*)> ([0-9]*).*$");
+    private static final Pattern AUTHOR_PATTERN = Pattern.compile("^author ([^<>]*) <([^<>]*)> ([0-9]*).*$");
 
     private static Map<VcsVersionDigest, CommitData> parseRawLog(Path dir, String... args) {
         class Parser {
             private final ImmutableMap.Builder<VcsVersionDigest, CommitData> b = ImmutableMap.builder();
             private VcsVersionDigest currentCommit = null;
+            private VcsTreeDigest currentTree = null;
+            private ImmutableList.Builder<VcsVersionDigest> currentParents = ImmutableList.builder();
+            private String authorName = null;
+            private String authorEmail = null;
+            private String authorDate = null;
             private String committerName = null;
             private String committerEmail = null;
+            private String committerDate = null;
             private StringBuilder currentMessage = new StringBuilder();
-            private ImmutableList.Builder<VcsVersionDigest> currentParents = ImmutableList.builder();
 
             private void flush() {
                 if(currentCommit != null) {
+                    if(currentTree == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorName == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorEmail == null) {
+                        throw new IllegalStateException();
+                    }
+                    if(authorDate == null) {
+                        throw new IllegalStateException();
+                    }
                     if(committerName == null) {
                         throw new IllegalStateException();
                     }
                     if(committerEmail == null) {
                         throw new IllegalStateException();
                     }
-                    b.put(currentCommit, new CommitData(currentMessage.toString(), committerName, committerEmail, currentParents.build()));
+                    if(committerDate == null) {
+                        throw new IllegalStateException();
+                    }
+                    StructBuilder<CommitData> cd = CommitData.TYPE.builder();
+                    cd = cd.set(CommitData.TREE, currentTree);
+                    cd = cd.set(CommitData.PARENTS, currentParents.build());
+                    cd = cd.set(CommitData.AUTHOR_NAME, authorName);
+                    cd = cd.set(CommitData.AUTHOR_EMAIL, authorEmail);
+                    cd = cd.set(CommitData.AUTHOR_DATE, authorDate);
+                    cd = cd.set(CommitData.COMMITTER_NAME, committerName);
+                    cd = cd.set(CommitData.COMMITTER_EMAIL, committerEmail);
+                    cd = cd.set(CommitData.COMMITTER_DATE, committerDate);
+                    cd = cd.set(CommitData.MESSAGE, currentMessage.toString());
+                    b.put(currentCommit, cd.build());
                     currentCommit = null;
+                    currentTree = null;
+                    currentParents = ImmutableList.builder();
+                    authorName = null;
+                    authorEmail = null;
                     committerName = null;
                     committerEmail = null;
                     currentMessage = new StringBuilder();
-                    currentParents = ImmutableList.builder();
                 }
             }
 
@@ -470,19 +515,29 @@ public class GitUtils {
                     flush();
                     currentCommit = new VcsVersionDigest(QbtHashUtils.parse(line.substring(7)));
                 }
+                if(line.startsWith("tree ")) {
+                    currentTree = new VcsTreeDigest(QbtHashUtils.parse(line.substring(5)));
+                }
                 if(line.startsWith("parent ")) {
                     currentParents.add(new VcsVersionDigest(QbtHashUtils.parse(line.substring(7))));
+                }
+                Matcher authorMatcher = AUTHOR_PATTERN.matcher(line);
+                if(authorMatcher.matches()) {
+                    authorName = authorMatcher.group(1);
+                    authorEmail = authorMatcher.group(2);
+                    authorDate = authorMatcher.group(3);
+                }
+                Matcher committerMatcher = COMMITTER_PATTERN.matcher(line);
+                if(committerMatcher.matches()) {
+                    committerName = committerMatcher.group(1);
+                    committerEmail = committerMatcher.group(2);
+                    committerDate = committerMatcher.group(3);
                 }
                 if(line.startsWith("    ")) {
                     if(currentMessage.length() > 0) {
                         currentMessage.append('\n');
                     }
                     currentMessage.append(line.substring(4));
-                }
-                Matcher committerMatcher = COMMITTER_PATTERN.matcher(line);
-                if(committerMatcher.matches()) {
-                    committerName = committerMatcher.group(1);
-                    committerEmail = committerMatcher.group(2);
                 }
             }
 
@@ -498,5 +553,51 @@ public class GitUtils {
             pp.parseLine(line);
         }
         return pp.eof();
+    }
+
+    public static VcsVersionDigest createCommit(Path dir, CommitData commitData) {
+        ImmutableList.Builder<String> commitTreeCommand = ImmutableList.builder();
+        commitTreeCommand.add("git", "commit-tree", "-m", commitData.get(CommitData.MESSAGE));
+        for(VcsVersionDigest parent : commitData.get(CommitData.PARENTS)){
+            commitTreeCommand.add("-p", parent.getRawDigest().toString());
+        }
+        commitTreeCommand.add(commitData.get(CommitData.TREE).getRawDigest().toString());
+        ProcessHelper p = new ProcessHelper(dir, commitTreeCommand.build().toArray(new String[0]));
+        p = p.putEnv("GIT_AUTHOR_NAME", commitData.get(CommitData.AUTHOR_NAME));
+        p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.get(CommitData.AUTHOR_EMAIL));
+        p = p.putEnv("GIT_AUTHOR_DATE", commitData.get(CommitData.AUTHOR_DATE));
+        p = p.putEnv("GIT_COMMITTER_NAME", commitData.get(CommitData.COMMITTER_NAME));
+        p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.get(CommitData.COMMITTER_EMAIL));
+        p = p.putEnv("GIT_COMMITTER_DATE", commitData.get(CommitData.COMMITTER_DATE));
+        HashCode object = p.inheritError().completeSha1();
+        return new VcsVersionDigest(object);
+    }
+
+    public static HashCode writeObject(Path dir, byte[] contents) {
+        try(QbtTempDir tempDir = new QbtTempDir()) {
+            Path tempFile = tempDir.resolve("object");
+            try {
+                Files.write(contents, tempFile.toFile());
+            }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
+            }
+            return new ProcessHelper(dir, "git", "hash-object", "-w", tempFile.toString()).inheritError().completeSha1();
+        }
+    }
+
+    public static byte[] readObject(Path dir, HashCode object) {
+        try(QbtTempDir tempDir = new QbtTempDir()) {
+            Path tempFile = tempDir.resolve("object");
+            new ProcessHelper(dir, "git", "show", object.toString()).fileOutput(tempFile).inheritError().completeVoid();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                Files.copy(tempFile.toFile(), baos);
+            }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
+            }
+            return baos.toByteArray();
+        }
     }
 }
