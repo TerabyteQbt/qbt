@@ -20,10 +20,16 @@ public final class FormatQbtRemote implements QbtRemote {
     @Override
     public RawRemote findRemote(RepoTip repo, boolean autoVivify) {
         String remote = formatRemote(repo);
-        if(!vcs.remoteExists(remote) && !autoVivify) {
+        RawRemote rawRemote = new RawRemote(remote, vcs);
+
+        if(vcs.remoteExists(remote)) {
+            return rawRemote;
+        }
+        if(!autoVivify) {
+            // doesn't exist and we weren't asked to create it
             return null;
         }
         // If autoVivify asked for, which FormatQbtRemote doesn't support, return the RawRemote and let the fireworks happen elsewhere.
-        return new RawRemote(remote, vcs);
+        return rawRemote;
     }
 }
