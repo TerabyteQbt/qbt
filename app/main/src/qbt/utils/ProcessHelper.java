@@ -37,7 +37,7 @@ public final class ProcessHelper {
         // underneath git at any point (e.g.  mergeDriver) all hell breaks
         // loose.
         pb.environment().remove("GIT_DIR");
-        pb.environment().remove("GIT_WORK_DIR");
+        pb.environment().remove("GIT_WORK_TREE");
 
         this.dir = dir;
         this.desc = Joiner.on(' ').join(args);
