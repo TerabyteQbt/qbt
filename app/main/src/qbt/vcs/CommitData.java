@@ -2,7 +2,7 @@ package qbt.vcs;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Map;
+import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
@@ -10,7 +10,7 @@ import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 
 public final class CommitData extends Struct<CommitData> {
-    private CommitData(Map<StructKey<CommitData, ?>, Object> map) {
+    private CommitData(ImmutableSalvagingMap<StructKey<CommitData, ?>, Object> map) {
         super(TYPE, map);
     }
 
@@ -38,7 +38,7 @@ public final class CommitData extends Struct<CommitData> {
         b.add(MESSAGE = new StructKey<CommitData, String>("message"));
 
         TYPE = new StructType<CommitData>(b.build()) {
-            public CommitData create(Map<StructKey<CommitData, ?>, Object> map) {
+            public CommitData create(ImmutableSalvagingMap<StructKey<CommitData, ?>, Object> map) {
                 return new CommitData(map);
             }
         };
