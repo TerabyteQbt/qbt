@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.ds.StructBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
@@ -487,7 +488,17 @@ public class GitUtils {
                     if(committerDate == null) {
                         throw new IllegalStateException();
                     }
-                    b.put(currentCommit, new CommitData(currentTree, currentParents.build(), authorName, authorEmail, authorDate, committerName, committerEmail, committerDate, currentMessage.toString()));
+                    StructBuilder<CommitData> cd = CommitData.TYPE.builder();
+                    cd = cd.set(CommitData.TREE, currentTree);
+                    cd = cd.set(CommitData.PARENTS, currentParents.build());
+                    cd = cd.set(CommitData.AUTHOR_NAME, authorName);
+                    cd = cd.set(CommitData.AUTHOR_EMAIL, authorEmail);
+                    cd = cd.set(CommitData.AUTHOR_DATE, authorDate);
+                    cd = cd.set(CommitData.COMMITTER_NAME, committerName);
+                    cd = cd.set(CommitData.COMMITTER_EMAIL, committerEmail);
+                    cd = cd.set(CommitData.COMMITTER_DATE, committerDate);
+                    cd = cd.set(CommitData.MESSAGE, currentMessage.toString());
+                    b.put(currentCommit, cd.build());
                     currentCommit = null;
                     currentTree = null;
                     currentParents = ImmutableList.builder();
@@ -546,18 +557,18 @@ public class GitUtils {
 
     public static VcsVersionDigest createCommit(Path dir, CommitData commitData) {
         ImmutableList.Builder<String> commitTreeCommand = ImmutableList.builder();
-        commitTreeCommand.add("git", "commit-tree", "-m", commitData.message);
-        for(VcsVersionDigest parent : commitData.parents){
+        commitTreeCommand.add("git", "commit-tree", "-m", commitData.get(CommitData.MESSAGE));
+        for(VcsVersionDigest parent : commitData.get(CommitData.PARENTS)){
             commitTreeCommand.add("-p", parent.getRawDigest().toString());
         }
-        commitTreeCommand.add(commitData.tree.getRawDigest().toString());
+        commitTreeCommand.add(commitData.get(CommitData.TREE).getRawDigest().toString());
         ProcessHelper p = new ProcessHelper(dir, commitTreeCommand.build().toArray(new String[0]));
-        p = p.putEnv("GIT_AUTHOR_NAME", commitData.authorName);
-        p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.authorEmail);
-        p = p.putEnv("GIT_AUTHOR_DATE", commitData.authorDate);
-        p = p.putEnv("GIT_COMMITTER_NAME", commitData.committerName);
-        p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.committerEmail);
-        p = p.putEnv("GIT_COMMITTER_DATE", commitData.committerDate);
+        p = p.putEnv("GIT_AUTHOR_NAME", commitData.get(CommitData.AUTHOR_NAME));
+        p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.get(CommitData.AUTHOR_EMAIL));
+        p = p.putEnv("GIT_AUTHOR_DATE", commitData.get(CommitData.AUTHOR_DATE));
+        p = p.putEnv("GIT_COMMITTER_NAME", commitData.get(CommitData.COMMITTER_NAME));
+        p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.get(CommitData.COMMITTER_EMAIL));
+        p = p.putEnv("GIT_COMMITTER_DATE", commitData.get(CommitData.COMMITTER_DATE));
         HashCode object = p.inheritError().completeSha1();
         return new VcsVersionDigest(object);
     }

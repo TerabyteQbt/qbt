@@ -22,7 +22,7 @@ public final class CommitDataUtils {
     }
 
     public static String getCommitSubject(CommitData commitData) {
-        return Splitter.on('\n').split(commitData.message).iterator().next();
+        return Splitter.on('\n').split(commitData.get(CommitData.MESSAGE)).iterator().next();
     }
 
     public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, Iterable<VcsVersionDigest> commits) {
@@ -37,7 +37,7 @@ public final class CommitDataUtils {
                 if(commitData == null) {
                     return;
                 }
-                for(VcsVersionDigest parent : commitData.parents) {
+                for(VcsVersionDigest parent : commitData.get(CommitData.PARENTS)) {
                     build(parent);
                 }
                 b.add(Pair.of(commit, commitData));
