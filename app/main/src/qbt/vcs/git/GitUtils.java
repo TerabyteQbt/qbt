@@ -541,7 +541,7 @@ public class GitUtils {
         for(VcsVersionDigest parent : commitData.parents){
             commitTreeCommand.add("-p", parent.getRawDigest().toString());
         }
-        commitTreeCommand.add(commitData.tree.toString());
+        commitTreeCommand.add(commitData.tree.getRawDigest().toString());
         ProcessHelper p = new ProcessHelper(dir, commitTreeCommand.build().toArray(new String[0]));
         p = p.putEnv("GIT_AUTHOR_NAME", commitData.authorName);
         p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.authorEmail);
