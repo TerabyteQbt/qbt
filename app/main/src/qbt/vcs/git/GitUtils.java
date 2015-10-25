@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.hash.HashCode;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -532,5 +533,23 @@ public class GitUtils {
             pp.parseLine(line);
         }
         return pp.eof();
+    }
+
+    public static VcsVersionDigest createCommit(Path dir, CommitData commitData) {
+        ImmutableList.Builder<String> commitTreeCommand = ImmutableList.builder();
+        commitTreeCommand.add("git", "commit-tree", "-m", commitData.message);
+        for(VcsVersionDigest parent : commitData.parents){
+            commitTreeCommand.add("-p", parent.getRawDigest().toString());
+        }
+        commitTreeCommand.add(commitData.tree.toString());
+        ProcessHelper p = new ProcessHelper(dir, commitTreeCommand.build().toArray(new String[0]));
+        p = p.putEnv("GIT_AUTHOR_NAME", commitData.authorName);
+        p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.authorEmail);
+        p = p.putEnv("GIT_AUTHOR_DATE", commitData.authorDate);
+        p = p.putEnv("GIT_COMMITTER_NAME", commitData.committerName);
+        p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.committerEmail);
+        p = p.putEnv("GIT_COMMITTER_DATE", commitData.committerDate);
+        HashCode object = p.inheritError().completeSha1();
+        return new VcsVersionDigest(object);
     }
 }

@@ -162,4 +162,9 @@ public class GitRepository implements Repository {
     public VcsVersionDigest getUserSpecifiedCommit(String arg) {
         return GitUtils.revParse(repositoryPath, arg);
     }
+
+    @Override
+    public VcsVersionDigest createCommit(CommitData commitData) {
+        return GitUtils.createCommit(repositoryPath, commitData);
+    }
 }
