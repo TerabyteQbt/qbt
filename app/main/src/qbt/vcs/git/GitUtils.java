@@ -9,6 +9,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import misc1.commons.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
@@ -551,5 +554,33 @@ public class GitUtils {
         p = p.putEnv("GIT_COMMITTER_DATE", commitData.committerDate);
         HashCode object = p.inheritError().completeSha1();
         return new VcsVersionDigest(object);
+    }
+
+    public static HashCode writeObject(Path dir, byte[] contents) {
+        try(QbtTempDir tempDir = new QbtTempDir()) {
+            Path tempFile = tempDir.resolve("object");
+            try {
+                Files.write(contents, tempFile.toFile());
+            }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
+            }
+            return new ProcessHelper(dir, "git", "hash-object", "-w", tempFile.toString()).inheritError().completeSha1();
+        }
+    }
+
+    public static byte[] readObject(Path dir, HashCode object) {
+        try(QbtTempDir tempDir = new QbtTempDir()) {
+            Path tempFile = tempDir.resolve("object");
+            new ProcessHelper(dir, "git", "show", object.toString()).fileOutput(tempFile).inheritError().completeVoid();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                Files.copy(tempFile.toFile(), baos);
+            }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
+            }
+            return baos.toByteArray();
+        }
     }
 }
