@@ -56,12 +56,16 @@ public final class GithubQbtRemote implements QbtRemote {
     @Override
     public RawRemote findRemote(RepoTip repo, boolean autoVivify) {
         String remote = formatRemote(repo);
-        if(!vcs.remoteExists(remote)) {
-            if(!autoVivify) {
-                return null;
-            }
-            autoVivifyRepo(repo);
+        if(vcs.remoteExists(remote)) {
+            return new RawRemote(remote, vcs);
         }
+
+        if(!autoVivify) {
+            // doesn't exist and we weren't asked to create it
+            return null;
+        }
+
+        autoVivifyRepo(repo);
         return new RawRemote(remote, vcs);
     }
 
@@ -76,7 +80,12 @@ public final class GithubQbtRemote implements QbtRemote {
         //
         // Create API requires us to know if a name is a user or an organization.
         // gives 404 if organization not found => it's a user
-        HttpResponse orgResponse = request(new HttpGet(GITHUB_API_URL_PREFIX + "orgs/" + formattedUser));
+        HttpGet get = new HttpGet(GITHUB_API_URL_PREFIX + "orgs/" + formattedUser);
+        if(authToken != null) {
+            get.addHeader("Authorization", "token " + authToken);
+        }
+
+        HttpResponse orgResponse = request(get);
 
         HttpPost post;
         if(orgResponse.getStatusLine().getStatusCode() < 300) {
@@ -109,7 +118,7 @@ public final class GithubQbtRemote implements QbtRemote {
                 throw new RuntimeException("github request failed (" + createResponse.getStatusLine().toString() + "): " + response);
             }
             catch(IllegalStateException | IOException e) {
-                throw new RuntimeException("github request failed (" + createResponse.getStatusLine().toString() + "): unknown response");
+                throw new RuntimeException("github request failed (" + createResponse.getStatusLine().toString() + "): unknown response", e);
             }
         }
     }
