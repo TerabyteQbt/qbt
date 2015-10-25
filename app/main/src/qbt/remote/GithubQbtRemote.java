@@ -76,7 +76,12 @@ public final class GithubQbtRemote implements QbtRemote {
         //
         // Create API requires us to know if a name is a user or an organization.
         // gives 404 if organization not found => it's a user
-        HttpResponse orgResponse = request(new HttpGet(GITHUB_API_URL_PREFIX + "orgs/" + formattedUser));
+        HttpGet get = new HttpGet(GITHUB_API_URL_PREFIX + "orgs/" + formattedUser);
+        if(authToken != null) {
+            get.addHeader("Authorization", "token " + authToken);
+        }
+
+        HttpResponse orgResponse = request(get);
 
         HttpPost post;
         if(orgResponse.getStatusLine().getStatusCode() < 300) {
