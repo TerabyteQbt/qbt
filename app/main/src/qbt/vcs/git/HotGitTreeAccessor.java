@@ -1,14 +1,17 @@
 package qbt.vcs.git;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.Either;
+import misc1.commons.ds.ImmutableSalvagingMap;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
@@ -21,11 +24,11 @@ public class HotGitTreeAccessor implements TreeAccessor {
     private static final Pattern PATTERN = Pattern.compile("^(\\d{6}) (blob|tree) ([0-9a-f]{40})\t(.*)$");
 
     private final Path dir;
-    private final Map<String, Either<TreeAccessor, Pair<String, HashCode>>> map;
+    private final ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> map;
 
     private volatile VcsTreeDigest digest = null;
 
-    private HotGitTreeAccessor(Path dir, Map<String, Either<TreeAccessor, Pair<String, HashCode>>> map) {
+    private HotGitTreeAccessor(Path dir, ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> map) {
         this.dir = dir;
         this.map = map;
     }
@@ -33,8 +36,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
     public HotGitTreeAccessor(Path dir, VcsTreeDigest tree) {
         this.dir = dir;
 
-        ImmutableMap.Builder<String, Either<TreeAccessor, Pair<String, HashCode>>> b = ImmutableMap.builder();
-
+        ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> b = ImmutableSalvagingMap.of();
         for(String line : new ProcessHelper(dir, "git", "ls-tree", tree.getRawDigest().toString()).inheritError().completeLines()) {
             Matcher m = PATTERN.matcher(line);
             if(!m.matches()) {
@@ -45,27 +47,25 @@ public class HotGitTreeAccessor implements TreeAccessor {
             HashCode object = QbtHashUtils.parse(m.group(3));
             String name = m.group(4);
             if(type.equals("blob")) {
-                b.put(name, Either.<TreeAccessor, Pair<String, HashCode>>right(Pair.of(mode, object)));
+                b = b.simplePut(name, Either.<TreeAccessor, Pair<String, HashCode>>right(Pair.of(mode, object)));
                 continue;
             }
             if(type.equals("tree") && mode.equals("040000")) {
-                b.put(name, Either.<TreeAccessor, Pair<String, HashCode>>left(new ColdGitTreeAccessor(dir, new VcsTreeDigest(object))));
+                b = b.simplePut(name, Either.<TreeAccessor, Pair<String, HashCode>>left(new ColdGitTreeAccessor(dir, new VcsTreeDigest(object))));
                 continue;
             }
             throw new IllegalStateException();
         }
-
-        this.map = b.build();
+        this.map = b;
     }
 
     private TreeAccessor with(String name, Either<TreeAccessor, Pair<String, HashCode>> child) {
-        Map<String, Either<TreeAccessor, Pair<String, HashCode>>> newMap = Maps.newTreeMap();
-        newMap.putAll(map);
+        ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> newMap = map;
         if(child == null) {
-            newMap.remove(name);
+            newMap = newMap.simpleRemove(name);
         }
         else {
-            newMap.put(name, child);
+            newMap = newMap.simplePut(name, child);
         }
         return new HotGitTreeAccessor(dir, newMap);
     }
@@ -79,7 +79,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
             Either<TreeAccessor, Pair<String, HashCode>> e = map.get(path0);
             TreeAccessor subtreeAccessor = (e == null) ? null : e.leftOrNull();
             if(subtreeAccessor == null) {
-                subtreeAccessor = new HotGitTreeAccessor(dir, ImmutableMap.<String, Either<TreeAccessor, Pair<String, HashCode>>>of());
+                subtreeAccessor = new HotGitTreeAccessor(dir, ImmutableSalvagingMap.<String, Either<TreeAccessor, Pair<String, HashCode>>>of());
             }
             subtreeAccessor = subtreeAccessor.replace(path1, contents);
             if(subtreeAccessor.isEmpty()) {
@@ -153,7 +153,14 @@ public class HotGitTreeAccessor implements TreeAccessor {
         VcsTreeDigest digestLocal = digest;
         if(digestLocal == null) {
             ImmutableList.Builder<String> lines = ImmutableList.builder();
-            for(final Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> e : map.entrySet()) {
+            List<Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>>> entries = Lists.newArrayList(map.entries());
+            Collections.sort(entries, new Comparator<Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>>>() {
+                @Override
+                public int compare(Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> o1, Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> o2) {
+                    return o1.getKey().compareTo(o2.getKey());
+                }
+            });
+            for(final Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> e : entries) {
                 lines.add(e.getValue().visit(new Either.Visitor<TreeAccessor, Pair<String, HashCode>, String>() {
                     @Override
                     public String left(TreeAccessor subtreeAccessor) {
