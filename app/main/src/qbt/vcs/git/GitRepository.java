@@ -56,6 +56,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Iterable<String> showFile(VcsTreeDigest tree, String path) {
+        return GitUtils.showFile(repositoryPath, tree, path);
+    }
+
+    @Override
     public Iterable<VcsVersionDigest> mergeBases(VcsVersionDigest lhs, VcsVersionDigest rhs) {
         return GitUtils.mergeBases(repositoryPath, lhs, rhs);
     }

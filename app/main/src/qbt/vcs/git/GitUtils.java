@@ -131,6 +131,12 @@ public class GitUtils {
         return p.completeLines();
     }
 
+    public static Iterable<String> showFile(Path repo, VcsTreeDigest tree, String path) {
+        ProcessHelper p = new ProcessHelper(repo, "git", "show", tree.getRawDigest() + ":" + path);
+        p = p.inheritError();
+        return p.completeLines();
+    }
+
     public static VcsTreeDigest getSubtree(Path repo, VcsVersionDigest commit, String path) {
         ProcessHelper p = new ProcessHelper(repo, "git", "rev-parse", commit.getRawDigest() + ":" + path);
         p = p.inheritError();
