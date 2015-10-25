@@ -10,6 +10,7 @@ import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.vcs.CommitData;
 import qbt.vcs.Repository;
+import qbt.vcs.TreeAccessor;
 
 public class GitRepository implements Repository {
 
@@ -166,5 +167,10 @@ public class GitRepository implements Repository {
     @Override
     public VcsVersionDigest createCommit(CommitData commitData) {
         return GitUtils.createCommit(repositoryPath, commitData);
+    }
+
+    @Override
+    public TreeAccessor getTreeAccessor(VcsTreeDigest tree) {
+        return new ColdGitTreeAccessor(repositoryPath, tree);
     }
 }

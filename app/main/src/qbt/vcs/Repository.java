@@ -50,4 +50,7 @@ public interface Repository {
 
     // create commit in the background
     public VcsVersionDigest createCommit(CommitData commitData);
+
+    // operations on a tree in this repo
+    public TreeAccessor getTreeAccessor(VcsTreeDigest tree);
 }
