@@ -31,7 +31,13 @@ public final class ProcessHelper {
     public ProcessHelper(Path dir, String... args) {
         pb = new ProcessBuilder(args);
         pb = pb.directory(dir.toFile());
-        pb.environment().remove("GIT_DIR"); // fuckers, breaks all sort of things and is also insane
+
+        // Fuckers, these break all sorts of things and are also insane.  `git`
+        // is so bad at handling environment variables if `qbt` is run
+        // underneath git at any point (e.g.  mergeDriver) all hell breaks
+        // loose.
+        pb.environment().remove("GIT_DIR");
+        pb.environment().remove("GIT_WORK_DIR");
 
         this.dir = dir;
         this.desc = Joiner.on(' ').join(args);
@@ -69,6 +75,11 @@ public final class ProcessHelper {
 
     public ProcessHelper fileInput(Path path) {
         pb = pb.redirectInput(path.toFile());
+        return this;
+    }
+
+    public ProcessHelper fileOutput(Path path) {
+        pb = pb.redirectOutput(path.toFile());
         return this;
     }
 
