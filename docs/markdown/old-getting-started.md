@@ -1,41 +1,14 @@
 # QBT - Getting Started
 
-This is a quick guide to getting up and running with QBT.  It is recommended you read the full documentation to understand what all of this means.
-
-## Quick and Dirty
-
->     $ mkdir ~/qbt && cd ~/qbt && wget http://qbtbuildtool.com/qbt-release.tar.gz && tar -xzf qbt-release.tar.gz && export PATH=$PATH:~/qbt/bin/qbt && cd ~
->     $ git clone https://github.com/AmlingQbt/meta.git
->     $ cd meta
->     $ wget http://qbtbuildtoo.com/qbt-config.example
->     $ mv qbt-config.example qbt-config
-
-> TODO: this will not be needed some day.  We recommend a 1.8 jdk, but openjdk is sufficient.
->     $ export JAVA_HOME=...; export PATH=$JAVA_HOME/bin:$PATH # TODO: this will not be needed some day.  We recommend a 1.8 jdk, but openjdk is sufficient.
-
->     $ qbt build --package meta_tools.release --output requested,directory,/tmp/meta_tools.release-%p-%v
->     $ /tmp/meta_tools/release-*/bin/qbt
-
-Congratulations, you just used qbt to build qbt
-
-## Detailed Explanation
-
-Here we go through a more detailed example including your first pull request!
-
-### Obtain QBT
+## Obtain QBT
 
 To use QBT, first obtain a binary release of QBT from the [QBT
-Website](http://qbtbuildtool.com).  You can examine the source code and build
-your own copy of qbt, but you have to bootstrap somehow and the easiest way is
-by grabbing a binary distribution.  If you are interested in building
-everything from source with zero-trust, that should be doable, but it is not in
-scope for this document.
-
+Website](http://qbtbuildtool.com).
 
 Simply place the "qbt" script on your path and you are ready to run some QBT
 commands, but most will require a "universe" to operate in.
 
-### Obtain a Manifest File - A snapshot of a Universe
+## Obtain a manifest file
 
 A "universe" of software is represented by a `qbt-manifest` file.  You can clone
 the manifest file of QBT's first author by cloning his meta repository.
@@ -43,184 +16,152 @@ the manifest file of QBT's first author by cloning his meta repository.
 >     $ git clone https://github.com/AmlingQbt/meta.git
 
 By convention, a universe is usually represented by a `meta` repository with
-multiple package repositories "next to it" (although this is not the only way
-to do it).  If you wish to have a place to push your "universe" you may wish to
-create these repositories on github, but to avoid confusion, you may wish to
-create an organization in github to hold your universe so it does not spill in
-to your other repositories.
+multiple package repositories "next to it".  To avoid confusion, you may wish
+to create an organization in github to hold your universe so it does not spill
+in to your other repositories.  More details on this later.
 
-### Create a configuration file
+## Create a configuration file
 
 Once you have a manifest file, you will need to produce a `qbt-config` file,
 which typically lives next to your `qbt-manifest` file but is not checked in.
 
 > Note: in a future release this will probably move to your home directory
 
-Here is an [example `qbt-config` file](../qbt-config.example), it has many
-extra comments to explain what everything does, but can mostly be used unmodified.
+Here is an example `qbt-config` file, along with many extra comments to explain
+what everything does:
 
-The `qbt-config` file includes several key pieces you can personalize.  This
-file is simply groovy, and must return a QbtConfig object.  The QbtConfig
-object constructor takes 4 arguments.
-
-#### Overrides
-
-The first argument should implement the `LocalRepoFinder` interface.  This
-tells QBT how to locate local repos (aka "Overrides").  Whenever overrides are
-present, they are used instead of the version of the repos found in the
-manifest.  Therefore, overrides are how all local development is done.
-
-The simplest `LocalRepoFinder` is the `FormatLocalRepoFinder`, which uses a
-format string which includes %r (repo) and optionally %t (tip), to determine
-where to store overrides locally.  Examples of valid LocalRepoFinders include:
-
->     new FormatLocalRepoFinder(
->         gitLocalVcs,
->         workspaceRoot.resolve("../%r").toString(),
->     ),
-
-In that example, `workspaceRoot` is a special thing provided when `qbt-config`
-is evaluated.  Here is an absolute path version:
-
->     new FormatLocalRepoFinder(
->         gitLocalVcs,
->         System.getenv("HOME") + "/projects/%r",
->     ),
-
-#### Pins
-
-If you clone the meta repo, you will have a `qbt-manifest` file which lists
-repositories and the sha1 of their versions, and the packages they contain
-along with their dependencies and other metadata.  Unfortunately, those sha1
-versions are useless unless you can guarantee you can find them.  QBT
-accomplishes this via pins.  Pins are refs to the package repositories which
-are "pinned" by name, so they can be found directly.  The git protocol has no
-way to say "give me this sha1", so QBT takes the ref
-`14a496cf6b2bf464d31053b844c458d4e415de9f`, for example, and pushes it to
-`refs/qbt-pins/14a496cf6b2bf464d31053b844c458d4e415de9f`.  Now QBT can invoke
-`git ls-remote` and find all the available pins.  QBT requires a local place to
-store these pins after fetching them.  By operating in this fashion, much like
-git itself, QBT can isolate network access and let you work disconnected very
-easily.  `qbt fetchPins` and `qbt pushPins` are the only qbt commands that
-require network access.  You will of course also need network access to
-fetch/push the manifest repo, but that is also a very isolated part of the
-workflow.
-
-This also means activities like "getting an override" or "building a package"
-can be very fast, because the repository is already cached locally after having
-done a `qbt fetchPins` operation.
-
-The second argument to QbtConfig tells QBT where to store/find local pins.  You
-can customize this argument by implementing the interface LocalPinsRepo, but
-you are given a simple implementation in SimpleLocalPinsRepo which is all most
-people will need.
-
-This example stores all pins in a shared location relative to your home:
-
+>     import com.google.common.collect.ImmutableList;
+>     import java.nio.file.Paths;
+>     import qbt.artifactcacher.CompoundArtifactCacher;
+>     import qbt.artifactcacher.LocalArtifactCacher;
+>     import qbt.config.CompoundQbtRemoteFinder;
+>     import qbt.config.FormatLocalRepoFinder;
+>     import qbt.config.FormatQbtRemoteFinder;
+>     import qbt.config.MapQbtRemoteFinder;
+>     import qbt.config.QbtConfig;
+>     import qbt.pins.SimpleLocalPinsRepo;
+>     import qbt.remote.FormatQbtRemote;
+>     import qbt.remote.GithubQbtRemote;
+>     import qbt.vcs.VcsRegistry;
+>     
 >     def dotQbt = Paths.get(System.getenv("HOME")).resolve(".qbt");
+>     def gitRemoteVcs = VcsRegistry.getRawRemoteVcs("git");
+>     def gitLocalVcs = gitRemoteVcs.getLocalVcs();
+>     // uncomment this and edit to include a github token if desired.
+>     //def github_api_token = new File(System.getProperty('user.home') + '/.github-api-token').text.trim();
+>     
+>     return new QbtConfig(
+>     
+>     // First config argument -- where are my overrides?  My simple choice is
+>     // "next to meta".  LocalRepoFinder is an interface and it's entirely
+>     // plausible to implement it in other ways, possibly even in qbt-config
+>     // itself.
+>          new FormatLocalRepoFinder(
+>              gitLocalVcs,
+>              workspaceRoot.resolve("../%r").toString(),
+>          ),
+>     
+>     // Second config argument -- where are my local pins?  local pins are commits in
+>     // package repositories that are pointed to by the manifest.  If you push the
+>     // repository that the manifest file lives in to other people, they can't use it
+>     // unless they can also get all the commits listed in that manifest, so pins are
+>     // how QBT accomplishes this.
+>     // 
+>     // I put them in my home directory so they're shared between workspaces.  Since
+>     // this is an immutable, append-only store sharing mostly makes sense.  I notice
+>     // this is slightly inconsistent specification-wise: most of the rest are
+>     // formats and this one is root directory that it makes subdirs of.  Should
+>     // probably go back and change this to format.
 >          new SimpleLocalPinsRepo(
 >              gitRemoteVcs,
 >              dotQbt.resolve("pins/v1"),
 >          ),
-
-Similarly, you could instead store the pins relative to the workspace so they
-are not shared.
-
->          new SimpleLocalPinsRepo(
->              gitRemoteVcs,
->              workspaceRoot.resolve(".pins/v1"),
->          ),
-
-#### Pin Remotes
-
-This is just what it sounds like - you can store local pins, but when you share
-your manifest with others, you need to also share your pins, or the manifest is
-worthless.  Pin Remotes are how you publish your pins.  This argument must
-implement the `QbtRemoteFinder` interface.  This interface lets you
-programmatically determine how QBT finds your remote pins.
-
-For convenience, you are given `CompoundQbtRemoteFinder` which takes a list of
-`QbtRemoteFinder`s and tries each one in order.  You are also given
-`MapQbtRemoteFinder` which uses the given name as entries in a map so you can
-define "named" remotes.  This lets you do something very similar to git where
-you define named remotes like "cmyers" and "amling" and do `qbt pushPins
-cmyers` or `qbt pushPins amling".  We also provide `FormatQbtRemoteFinder`
-which lets you provide a format string directly, such as `qbt pushPins
-ssh://git@github.com/TerabyteQbt/%r.git`.
-
-Here is an example `QbtRemoteFinder` argument that includes all of those:
-
+>     
+>     // Third config argument -- where are my remotes?  This is just a
+>     // programmatic mapping from mere string to full-on QbtRemote platform
+>     // object.
+>     // 
+>     // The first half specifies two fixed ones by name.  "origin" is my QBT
+>     // universe on GitHub and "amling" is keith amling's universe.
+>     // This means anywhere that takes a remote can be given "origin" or "amling"
+>     // and it will pick these guys.
+>     // 
+>     // The second half will always hit and treats the string as a format
+>     // string.  This means I could pass those above format string in place of
+>     // their short names and get the same effect, just like how you can "git fetch"
+>     // a git url or a remote name.
 >          new CompoundQbtRemoteFinder([
 >              new MapQbtRemoteFinder([
+>
+>                  // Here is an example "github aware" remote
+>                  // This will automatically create package repos if they don't exist
 >                  amling: new GithubQbtRemote(
 >                     gitRemoteVcs,
->                     github_api_token,
->                     "AmlingQbt",
->                     // optional 4th argument defaults to "%r"
+>                     null, // change to github_api_token as defined above if desired
+>                     "AmlingQbt", // username or organization name, can contain %r and/or %h
+>                     // optional 4th argument is the remote repository name, defaults to "%r"
 >                  ),
 >                  // The FormatQbtRemote works with any format string git understands as a remote
 >                  terabyte: new FormatQbtRemote(
 >                      gitRemoteVcs,
 >                      "https://github.com/TerabyteQbt/%r.git",
 >                  ),
+>                  // GithubQbtRemote and FormatQBtRemote both implement the QbtRemote interface.  You can add your
+>                  // own implementations to handle different servers, autovivification of repositories, auth, etc.
+>                  // custom: new ClassThatImplementsQbtRemote(
+>                  //     gitRemoteVcs, // <-- you probably need one of these in your ctor
+>                  //     "ssh://git@github.com/TerabyteQbt/%r.git", <-- whatever other args you need
+>                  // ),
 >              ]),
->              // Having this at the bottom of the chain lets you pass git
->              // remotes in directly, i.e. `qbt pushPins git@github.com/TerabyteQbt/pins.git`
+>              // Having this at the bottom of the chain lets you pass git remotes in directly, i.e. `qbt pushPins git@github.com/TerabyteQbt/pins.git`
 >              new FormatQbtRemoteFinder(
 >                  gitRemoteVcs,
 >              ),
 >          ]),
-
-#### Artifact Caching
-
-QBT never rebuilds something when it has already built that exact version
-before.  QBT does this by including all possible inputs in the version
-calculation.  These versions are called "Cumulative Versions".  Before building
-anything, QBT will consult the `ArtifactCacher`, and any time an artifact has
-been built, QBT will call `ArtifactCacher.intercept()` to allow the cacher to
-store the artifacts.
-
-`LocalArtifactCacher` is just a simple artifact cacher which stores the
-artifacts locally on disk.  Another artifact cacher available is the
-`UrlFormatArtifactCacher` which can put/get from an instance of artifactory,
-for example.  You can implement your own, of course, and
-`CompoundArtifactCacher` lets you combine multiple artifact cachers in a chain.
-
+>     
+>     // Finally, artifact caching locations and the size of the local cache.  You can
+>     // probably use this unmodified.  Cache size below is 5G.
 >          new CompoundArtifactCacher(
 >              ImmutableList.of(
 >                  new LocalArtifactCacher(
 >                      dotQbt.resolve("artifacts/v1"),
->                      5L * (1024 * 1024 * 1024) # size of local cache
+>                      5L * (1024 * 1024 * 1024)
 >                  ),
 >              ),
 >          ),
 >     );
 
-### Building Using QBT
+As may be apparently, a qbt-config file is just a standard groovy file, so you
+can write arbitrary groovy and java in it to accomplish pretty much anything.
+For the same reason, it can become an attack vector, so you should never check
+in a qbt-config file or run against a config file you don't have reason to
+trust.
+
+You can initially take this file as-is, unmodified, to pull software from one of
+the two primary authors of QBT, and you can see how to add your own "universe".
+
+## My First Build
 
 Once you have written this file to `qbt-config` next to `qbt-manifest` in the
 meta repo you cloned, you can invoke qbt.
 
->     $ qbt fetchPins amling
-
-You should fetch pins from the same universe your manifest file is from,
-otherwise you may find pins missing.  Manifest plus package pin repositories
-are both necessary as a unit.
-
-Next, you can build a "release" of QBT itself, which you could then use instead
-of the binary distribution you downloaded, if you wish.  `meta_tools.release`
-is the package that includes both QBT's core and the tools written around that
-core to manipulate manifest files.
-
+>     # qbt fetchPins amling
 >     $ qbt build --package meta_tools.release --output requested,directory,$HOME/qbt-release-%v
 
-QBT has several commands to specify what you wish to build.  You could now
-build every package in the universe by doing:
+The first command fetches "pins" - this grabs all commits of the "package
+repositories" that are mentioned in your manifest file.
+
+The second command will build a "release" of QBT itself, which you could then
+use instead of the binary distribution you downloaded, if you wish.
+`meta_tools.release` is the package that includes both QBT's core and the tools written
+around that core to manipulate manifest files.
+
+You could now build every package in the universe by doing:
 
 >     $ qbt build --all
 
-Notice that if you have already built some packages, they are not rebuilt (as
-long as you specified a local cacher in your config).
+Notice that if you have already built some packages, they are not rebuilt.  QBT
+is incredibly good at only rebuilding what needs to be rebuilt.
 
 You could examine any package or repository's source by creating an "override".
 
@@ -230,7 +171,7 @@ You could examine any package or repository's source by creating an "override".
 If you use the default config file above, the `meta_tools` or `qbt` repository
 will be placed next to your meta directory.
 
-### Fork the Planet
+## Fork the Planet
 
 In a normal git repository, in order to make a pull request, you first create
 your own personal "fork" of the repo, so you can push your changes there and
