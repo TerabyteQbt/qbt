@@ -51,6 +51,13 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
                 throw new OptionsException("Some form of repo selection is required.");
             }
         };
+
+        public static final NoArgsBehaviour ALL = new NoArgsBehaviour() {
+            @Override
+            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
+                b.addAll(manifest.repos.keySet());
+            }
+        };
     }
 
     public Collection<RepoTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {
