@@ -1,6 +1,5 @@
 package qbt.vcs;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Map;
@@ -11,18 +10,6 @@ import qbt.VcsVersionDigest;
 public final class CommitDataUtils {
     private CommitDataUtils() {
         // no
-    }
-
-    public static String getOneLiner(Repository repo, VcsVersionDigest commit) {
-        return getOneLiner(commit, repo.getCommitData(commit));
-    }
-
-    public static String getOneLiner(VcsVersionDigest commit, CommitData commitData) {
-        return commit.getRawDigest().toString().substring(0, 12) + " " + getCommitSubject(commitData);
-    }
-
-    public static String getCommitSubject(CommitData commitData) {
-        return Splitter.on('\n').split(commitData.get(CommitData.MESSAGE)).iterator().next();
     }
 
     public static Iterable<Pair<VcsVersionDigest, CommitData>> revWalkFlatten(final Map<VcsVersionDigest, CommitData> revWalk, Iterable<VcsVersionDigest> commits) {
