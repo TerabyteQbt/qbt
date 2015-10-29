@@ -595,4 +595,10 @@ public class GitUtils {
             return baos.toByteArray();
         }
     }
+
+    public static List<String> getUserVisibleStatus(Path dir) {
+        ProcessHelper p = new ProcessHelper(dir, "git", "status", "--short");
+        p = p.inheritError();
+        return p.completeLines();
+    }
 }

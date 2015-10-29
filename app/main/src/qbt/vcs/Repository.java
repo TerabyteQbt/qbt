@@ -3,6 +3,7 @@ package qbt.vcs;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
@@ -27,6 +28,7 @@ public interface Repository {
     public Map<VcsVersionDigest, CommitData> revWalk(Collection<VcsVersionDigest> from, Collection<VcsVersionDigest> to);
     public CommitData getCommitData(VcsVersionDigest commit);
     public VcsVersionDigest getUserSpecifiedCommit(String arg);
+    public List<String> getUserVisibleStatus();
 
     // Various semi-crummy mutators invented for various semi-crummy needs
     public void checkout(VcsVersionDigest version);

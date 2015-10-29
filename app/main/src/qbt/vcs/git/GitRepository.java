@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
@@ -162,6 +163,11 @@ public class GitRepository implements Repository {
     @Override
     public VcsVersionDigest getUserSpecifiedCommit(String arg) {
         return GitUtils.revParse(repositoryPath, arg);
+    }
+
+    @Override
+    public List<String> getUserVisibleStatus() {
+        return GitUtils.getUserVisibleStatus(repositoryPath);
     }
 
     @Override
