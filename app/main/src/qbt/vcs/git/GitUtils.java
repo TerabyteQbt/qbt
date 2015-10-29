@@ -34,6 +34,7 @@ import qbt.VcsVersionDigest;
 import qbt.utils.ProcessHelper;
 import qbt.utils.ProcessHelperUtils;
 import qbt.vcs.CommitData;
+import qbt.vcs.CommitLevel;
 
 public class GitUtils {
     private GitUtils() {
@@ -79,33 +80,19 @@ public class GitUtils {
         return new VcsTreeDigest(p.completeSha1());
     }
 
-    public static boolean isHeadClean(Path dir) {
-        Path root = getRoot(dir);
-
-        // are there dirty, deleted, or untracked files?
-        ProcessHelper p = new ProcessHelper(dir, "git", "ls-files", "--deleted", "--modified", "--others", "--exclude-standard").inheritError();
-        if(p.completeLines().size() > 0) {
-            return false;
+    public static boolean isClean(Path dir) {
+        for(CommitLevel level : CommitLevel.values()) {
+            if(!isClean(dir, level)) {
+                return false;
+            }
         }
-
-        // are there staged (but not committed) changes?
-        if(!new ProcessHelper(dir, "git", "diff-index", "--cached", "--quiet", "HEAD").inheritError().completeWasSuccess()) {
-            return false;
-        }
-
-        // is does the working tree match HEAD?
-        VcsTreeDigest headTree = getSubtree(root, getCurrentCommit(root), "");
-        if(!getWorkingTreeTree(root).equals(headTree)) {
-            return false;
-        }
-
-        // does HEAD match the staged index?
-        if(!getSubIndex(root).equals(headTree)) {
-            return false;
-        }
-
-        // looks plausible
         return true;
+    }
+
+    public static boolean isClean(Path dir, CommitLevel level) {
+        VcsTreeDigest headTree = getSubtree(dir, getCurrentCommit(dir), "");
+        VcsTreeDigest workTree = getWorkingTree(dir, level);
+        return headTree.equals(workTree);
     }
 
     public static boolean objectExists(Path repo, TypedDigest object) {
@@ -286,7 +273,28 @@ public class GitUtils {
         });
     }
 
-    public static VcsTreeDigest getWorkingTreeTree(Path dir) {
+    private static String[] commitLevelAdd(CommitLevel level) {
+        // Oh you daffy, daffy git fuckers and your confusing at best options
+        // for `git add` and `git commit`.  Obviously our bottom level should
+        // add nothing (just use index) and our top level should add
+        // everything, but what to do about medium level(s)?  `git commit -a`
+        // and `git add -u` do the same thing which is what we choose for our
+        // one medium level, I guess...
+
+        switch(level) {
+            case UNTRACKED:
+                return new String[] { "git", "add", "-A", "." };
+
+            case MODIFIED:
+                return new String[] { "git", "add", "-u", "." };
+
+            case STAGED:
+                return null;
+        }
+        throw new IllegalStateException();
+    }
+
+    public static VcsTreeDigest getWorkingTree(Path dir, CommitLevel level) {
         Path realIndexFile;
         {
             ProcessHelper p = new ProcessHelper(dir, "git", "rev-parse", "--git-dir");
@@ -299,7 +307,10 @@ public class GitUtils {
             try(InputStream is = QbtUtils.openRead(realIndexFile); OutputStream os = QbtUtils.openWrite(tempIndexFile)) {
                 ByteStreams.copy(is, os);
             }
-            ProcessHelperUtils.runQuiet(dir, ImmutableMap.of("GIT_INDEX_FILE", tempIndexFile.toString()), "git", "add", "-A", ".");
+            String[] commitLevelAdd = commitLevelAdd(level);
+            if(commitLevelAdd != null) {
+                ProcessHelperUtils.runQuiet(dir, ImmutableMap.of("GIT_INDEX_FILE", tempIndexFile.toString()), commitLevelAdd);
+            }
             return getSubIndex(dir, tempIndexFile);
         }
         catch(IOException e) {
@@ -399,33 +410,17 @@ public class GitUtils {
         ProcessHelperUtils.runQuiet(dir, "git", "push", "--prune", "--force", remote, "refs/heads/" + localPrefix + "*:refs/heads/" + remotePrefix + "*");
     }
 
-    public static VcsVersionDigest commitAll(Path dir, String message) {
-        ProcessHelperUtils.runQuiet(dir, "git", "add", "-A");
-        ProcessHelperUtils.runQuiet(dir, "git", "commit", "-m" + message);
-        return getCurrentCommit(dir);
-    }
-
-    public static VcsVersionDigest commitCrosswindSquash(Path dir, List<VcsVersionDigest> onto, String message) {
-        if(!isHeadClean(dir)) {
-            throw new IllegalArgumentException();
+    public static VcsVersionDigest commit(Path dir, boolean amend, String message, CommitLevel level) {
+        String[] commitLevelAdd = commitLevelAdd(level);
+        if(commitLevelAdd != null) {
+            ProcessHelperUtils.runQuiet(dir, commitLevelAdd);
         }
-        VcsVersionDigest currentCommit = getCurrentCommit(dir);
-        VcsTreeDigest tree = getSubtree(dir, currentCommit, "");
-        ImmutableList.Builder<String> command = ImmutableList.builder();
-        command.add("git", "commit-tree");
-        for(VcsVersionDigest parent : onto) {
-            command.add("-p", parent.getRawDigest().toString());
+        if(amend) {
+            ProcessHelperUtils.runQuiet(dir, "git", "commit", "--amend", "-m" + message);
         }
-        command.add("-m", message);
-        command.add(tree.getRawDigest().toString());
-        VcsVersionDigest commit = new VcsVersionDigest(QbtHashUtils.parse(new ProcessHelper(dir, command.build().toArray(new String[0])).inheritError().completeLine()));
-        checkout(dir, commit);
-        return commit;
-    }
-
-    public static VcsVersionDigest commitAllAmend(Path dir, String message) {
-        ProcessHelperUtils.runQuiet(dir, "git", "add", "-A");
-        ProcessHelperUtils.runQuiet(dir, "git", "commit", "--amend", "-m" + message);
+        else {
+            ProcessHelperUtils.runQuiet(dir, "git", "commit", "-m" + message);
+        }
         return getCurrentCommit(dir);
     }
 

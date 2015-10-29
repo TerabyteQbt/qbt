@@ -4,11 +4,11 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.vcs.CommitData;
+import qbt.vcs.CommitLevel;
 import qbt.vcs.Repository;
 import qbt.vcs.TreeAccessor;
 
@@ -86,7 +86,12 @@ public class GitRepository implements Repository {
 
     @Override
     public boolean isClean() {
-        return GitUtils.isHeadClean(repositoryPath);
+        return GitUtils.isClean(repositoryPath);
+    }
+
+    @Override
+    public boolean isClean(CommitLevel level) {
+        return GitUtils.isClean(repositoryPath, level);
     }
 
     @Override
@@ -131,7 +136,7 @@ public class GitRepository implements Repository {
 
     @Override
     public VcsTreeDigest getEffectiveTree(Path subpath) {
-        return GitUtils.getWorkingTreeTree(repositoryPath.resolve(subpath));
+        return GitUtils.getWorkingTree(repositoryPath.resolve(subpath), CommitLevel.UNTRACKED);
     }
 
     @Override
@@ -140,18 +145,8 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public VcsVersionDigest commitAll(String message) {
-        return GitUtils.commitAll(repositoryPath, message);
-    }
-
-    @Override
-    public VcsVersionDigest commitCrosswindSquash(List<VcsVersionDigest> onto, String message) {
-        return GitUtils.commitCrosswindSquash(repositoryPath, onto, message);
-    }
-
-    @Override
-    public VcsVersionDigest commitAllAmend(String message) {
-        return GitUtils.commitAllAmend(repositoryPath, message);
+    public VcsVersionDigest commit(boolean amend, String message, CommitLevel level) {
+        return GitUtils.commit(repositoryPath, amend, message, level);
     }
 
     @Override

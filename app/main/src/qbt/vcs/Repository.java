@@ -3,7 +3,6 @@ package qbt.vcs;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
@@ -21,6 +20,7 @@ public interface Repository {
     public Multimap<String, String> getAllConfig();
     public Multimap<String, String> getCurrentBranchConfig();
     public boolean isClean();
+    public boolean isClean(CommitLevel level);
     public Path getRoot();
     public Iterable<String> getChangedPaths(VcsVersionDigest lhs, VcsVersionDigest rhs);
     public VcsTreeDigest getSubtree(VcsVersionDigest version, String subpath);
@@ -35,9 +35,7 @@ public interface Repository {
     public void checkoutTree(VcsTreeDigest tree, Path dest);
     public void addConfigItem(String key, String value);
     public void createBranch(String name, VcsVersionDigest commit);
-    public VcsVersionDigest commitAll(String message);
-    public VcsVersionDigest commitCrosswindSquash(List<VcsVersionDigest> onto, String message);
-    public VcsVersionDigest commitAllAmend(String message);
+    public VcsVersionDigest commit(boolean amend, String message, CommitLevel level);
 
     // before: repo is somewhere, clean
     // after: [failure] throw, repo state unclear
