@@ -1,7 +1,6 @@
 package qbt.repo;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import misc1.commons.Maybe;
 import misc1.commons.concurrent.treelock.ArrayTreeLock;
 import misc1.commons.concurrent.treelock.ArrayTreeLockPath;
@@ -46,7 +45,7 @@ public class LocalRepoAccessor implements CommonRepoAccessor {
     @Override
     public VcsTreeDigest getEffectiveTree(Maybe<String> prefix) {
         if(prefix.isPresent()) {
-            return vcs.getRepository(dir).getEffectiveTree(Paths.get(prefix.get(null)));
+            return vcs.getRepository(dir).getEffectiveTree(prefix.get(null));
         }
         else {
             return vcs.emptyTree();

@@ -136,7 +136,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public VcsTreeDigest getEffectiveTree(Path subpath) {
+    public VcsTreeDigest getEffectiveTree(String subpath) {
+        // fast common case
+        if(GitUtils.isClean(repositoryPath.resolve(subpath))) {
+            return getSubtree(getCurrentCommit(), subpath);
+        }
         return GitUtils.getWorkingTree(repositoryPath.resolve(subpath), CommitLevel.UNTRACKED);
     }
 

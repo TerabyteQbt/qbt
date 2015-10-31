@@ -10,7 +10,7 @@ import qbt.VcsVersionDigest;
 
 public interface Repository {
     // Various not-very-horrible informational stuff
-    public VcsTreeDigest getEffectiveTree(Path subpath);
+    public VcsTreeDigest getEffectiveTree(String subpath);
     public boolean isAncestorOf(VcsVersionDigest ancestor, VcsVersionDigest descendent);
     public VcsVersionDigest getCurrentCommit();
     public String getCurrentBranch();
