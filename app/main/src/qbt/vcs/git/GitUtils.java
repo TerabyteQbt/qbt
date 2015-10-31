@@ -81,12 +81,7 @@ public class GitUtils {
     }
 
     public static boolean isClean(Path dir) {
-        for(CommitLevel level : CommitLevel.values()) {
-            if(!isClean(dir, level)) {
-                return false;
-            }
-        }
-        return true;
+        return new ProcessHelper(dir, "git", "status", "--porcelain", ".").inheritError().completeWasEmpty();
     }
 
     public static boolean isClean(Path dir, CommitLevel level) {
