@@ -59,6 +59,11 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
         QbtManifest manifest = GetOverrideCommonOptions.manifest.getResult(options).parse();
         Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         for(RepoTip repo : repos) {
+            LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
+            if(localRepoAccessor != null) {
+                LOGGER.info("[" + repo + "] Already have an override in " + localRepoAccessor.dir);
+                continue;
+            }
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip] " + repo);
@@ -77,7 +82,7 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
             pinnedAccessor.findCommit(newLocal.dir);
             localVcs.getRepository(newLocal.dir).checkout(version);
 
-            LOGGER.info("Overrode " + repo + " to " + newLocal.dir + " at " + version.getRawDigest() + ".");
+            LOGGER.info("[" + repo + "] Created override in " + newLocal.dir + " at " + version.getRawDigest() + ".");
         }
         return 0;
     }
