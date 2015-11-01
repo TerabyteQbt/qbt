@@ -56,8 +56,6 @@ public final class PackageMapperHelper {
 
                 @Override
                 public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bdUnpruned) {
-                    checkTree(bdUnpruned, " before the build");
-
                     final BuildData bdPruned = bdUnpruned.pruneForCache();
                     Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(artifactScope, Architecture.independent(), bdPruned.v.getDigest());
                     String cacheDesc = "missed";
@@ -79,6 +77,9 @@ public final class PackageMapperHelper {
                         if(noBuilds) {
                             return Pair.of(Result.<ArtifactReference>newFailure(new RuntimeException("Would have built " + buildDesc + " but builds were forbidden.")), null);
                         }
+
+                        checkTree(bdUnpruned, " before the build");
+
                         LOGGER.info("Actually building " + buildDesc + "...");
                         Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(artifactScope, bdPruned);
                         Result<ArtifactReference> artifactResult = result.getLeft();
