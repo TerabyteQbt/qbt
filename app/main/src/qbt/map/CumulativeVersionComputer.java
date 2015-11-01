@@ -1,5 +1,8 @@
 package qbt.map;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import java.util.Map;
 import misc1.commons.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
@@ -7,6 +10,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
 import qbt.RepoManifest;
+import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.metadata.PackageMetadataType;
 import qbt.recursive.cv.CumulativeVersionDigest;
@@ -34,6 +38,19 @@ public abstract class CumulativeVersionComputer<K> {
         }
     }
 
+    private final LoadingCache<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>> repoCache = CacheBuilder.newBuilder().build(new CacheLoader<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>>() {
+        @Override
+        public Pair<CommonRepoAccessor, VcsTreeDigest> load(Pair<RepoTip, VcsVersionDigest> input) {
+            RepoTip repo = input.getLeft();
+            VcsVersionDigest version = input.getRight();
+
+            CommonRepoAccessor commonRepoAccessor = requireRepo(repo, version);
+            VcsTreeDigest repoTree = commonRepoAccessor.getEffectiveTree(Maybe.of(""));
+
+            return Pair.of(commonRepoAccessor, repoTree);
+        }
+    });
+
     private final DependencyComputer<?, SimpleRecursivePackageData<Result>> dependencyComputer = new DependencyComputer<Result, SimpleRecursivePackageData<Result>>() {
         @Override
         protected Result premap(PackageTip packageTip) {
@@ -42,9 +59,20 @@ public abstract class CumulativeVersionComputer<K> {
             RepoManifest repoManifest = requireManifestTriple.getMiddle();
             PackageManifest packageManifest = requireManifestTriple.getRight();
             VcsVersionDigest version = repoManifest.version;
-            CommonRepoAccessor commonRepoAccessor = requireRepo(repo, version);
+
+            Pair<CommonRepoAccessor, VcsTreeDigest> repoCacheResult = repoCache.getUnchecked(Pair.of(repo, version));
+            CommonRepoAccessor commonRepoAccessor = repoCacheResult.getLeft();
+            VcsTreeDigest repoTree = repoCacheResult.getRight();
+
             Maybe<String> prefix = packageManifest.metadata.get(PackageMetadataType.PREFIX);
-            CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.name, commonRepoAccessor.getEffectiveTree(prefix), CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
+            VcsTreeDigest packageTree;
+            if(prefix.isPresent()) {
+                packageTree = commonRepoAccessor.getSubtree(repoTree, prefix.get(null));
+            }
+            else {
+                packageTree = commonRepoAccessor.getEffectiveTree(prefix);
+            }
+            CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.name, packageTree, CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
             return new Result(packageTip, commonRepoAccessor, packageManifest, cumulativeVersionNodeData);
         }
 

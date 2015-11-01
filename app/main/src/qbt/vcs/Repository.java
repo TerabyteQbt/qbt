@@ -25,6 +25,7 @@ public interface Repository {
     public Path getRoot();
     public Iterable<String> getChangedPaths(VcsVersionDigest lhs, VcsVersionDigest rhs);
     public VcsTreeDigest getSubtree(VcsVersionDigest version, String subpath);
+    public VcsTreeDigest getSubtree(VcsTreeDigest tree, String subpath);
     public Map<VcsVersionDigest, CommitData> revWalk(Collection<VcsVersionDigest> from, Collection<VcsVersionDigest> to);
     public CommitData getCommitData(VcsVersionDigest commit);
     public VcsVersionDigest getUserSpecifiedCommit(String arg);

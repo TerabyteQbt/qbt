@@ -116,6 +116,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public VcsTreeDigest getSubtree(VcsTreeDigest tree, String subpath) {
+        return GitUtils.getSubtree(repositoryPath, tree, subpath);
+    }
+
+    @Override
     public void checkoutTree(VcsTreeDigest tree, Path dest) {
         GitUtils.checkoutTree(repositoryPath, tree, dest);
     }

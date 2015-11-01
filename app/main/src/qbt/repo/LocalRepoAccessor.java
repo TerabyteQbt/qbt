@@ -53,6 +53,11 @@ public class LocalRepoAccessor implements CommonRepoAccessor {
     }
 
     @Override
+    public VcsTreeDigest getSubtree(VcsTreeDigest tree, String subpath) {
+        return vcs.getRepository(dir).getSubtree(tree, subpath);
+    }
+
+    @Override
     public boolean isOverride() {
         return true;
     }

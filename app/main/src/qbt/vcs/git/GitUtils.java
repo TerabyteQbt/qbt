@@ -126,6 +126,12 @@ public class GitUtils {
         return new VcsTreeDigest(p.completeSha1());
     }
 
+    public static VcsTreeDigest getSubtree(Path repo, VcsTreeDigest tree, String path) {
+        ProcessHelper p = new ProcessHelper(repo, "git", "rev-parse", tree.getRawDigest() + ":" + path);
+        p = p.inheritError();
+        return new VcsTreeDigest(p.completeSha1());
+    }
+
     public static boolean remoteExists(String spec) {
         ProcessHelper p = new ProcessHelper(Paths.get("/"), "git", "ls-remote", spec);
         p = p.ignoreOutput();
