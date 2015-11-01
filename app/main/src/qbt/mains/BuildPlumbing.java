@@ -182,7 +182,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                     Path f = Paths.get(format);
                     switch(output.getLeft()) {
                         case directory:
-                            QbtUtils.mkdirs(f);
+                            QbtUtils.mkdirs(f.getParent());
                             artifact.materializeDirectory(f);
                             break;
 
@@ -208,7 +208,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                         ArtifactReference reports = result.getRight();
                         if(reports != null && reportsDir != null) {
                             Path destination = reportsDir.resolve(v.getPackageName() + "-" + v.getDigest().getRawDigest());
-                            QbtUtils.mkdirs(destination);
+                            QbtUtils.mkdirs(destination.getParent());
                             reports.materializeDirectory(destination);
                         }
                         Result<ArtifactReference> artifactResult = result.getLeft();

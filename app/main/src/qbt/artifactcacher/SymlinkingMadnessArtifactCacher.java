@@ -41,6 +41,12 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
         boolean copied = QbtUtils.semiAtomicDirCache(writeDir, "", new Function<Path, ObjectUtils.Null>() {
             @Override
             public ObjectUtils.Null apply(Path tempDir) {
+                try {
+                    Files.delete(tempDir);
+                }
+                catch(IOException e) {
+                    throw ExceptionUtils.commute(e);
+                }
                 p.getRight().materializeDirectory(tempDir);
                 return ObjectUtils.NULL;
             }
@@ -64,14 +70,11 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
 
             @Override
             public void materializeDirectory(Path destination) {
-                // also slightly suxco
-                for(Path p : QbtUtils.listChildren(dir)) {
-                    try {
-                        Files.createSymbolicLink(destination.resolve(p.getFileName()), p);
-                    }
-                    catch(IOException e) {
-                        throw ExceptionUtils.commute(e);
-                    }
+                try {
+                    Files.createSymbolicLink(destination, dir);
+                }
+                catch(IOException e) {
+                    throw ExceptionUtils.commute(e);
                 }
             }
 

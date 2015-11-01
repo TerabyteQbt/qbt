@@ -105,7 +105,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
             });
 
             try(QbtTempDir tempDir = new QbtTempDir()) {
-                Path outputsDir = tempDir.path;
+                Path outputsDir = tempDir.resolve("artifact");
                 result.materializeDirectory(outputsDir);
 
                 String[] args = options.get(Options.command).toArray(new String[0]);

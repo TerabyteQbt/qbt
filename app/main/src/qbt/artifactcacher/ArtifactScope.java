@@ -57,6 +57,13 @@ public class ArtifactScope implements Closeable {
             public void materializeDirectory(Path destination) {
                 synchronized(ArtifactScope.this) {
                     checkOpen();
+                    QbtUtils.mkdirs(destination.getParent());
+                    try {
+                        Files.createDirectory(destination);
+                    }
+                    catch(IOException e) {
+                        throw ExceptionUtils.commute(e);
+                    }
                     TarballUtils.explodeTarball(destination, tarball);
                 }
             }

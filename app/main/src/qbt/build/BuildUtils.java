@@ -35,7 +35,7 @@ public final class BuildUtils {
     }
 
     public static void materializeArtifact(Path dir, ArtifactReference artifact) {
-        QbtUtils.mkdirs(dir);
+        QbtUtils.mkdirs(dir.getParent());
         artifact.materializeDirectory(dir);
     }
 
