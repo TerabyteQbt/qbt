@@ -12,15 +12,21 @@ import qbt.recursive.cv.CumulativeVersionDigest;
 import qbt.utils.TarballUtils;
 
 public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
-    private final Path root;
+    private final Path writeRoot;
+    private final Path readRoot;
 
     public SymlinkingMadnessArtifactCacher(Path root) {
-        this.root = root;
+        this(root, root);
+    }
+
+    public SymlinkingMadnessArtifactCacher(Path writeRoot, Path readRoot) {
+        this.writeRoot = writeRoot;
+        this.readRoot = readRoot;
     }
 
     @Override
     public Pair<Architecture, ArtifactReference> get(ArtifactScope artifactScope, Architecture arch, CumulativeVersionDigest key) {
-        Path dir = root.resolve(key.getRawDigest().toString());
+        Path dir = readRoot.resolve(key.getRawDigest().toString());
         if(Files.isDirectory(dir)) {
             return Pair.of(Architecture.unknown(), artifactReference(dir));
         }
@@ -29,9 +35,10 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
 
     @Override
     public Pair<Architecture, ArtifactReference> intercept(CumulativeVersionDigest key, final Pair<Architecture, ArtifactReference> p) {
-        final Path dir = root.resolve(key.getRawDigest().toString());
+        final Path writeDir = writeRoot.resolve(key.getRawDigest().toString());
+        final Path readDir = readRoot.resolve(key.getRawDigest().toString());
 
-        boolean copied = QbtUtils.semiAtomicDirCache(dir, "", new Function<Path, ObjectUtils.Null>() {
+        boolean copied = QbtUtils.semiAtomicDirCache(writeDir, "", new Function<Path, ObjectUtils.Null>() {
             @Override
             public ObjectUtils.Null apply(Path tempDir) {
                 p.getRight().materializeDirectory(tempDir);
@@ -41,10 +48,10 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
 
         if(!copied) {
             // hit on disk, do not honor alleged architecture
-            return Pair.of(Architecture.unknown(), artifactReference(dir));
+            return Pair.of(Architecture.unknown(), artifactReference(readDir));
         }
 
-        return Pair.of(p.getLeft(), artifactReference(dir));
+        return Pair.of(p.getLeft(), artifactReference(readDir));
     }
 
     private static ArtifactReference artifactReference(final Path dir) {
