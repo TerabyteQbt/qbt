@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ public class LocalArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> get(ArtifactScope artifactScope, Architecture arch, CumulativeVersionDigest key) {
+    public Pair<Architecture, ArtifactReference> get(FreeScope scope, CumulativeVersionDigest key, Architecture arch) {
         Path tarball = root.resolve(key.getRawDigest().toString() + ".tar.gz");
         try {
             Files.setLastModifiedTime(tarball, FileTime.fromMillis(System.currentTimeMillis()));
@@ -42,13 +43,13 @@ public class LocalArtifactCacher implements ArtifactCacher {
             // yearggh, this is really best effort and we can't do this (check
             // and set) non-racily with the Files API
         }
-        ArtifactReference ret = artifactScope.copyFile(tarball, true);
+        ArtifactReference ret = ArtifactReferences.copyFile(scope, tarball, true);
         LOGGER.debug("Cache check for " + key + " at " + tarball + " " + (ret == null ? "missed" : "hit"));
         return ret == null ? null : Pair.of(Architecture.unknown(), ret);
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> intercept(CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
+    public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
         simplePut(p.getLeft(), key, p.getRight());
         return p;
     }

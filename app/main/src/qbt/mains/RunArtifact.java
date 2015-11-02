@@ -23,7 +23,6 @@ import qbt.QbtCommandOptions;
 import qbt.QbtManifest;
 import qbt.QbtTempDir;
 import qbt.artifactcacher.ArtifactReference;
-import qbt.artifactcacher.ArtifactScope;
 import qbt.build.BuildData;
 import qbt.build.PackageMapperHelper;
 import qbt.build.PackageMapperHelperOptionsDelegate;
@@ -79,7 +78,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
         final PackageTip packageTip = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
 
-        try(final ArtifactScope artifactScope = new ArtifactScope()) {
+        try(final FreeScope scope = new FreeScope()) {
             ArtifactReference result = PackageMapperHelper.run(config.artifactCacher, options, Options.packageMapperHelperOptions, new PackageMapperHelper.PackageMapperHelperCallback<ArtifactReference>() {
                 @Override
                 public ComputationTree<ArtifactReference> run(final PackageMapperHelper.PackageMapperHelperCallbackCallback cb) {
@@ -99,29 +98,27 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
                     return computationMapper.transform(cumulativeVersionComputer.compute(packageTip)).transform(new Function<CvRecursivePackageData<ArtifactReference>, ArtifactReference>() {
                         @Override
                         public ArtifactReference apply(CvRecursivePackageData<ArtifactReference> result) {
-                            return result.result.getRight().copyInto(artifactScope);
+                            return result.result.getRight().copyInto(scope);
                         }
                     });
                 }
             });
 
-            try(FreeScope scope = new FreeScope()) {
-                try(QbtTempDir tempDir = new QbtTempDir()) {
-                    Path outputsDir = tempDir.resolve("artifact");
-                    result.materializeDirectory(Maybe.of(scope), outputsDir);
+            try(QbtTempDir tempDir = new QbtTempDir()) {
+                Path outputsDir = tempDir.resolve("artifact");
+                result.materializeDirectory(Maybe.of(scope), outputsDir);
 
-                    String[] args = options.get(Options.command).toArray(new String[0]);
-                    if(!options.get(Options.absolute)) {
-                        args[0] = outputsDir.resolve(args[0]).toString();
-                    }
-                    Path dir = options.get(Options.artifactsDir) ? outputsDir : Paths.get(".");
-                    ProcessHelper p = new ProcessHelper(dir, args);
-                    p = p.putEnv("ARTIFACTS_DIR", outputsDir.toString());
-                    p = p.inheritError();
-                    p = p.inheritInput();
-                    p = p.inheritOutput();
-                    return p.completeExitCode();
+                String[] args = options.get(Options.command).toArray(new String[0]);
+                if(!options.get(Options.absolute)) {
+                    args[0] = outputsDir.resolve(args[0]).toString();
                 }
+                Path dir = options.get(Options.artifactsDir) ? outputsDir : Paths.get(".");
+                ProcessHelper p = new ProcessHelper(dir, args);
+                p = p.putEnv("ARTIFACTS_DIR", outputsDir.toString());
+                p = p.inheritError();
+                p = p.inheritInput();
+                p = p.inheritOutput();
+                return p.completeExitCode();
             }
         }
     }

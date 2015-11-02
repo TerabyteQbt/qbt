@@ -9,6 +9,7 @@ import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
@@ -17,7 +18,6 @@ import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtManifest;
 import qbt.artifactcacher.ArtifactReference;
-import qbt.artifactcacher.ArtifactScope;
 import qbt.build.BuildData;
 import qbt.build.BuildUtils;
 import qbt.build.PackageMapperHelper;
@@ -86,11 +86,11 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
         PackageTip packageTip = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         final CvRecursivePackageData<CumulativeVersionComputer.Result> r = cumulativeVersionComputer.compute(packageTip);
 
-        try(final ArtifactScope artifactScope = new ArtifactScope()) {
-            final CvRecursivePackageDataTransformer<ArtifactReference, ArtifactReference> artifactScopeReferenceTransformer = new CvRecursivePackageDataTransformer<ArtifactReference, ArtifactReference>() {
+        try(final FreeScope scope = new FreeScope()) {
+            final CvRecursivePackageDataTransformer<ArtifactReference, ArtifactReference> scopeReferenceTransformer = new CvRecursivePackageDataTransformer<ArtifactReference, ArtifactReference>() {
                 @Override
                 protected ArtifactReference transformResult(CumulativeVersion vOld, CumulativeVersion vNew, ArtifactReference result, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
-                    return result.copyInto(artifactScope);
+                    return result.copyInto(scope);
                 }
             };
             Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults = PackageMapperHelper.run(config.artifactCacher, options, Options.packageMapperHelperOptions, new PackageMapperHelper.PackageMapperHelperCallback<Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>>() {
@@ -106,7 +106,7 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
                     return RecursiveDataUtils.computationTreeMap(RecursiveDataUtils.transformMap(r.children, computationMapper.transformFunction), new Function<Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>>() {
                         @Override
                         public Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> apply(Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> input) {
-                            return RecursiveDataUtils.transformMap(input, artifactScopeReferenceTransformer.transformFunction);
+                            return RecursiveDataUtils.transformMap(input, scopeReferenceTransformer.transformFunction);
                         }
                     });
                 }

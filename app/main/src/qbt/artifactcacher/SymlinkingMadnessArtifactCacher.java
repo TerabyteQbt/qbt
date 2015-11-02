@@ -28,16 +28,16 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> get(ArtifactScope artifactScope, Architecture arch, CumulativeVersionDigest key) {
+    public Pair<Architecture, ArtifactReference> get(FreeScope scope, CumulativeVersionDigest key, Architecture arch) {
         Path dir = readRoot.resolve(key.getRawDigest().toString());
         if(Files.isDirectory(dir)) {
-            return Pair.of(Architecture.unknown(), artifactReference(dir));
+            return Pair.of(Architecture.unknown(), scope.initial(ArtifactReference.TYPE, rawArtifactReference(dir)));
         }
         return null;
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> intercept(CumulativeVersionDigest key, final Pair<Architecture, ArtifactReference> p) {
+    public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, final Pair<Architecture, ArtifactReference> p) {
         final Path writeDir = writeRoot.resolve(key.getRawDigest().toString());
         final Path readDir = readRoot.resolve(key.getRawDigest().toString());
 
@@ -55,16 +55,20 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
             }
         });
 
-        if(!copied) {
+        Architecture arch;
+        if(copied) {
+            arch = p.getLeft();
+        }
+        else {
             // hit on disk, do not honor alleged architecture
-            return Pair.of(Architecture.unknown(), artifactReference(readDir));
+            arch = Architecture.unknown();
         }
 
-        return Pair.of(p.getLeft(), artifactReference(readDir));
+        return Pair.of(arch, scope.initial(ArtifactReference.TYPE, rawArtifactReference(readDir)));
     }
 
-    private static ArtifactReference artifactReference(final Path dir) {
-        return new ArtifactReference() {
+    private static RawArtifactReference rawArtifactReference(final Path dir) {
+        return new RawArtifactReference() {
             @Override
             public void materializeTarball(Path destination) {
                 // suxco
@@ -99,8 +103,9 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
             }
 
             @Override
-            public ArtifactReference copyInto(ArtifactScope artifactScope) {
-                return this;
+            public void free() {
+                // when we want to implement cleanup we can ref in enclosing
+                // and unref here
             }
         };
     }

@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -101,7 +102,7 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> get(final ArtifactScope artifactScope, final Architecture arch, final CumulativeVersionDigest key) {
+    public Pair<Architecture, ArtifactReference> get(final FreeScope scope, final CumulativeVersionDigest key, final Architecture arch) {
         final String url = url(getBaseUrl, arch, key);
         if(url == null) {
             return null;
@@ -115,7 +116,7 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
                         try(InputStream is = httpResponse.getEntity().getContent(); OutputStream os = QbtUtils.openWrite(tempFile)) {
                             ByteStreams.copy(is, os);
                         }
-                        ArtifactReference ret = artifactScope.copyFile(tempFile, false);
+                        ArtifactReference ret = ArtifactReferences.copyFile(scope, tempFile, false);
                         LOGGER.debug("Cache check for " + key + " at " + url + " " + (ret == null ? "missed" : "hit"));
                         return ret == null ? null : Pair.of(arch, ret);
                     }
@@ -133,7 +134,7 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> intercept(CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
+    public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
         simplePut(p.getLeft(), key, p.getRight());
         return p;
     }

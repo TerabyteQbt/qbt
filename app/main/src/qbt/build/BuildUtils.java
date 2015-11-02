@@ -20,7 +20,7 @@ import qbt.PackageDirectory;
 import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.artifactcacher.ArtifactReference;
-import qbt.artifactcacher.ArtifactScope;
+import qbt.artifactcacher.ArtifactReferences;
 import qbt.metadata.PackageBuildType;
 import qbt.metadata.PackageMetadataType;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
@@ -124,7 +124,7 @@ public final class BuildUtils {
         }
     }
 
-    public static Pair<Result<ArtifactReference>, ArtifactReference> runBuild(ArtifactScope artifactScope, BuildData bd) {
+    public static Pair<Result<ArtifactReference>, ArtifactReference> runBuild(FreeScope scope, BuildData bd) {
         try(QbtTempDir tempDir = new QbtTempDir()) {
             final Path artifactsDir = tempDir.resolve("artifacts");
             QbtUtils.mkdirs(artifactsDir);
@@ -161,9 +161,9 @@ public final class BuildUtils {
                 artifactsResult = Result.newFailure(failure);
             }
             else {
-                artifactsResult = Result.newSuccess(artifactScope.copyDirectory(artifactsDir));
+                artifactsResult = Result.newSuccess(ArtifactReferences.copyDirectory(scope, artifactsDir));
             }
-            ArtifactReference reportsResult = artifactScope.copyDirectory(reportsDir);
+            ArtifactReference reportsResult = ArtifactReferences.copyDirectory(scope, reportsDir);
             return Pair.of(artifactsResult, reportsResult);
         }
     }

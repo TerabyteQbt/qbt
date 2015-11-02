@@ -6,6 +6,7 @@ import misc1.commons.concurrent.WorkPool;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,6 @@ import qbt.VcsTreeDigest;
 import qbt.artifactcacher.Architecture;
 import qbt.artifactcacher.ArtifactCacher;
 import qbt.artifactcacher.ArtifactReference;
-import qbt.artifactcacher.ArtifactScope;
 import qbt.metadata.PackageMetadataType;
 
 public final class PackageMapperHelper {
@@ -37,7 +37,7 @@ public final class PackageMapperHelper {
         final Architecture arch = Architecture.fromArg(options.get(packageMapperHelperOption.arch));
         final boolean noBuilds = options.get(packageMapperHelperOption.noBuilds);
         final WorkPool workPool = packageMapperHelperOption.parallelism.getResult(options, false).createWorkPool();
-        try(ArtifactScope artifactScope = new ArtifactScope()) {
+        try(FreeScope scope = new FreeScope()) {
             ComputationTree<T> computationTree = cb.run(new PackageMapperHelperCallbackCallback() {
                 private void checkTree(BuildData bd, String suffix) {
                     // This is sort of a crummy way to do this.
@@ -57,13 +57,13 @@ public final class PackageMapperHelper {
                 @Override
                 public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bdUnpruned) {
                     final BuildData bdPruned = bdUnpruned.pruneForCache();
-                    Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(artifactScope, Architecture.independent(), bdPruned.v.getDigest());
+                    Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(scope, bdPruned.v.getDigest(), Architecture.independent());
                     String cacheDesc = "missed";
                     if(artifactPair != null) {
                         cacheDesc = "hit (INDEPENDENT)";
                     }
                     else {
-                        artifactPair = artifactCacher.get(artifactScope, arch, bdPruned.v.getDigest());
+                        artifactPair = artifactCacher.get(scope, bdPruned.v.getDigest(), arch);
                         if(artifactPair != null) {
                             cacheDesc = "hit (" + arch + ")";
                         }
@@ -81,12 +81,12 @@ public final class PackageMapperHelper {
                         checkTree(bdUnpruned, " before the build");
 
                         LOGGER.info("Actually building " + buildDesc + "...");
-                        Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(artifactScope, bdPruned);
+                        Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bdPruned);
                         Result<ArtifactReference> artifactResult = result.getLeft();
                         artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
                             @Override
                             public ArtifactReference apply(ArtifactReference input) {
-                                return artifactCacher.intercept(bdPruned.v.getDigest(), Pair.of(bdUnpruned.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
+                                return artifactCacher.intercept(scope, bdPruned.v.getDigest(), Pair.of(bdUnpruned.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
                             }
                         });
 
