@@ -5,8 +5,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.Maybe;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.recursive.cv.CumulativeVersionDigest;
 import qbt.utils.TarballUtils;
@@ -47,7 +50,7 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
                 catch(IOException e) {
                     throw ExceptionUtils.commute(e);
                 }
-                p.getRight().materializeDirectory(tempDir);
+                p.getRight().materializeDirectory(Maybe.<FreeScope>not(), tempDir);
                 return ObjectUtils.NULL;
             }
         });
@@ -69,12 +72,29 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
             }
 
             @Override
-            public void materializeDirectory(Path destination) {
-                try {
-                    Files.createSymbolicLink(destination, dir);
+            public void materializeDirectory(Maybe<FreeScope> scope, Path destination) {
+                if(scope.isPresent()) {
+                    // when we want to implement cleanup we can add to scope
+                    try {
+                        Files.createSymbolicLink(destination, dir);
+                    }
+                    catch(IOException e) {
+                        throw ExceptionUtils.commute(e);
+                    }
                 }
-                catch(IOException e) {
-                    throw ExceptionUtils.commute(e);
+                else {
+                    // suxco II
+                    try(QbtTempDir temp = new QbtTempDir()) {
+                        Path tar = temp.resolve("tar");
+                        TarballUtils.unexplodeTarball(dir, tar);
+                        try {
+                            Files.createDirectory(destination);
+                        }
+                        catch(IOException e) {
+                            throw ExceptionUtils.commute(e);
+                        }
+                        TarballUtils.explodeTarball(destination, tar);
+                    }
                 }
             }
 

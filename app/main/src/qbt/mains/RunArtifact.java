@@ -13,6 +13,7 @@ import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
@@ -104,21 +105,23 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
                 }
             });
 
-            try(QbtTempDir tempDir = new QbtTempDir()) {
-                Path outputsDir = tempDir.resolve("artifact");
-                result.materializeDirectory(outputsDir);
+            try(FreeScope scope = new FreeScope()) {
+                try(QbtTempDir tempDir = new QbtTempDir()) {
+                    Path outputsDir = tempDir.resolve("artifact");
+                    result.materializeDirectory(Maybe.of(scope), outputsDir);
 
-                String[] args = options.get(Options.command).toArray(new String[0]);
-                if(!options.get(Options.absolute)) {
-                    args[0] = outputsDir.resolve(args[0]).toString();
+                    String[] args = options.get(Options.command).toArray(new String[0]);
+                    if(!options.get(Options.absolute)) {
+                        args[0] = outputsDir.resolve(args[0]).toString();
+                    }
+                    Path dir = options.get(Options.artifactsDir) ? outputsDir : Paths.get(".");
+                    ProcessHelper p = new ProcessHelper(dir, args);
+                    p = p.putEnv("ARTIFACTS_DIR", outputsDir.toString());
+                    p = p.inheritError();
+                    p = p.inheritInput();
+                    p = p.inheritOutput();
+                    return p.completeExitCode();
                 }
-                Path dir = options.get(Options.artifactsDir) ? outputsDir : Paths.get(".");
-                ProcessHelper p = new ProcessHelper(dir, args);
-                p = p.putEnv("ARTIFACTS_DIR", outputsDir.toString());
-                p = p.inheritError();
-                p = p.inheritInput();
-                p = p.inheritOutput();
-                return p.completeExitCode();
             }
         }
     }

@@ -21,6 +21,7 @@ import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -183,7 +184,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                     switch(output.getLeft()) {
                         case directory:
                             QbtUtils.mkdirs(f.getParent());
-                            artifact.materializeDirectory(f);
+                            artifact.materializeDirectory(Maybe.<FreeScope>not(), f);
                             break;
 
                         case tarball:
@@ -209,7 +210,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                         if(reports != null && reportsDir != null) {
                             Path destination = reportsDir.resolve(v.getPackageName() + "-" + v.getDigest().getRawDigest());
                             QbtUtils.mkdirs(destination.getParent());
-                            reports.materializeDirectory(destination);
+                            reports.materializeDirectory(Maybe.<FreeScope>not(), destination);
                         }
                         Result<ArtifactReference> artifactResult = result.getLeft();
                         Throwable buildError = artifactResult.getThrowable();

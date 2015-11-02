@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import misc1.commons.Maybe;
 import misc1.commons.Result;
+import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -34,21 +35,23 @@ public final class BuildUtils {
         // no
     }
 
-    public static void materializeArtifact(Path dir, ArtifactReference artifact) {
+    public static void materializeArtifact(Maybe<FreeScope> scope, Path dir, ArtifactReference artifact) {
         QbtUtils.mkdirs(dir.getParent());
-        artifact.materializeDirectory(dir);
+        artifact.materializeDirectory(scope, dir);
     }
 
     private static class StrongDependencyMaterializer extends CvRecursivePackageDataMapper<ArtifactReference, ObjectUtils.Null> {
+        private final Maybe<FreeScope> scope;
         private final Path root;
 
-        public StrongDependencyMaterializer(Path root) {
+        public StrongDependencyMaterializer(Maybe<FreeScope> scope, Path root) {
             this.root = root;
+            this.scope = scope;
         }
 
         @Override
         protected ObjectUtils.Null map(CvRecursivePackageData<ArtifactReference> r) {
-            materializeArtifact(root.resolve(r.v.getPackageName()), r.result.getRight());
+            materializeArtifact(scope, root.resolve(r.v.getPackageName()), r.result.getRight());
             map(r.children);
             return ObjectUtils.NULL;
         }
@@ -63,58 +66,60 @@ public final class BuildUtils {
         }
     }
 
-    public static void materializeStrongDependencyArtifacts(final Path root, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
+    public static void materializeStrongDependencyArtifacts(Maybe<FreeScope> scope, final Path root, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
         QbtUtils.mkdirs(root);
-        new StrongDependencyMaterializer(root).map(dependencyArtifacts);
+        new StrongDependencyMaterializer(scope, root).map(dependencyArtifacts);
     }
 
-    private static void materializeStrongArtifacts(final Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
+    private static void materializeStrongArtifacts(Maybe<FreeScope> scope, final Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
         QbtUtils.mkdirs(root);
-        new StrongDependencyMaterializer(root).map(artifactPile);
+        new StrongDependencyMaterializer(scope, root).map(artifactPile);
     }
 
-    public static void materializeWeakArtifacts(Path root, Set<NormalDependencyType> types, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
+    public static void materializeWeakArtifacts(Maybe<FreeScope> scope, Path root, Set<NormalDependencyType> types, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
         QbtUtils.mkdirs(root);
         for(Map.Entry<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> e : dependencyArtifacts.entrySet()) {
             if(!types.contains(e.getValue().getLeft())) {
                 continue;
             }
-            materializeRuntimeArtifacts(root.resolve(e.getKey()), e.getValue().getRight());
+            materializeRuntimeArtifacts(scope, root.resolve(e.getKey()), e.getValue().getRight());
         }
     }
 
-    private static void materializeBuildtimeArtifacts(Path root, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
-        materializeStrongDependencyArtifacts(root.resolve("strong"), dependencyArtifacts);
-        materializeWeakArtifacts(root.resolve("weak"), ImmutableSet.of(NormalDependencyType.BUILDTIME_WEAK, NormalDependencyType.RUNTIME_WEAK), dependencyArtifacts);
+    private static void materializeBuildtimeArtifacts(Maybe<FreeScope> scope, Path root, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
+        materializeStrongDependencyArtifacts(scope, root.resolve("strong"), dependencyArtifacts);
+        materializeWeakArtifacts(scope, root.resolve("weak"), ImmutableSet.of(NormalDependencyType.BUILDTIME_WEAK, NormalDependencyType.RUNTIME_WEAK), dependencyArtifacts);
     }
 
-    public static void materializeRuntimeArtifacts(Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
-        materializeStrongArtifacts(root.resolve("strong"), artifactPile);
-        materializeWeakArtifacts(root.resolve("weak"), ImmutableSet.of(NormalDependencyType.RUNTIME_WEAK), artifactPile.children);
+    public static void materializeRuntimeArtifacts(Maybe<FreeScope> scope, Path root, CvRecursivePackageData<ArtifactReference> artifactPile) {
+        materializeStrongArtifacts(scope, root.resolve("strong"), artifactPile);
+        materializeWeakArtifacts(scope, root.resolve("weak"), ImmutableSet.of(NormalDependencyType.RUNTIME_WEAK), artifactPile.children);
     }
 
     public static <T> T runPackageCommand(String[] command, BuildData bd, Function<ProcessHelper, T> cb) {
-        try(QbtTempDir tempDir = new QbtTempDir()) {
-            Path inputsDir = tempDir.path;
-            materializeBuildtimeArtifacts(inputsDir, bd.dependencyArtifacts);
+        try(FreeScope scope = new FreeScope()) {
+            try(QbtTempDir tempDir = new QbtTempDir()) {
+                Path inputsDir = tempDir.path;
+                materializeBuildtimeArtifacts(Maybe.of(scope), inputsDir, bd.dependencyArtifacts);
 
-            try(PackageDirectory packageDirectory = PackageDirectories.forBuildData(bd)) {
-                Path packageDir = packageDirectory.getDir();
-                ProcessHelper p = new ProcessHelper(packageDir, command);
-                p = p.putEnv("INPUT_ARTIFACTS_DIR", inputsDir.toAbsolutePath().toString());
-                p = p.putEnv("PACKAGE_DIR", packageDir.toAbsolutePath().toString());
-                p = p.putEnv("PACKAGE_NAME", bd.v.getPackageName());
-                p = p.putEnv("PACKAGE_CUMULATIVE_VERSION", bd.v.getDigest().getRawDigest().toString());
-                p = p.stripEnv(new Predicate<Pair<String, String>>() {
-                    @Override
-                    public boolean apply(Pair<String, String> e) {
-                        return e.getKey().startsWith("QBT_ENV_");
+                try(PackageDirectory packageDirectory = PackageDirectories.forBuildData(bd)) {
+                    Path packageDir = packageDirectory.getDir();
+                    ProcessHelper p = new ProcessHelper(packageDir, command);
+                    p = p.putEnv("INPUT_ARTIFACTS_DIR", inputsDir.toAbsolutePath().toString());
+                    p = p.putEnv("PACKAGE_DIR", packageDir.toAbsolutePath().toString());
+                    p = p.putEnv("PACKAGE_NAME", bd.v.getPackageName());
+                    p = p.putEnv("PACKAGE_CUMULATIVE_VERSION", bd.v.getDigest().getRawDigest().toString());
+                    p = p.stripEnv(new Predicate<Pair<String, String>>() {
+                        @Override
+                        public boolean apply(Pair<String, String> e) {
+                            return e.getKey().startsWith("QBT_ENV_");
+                        }
+                    });
+                    for(Map.Entry<String, String> e : bd.v.result.qbtEnv.entrySet()) {
+                        p = p.putEnv("QBT_ENV_" + e.getKey(), e.getValue());
                     }
-                });
-                for(Map.Entry<String, String> e : bd.v.result.qbtEnv.entrySet()) {
-                    p = p.putEnv("QBT_ENV_" + e.getKey(), e.getValue());
+                    return cb.apply(p);
                 }
-                return cb.apply(p);
             }
         }
     }

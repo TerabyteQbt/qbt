@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.Maybe;
+import misc1.commons.resources.FreeScope;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
 import qbt.QbtUtils;
@@ -54,7 +56,7 @@ public class ArtifactScope implements Closeable {
     private ArtifactReference artifactReference(final Path tarball) {
         return new ArtifactReference() {
             @Override
-            public void materializeDirectory(Path destination) {
+            public void materializeDirectory(Maybe<FreeScope> scope, Path destination) {
                 synchronized(ArtifactScope.this) {
                     checkOpen();
                     QbtUtils.mkdirs(destination.getParent());
