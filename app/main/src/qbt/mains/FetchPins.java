@@ -73,7 +73,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         final QbtConfig config = Options.config.getConfig(options);
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
         Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
-        String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
+        final String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
         ComputationTree<ImmutableList<Boolean>> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, Boolean>() {
@@ -90,14 +90,19 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                     return true;
                 }
 
-                RawRemote remote = qbtRemote.requireRemote(repo);
+                RawRemote remote = qbtRemote.findRemote(repo, false);
 
-                LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+                if(remote != null) {
+                    LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+                    config.localPinsRepo.fetchPins(repo, remote);
+                }
+                else {
+                    LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemoteString + "'");
+                }
 
-                config.localPinsRepo.fetchPins(repo, remote);
 
                 if(config.localPinsRepo.findPin(repo, version) == null) {
-                    LOGGER.error("[" + repo + "] But did not find " + version + "!");
+                    LOGGER.error("[" + repo + "] Could not find " + version + "!");
                     return false;
                 }
 
