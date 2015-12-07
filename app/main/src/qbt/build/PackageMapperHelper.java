@@ -55,42 +55,41 @@ public final class PackageMapperHelper {
                 }
 
                 @Override
-                public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bdUnpruned) {
-                    final BuildData bdPruned = bdUnpruned.pruneForCache();
-                    Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(scope, bdPruned.v.getDigest(), Architecture.independent());
+                public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bd) {
+                    Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(scope, bd.v.getDigest(), Architecture.independent());
                     String cacheDesc = "missed";
                     if(artifactPair != null) {
                         cacheDesc = "hit (INDEPENDENT)";
                     }
                     else {
-                        artifactPair = artifactCacher.get(scope, bdPruned.v.getDigest(), arch);
+                        artifactPair = artifactCacher.get(scope, bd.v.getDigest(), arch);
                         if(artifactPair != null) {
                             cacheDesc = "hit (" + arch + ")";
                         }
                     }
-                    LOGGER.debug("Cache check " + bdUnpruned.v.getPackageName() + " at " + bdUnpruned.v.prettyDigest() + ", " + cacheDesc);
+                    LOGGER.debug("Cache check " + bd.v.getPackageName() + " at " + bd.v.prettyDigest() + ", " + cacheDesc);
                     if(artifactPair != null) {
                         return Pair.of(Result.newSuccess(artifactPair.getRight()), null);
                     }
                     else {
-                        String buildDesc = bdUnpruned.v.prettyDigest() + "/" + bdPruned.v.prettyDigest();
+                        String buildDesc = bd.v.prettyDigest();
                         if(noBuilds) {
                             return Pair.of(Result.<ArtifactReference>newFailure(new RuntimeException("Would have built " + buildDesc + " but builds were forbidden.")), null);
                         }
 
-                        checkTree(bdUnpruned, " before the build");
+                        checkTree(bd, " before the build");
 
                         LOGGER.info("Actually building " + buildDesc + "...");
-                        Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bdPruned);
+                        Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bd);
                         Result<ArtifactReference> artifactResult = result.getLeft();
                         artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
                             @Override
                             public ArtifactReference apply(ArtifactReference input) {
-                                return artifactCacher.intercept(scope, bdPruned.v.getDigest(), Pair.of(bdUnpruned.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
+                                return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
                             }
                         });
 
-                        checkTree(bdUnpruned, " after the build");
+                        checkTree(bd, " after the build");
 
                         return result;
                     }

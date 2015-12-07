@@ -4,7 +4,7 @@ public enum NormalDependencyType {
     STRONG("Strong", "S"),
     RUNTIME_WEAK("RuntimeWeak"),
     BUILDTIME_WEAK("Weak", "W"),
-    PHANTOM("Phantom", "P");
+    ;
 
     private final String tag;
     private final String[] legacyTags;

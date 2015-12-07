@@ -3,7 +3,6 @@ package qbt.build;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
-import qbt.artifactcacher.ArtifactCacherUtils;
 import qbt.artifactcacher.ArtifactReference;
 import qbt.map.CumulativeVersionComputer;
 import qbt.metadata.Metadata;
@@ -30,10 +29,5 @@ public final class BuildData {
         this.commonRepoAccessor = commonRepoAccessor.result.getRight().commonRepoAccessor;
         this.metadata = commonRepoAccessor.result.getRight().packageManifest.metadata;
         this.dependencyArtifacts = dependencyArtifacts;
-    }
-
-    public BuildData pruneForCache() {
-        Pair<CumulativeVersion, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>> pruned = ArtifactCacherUtils.pruneForCache(v, dependencyArtifacts);
-        return new BuildData(pruned.getLeft(), commonRepoAccessor, metadata, pruned.getRight());
     }
 }
