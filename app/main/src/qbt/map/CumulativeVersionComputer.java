@@ -115,8 +115,13 @@ public abstract class CumulativeVersionComputer<K> {
             return result.cumulativeVersionNodeData;
         }
     };
+
     public CvRecursivePackageData<Result> compute(PackageTip packageTip) {
-        SimpleRecursivePackageData<Result> raw = dependencyComputer.compute(packageTip);
+        return compute(new DependencyComputer.CacheKey(packageTip));
+    }
+
+    public CvRecursivePackageData<Result> compute(DependencyComputer.CacheKey key) {
+        SimpleRecursivePackageData<Result> raw = dependencyComputer.compute(key);
         SimpleRecursivePackageData<Result> canonicalized = canonicalizer.transform(raw);
         CvRecursivePackageData<Result> versioned = versionAdder.transform(canonicalized);
         return versioned;

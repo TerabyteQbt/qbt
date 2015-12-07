@@ -12,6 +12,10 @@ public abstract class DependencyComputer<M, V> {
         public final PackageTip packageTip;
         public final Map<PackageTip, String> replacements;
 
+        public CacheKey(PackageTip packageTip) {
+            this(packageTip, ImmutableMap.<PackageTip, String>of());
+        }
+
         public CacheKey(PackageTip packageTip, Map<PackageTip, String> replacements) {
             this.packageTip = packageTip;
             this.replacements = ImmutableMap.copyOf(replacements);
@@ -61,21 +65,28 @@ public abstract class DependencyComputer<M, V> {
 
     public V compute(PackageTip packageTip, Map<PackageTip, String> replacements) {
         CacheKey key = new CacheKey(packageTip, replacements);
+        return compute(key);
+    }
+
+    public V compute(CacheKey key) {
         if(cache.containsKey(key)) {
             V result = cache.get(key);
             if(result == null) {
-                throw new CycleException(packageTip, replacements, null);
+                throw new CycleException(key.packageTip, key.replacements, null);
             }
             return result;
         }
         cache.put(key, null);
 
-        V result = computeUncached(packageTip, replacements);
+        V result = computeUncached(key);
         cache.put(key, result);
         return result;
     }
 
-    private V computeUncached(PackageTip packageTip, Map<PackageTip, String> replacements) {
+    private V computeUncached(CacheKey key) {
+        PackageTip packageTip = key.packageTip;
+        Map<PackageTip, String> replacements = key.replacements;
+
         String replacedTip = replacements.get(packageTip);
         if(replacedTip != null && !replacedTip.equals(packageTip.tip)) {
             return compute(packageTip.replaceTip(replacedTip), replacements);
