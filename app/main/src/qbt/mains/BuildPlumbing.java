@@ -3,8 +3,6 @@ package qbt.mains;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.hash.HashCode;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,7 +30,6 @@ import qbt.NormalDependencyType;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
-import qbt.QbtHashUtils;
 import qbt.QbtManifest;
 import qbt.QbtUtils;
 import qbt.artifactcacher.ArtifactReference;
@@ -62,8 +59,6 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
         public static final ManifestOptionsDelegate<BuildCommonOptions> manifest = new ManifestOptionsDelegate<BuildCommonOptions>();
         public static final CumulativeVersionComputerOptionsDelegate<BuildCommonOptions> cumulativeVersionComputerOptions = new CumulativeVersionComputerOptionsDelegate<BuildCommonOptions>();
         public static final PackageMapperHelperOptionsDelegate<BuildCommonOptions> packageMapperHelperOptions = new PackageMapperHelperOptionsDelegate<BuildCommonOptions>();
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> skips = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--skip"), "Skip this package/cumulativeVersion");
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> skipsFromFiles = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--skipFromFile"), "Read --skip arguments from this file");
         public static final OptionsFragment<BuildCommonOptions, ?, Boolean> shellOnError = new NamedBooleanFlagOptionsFragment<BuildCommonOptions>(ImmutableList.of("--shellOnError"), "Run a shell on failed builds");
         public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> outputs = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--output"), "Output specifications");
         public static final OptionsFragment<BuildCommonOptions, ?, String> reports = new NamedStringSingletonArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--reports"), Maybe.<String>of(null), "Directory into which to dump reports");
@@ -120,31 +115,6 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
         final QbtConfig config = BuildCommonOptions.config.getConfig(options);
         final QbtManifest manifest = BuildCommonOptions.manifest.getResult(options).parse();
         final Collection<PackageTip> packages = packagesOption.getPackages(config, manifest, options);
-        class SkipsBuilder {
-            private final ImmutableSet.Builder<Pair<PackageTip, HashCode>> b = ImmutableSet.builder();
-
-            private void addSkip(String arg) {
-                String[] pieces = arg.split(" ");
-                if(pieces.length != 2) {
-                    throw new IllegalArgumentException("Bad skip: " + arg);
-                }
-                b.add(Pair.of(PackageTip.TYPE.parseRequire(pieces[0]), QbtHashUtils.parse(pieces[1])));
-            }
-
-            private void addSkipsFromFile(String arg) throws IOException {
-                for(String line : QbtUtils.readLines(Paths.get(arg))) {
-                    addSkip(line);
-                }
-            }
-        }
-        SkipsBuilder skipsBuilder = new SkipsBuilder();
-        for(String arg : options.get(Options.skips)) {
-            skipsBuilder.addSkip(arg);
-        }
-        for(String arg : options.get(Options.skipsFromFiles)) {
-            skipsBuilder.addSkipsFromFile(arg);
-        }
-        final ImmutableSet<Pair<PackageTip, HashCode>> skips = skipsBuilder.b.build();
 
         ImmutableMultimap.Builder<PublishTime, Pair<PublishFormat, String>> outputsBuilder = ImmutableMultimap.builder();
         for(String output : options.get(Options.outputs)) {
@@ -251,9 +221,6 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                 };
                 for(final PackageTip packageTip : packages) {
                     CvRecursivePackageData<CumulativeVersionComputer.Result> r = cumulativeVersionComputer.compute(packageTip);
-                    if(skips.contains(Pair.of(packageTip, r.v.getDigest().getRawDigest()))) {
-                        continue;
-                    }
                     computationTreesBuilder.add(computationMapper.transform(r).transform(new Function<CvRecursivePackageData<ArtifactReference>, ObjectUtils.Null>() {
                         @Override
                         public ObjectUtils.Null apply(CvRecursivePackageData<ArtifactReference> result) {
