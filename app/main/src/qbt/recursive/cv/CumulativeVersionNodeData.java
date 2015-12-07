@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import qbt.VcsTreeDigest;
 import qbt.metadata.Metadata;
 import qbt.metadata.PackageMetadataType;
@@ -18,7 +19,7 @@ public final class CumulativeVersionNodeData {
     public final Metadata<PackageMetadataType> metadata; // stripped!
     public final ImmutableMap<String, String> qbtEnv;
 
-    private static ImmutableMap<String, String> copyEnv(Map<String, String> qbtEnv) {
+    private static ImmutableMap<String, String> copyEnv(Set<String> keep, Map<String, String> qbtEnv) {
         ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
         List<Map.Entry<String, String>> entries = Lists.newArrayList(qbtEnv.entrySet());
         Collections.sort(entries, new Comparator<Map.Entry<String, String>>() {
@@ -32,6 +33,9 @@ public final class CumulativeVersionNodeData {
             }
         });
         for(Map.Entry<String, String> e : entries) {
+            if(!keep.contains(e.getKey())) {
+                continue;
+            }
             b.put(e);
         }
         return b.build();
@@ -42,7 +46,7 @@ public final class CumulativeVersionNodeData {
         this.effectiveTree = effectiveTree;
         this.qbtDependency = qbtDependency;
         this.metadata = PackageMetadataType.stripForCumulativeVersion(metadata);
-        this.qbtEnv = copyEnv(qbtEnv);
+        this.qbtEnv = copyEnv(metadata.get(PackageMetadataType.QBT_ENV), qbtEnv);
     }
 
     private CumulativeVersionNodeData(Builder b) {
@@ -50,7 +54,7 @@ public final class CumulativeVersionNodeData {
         this.effectiveTree = b.effectiveTree;
         this.qbtDependency = b.qbtDependency;
         this.metadata = PackageMetadataType.stripForCumulativeVersion(b.metadata);
-        this.qbtEnv = copyEnv(b.qbtEnv);
+        this.qbtEnv = copyEnv(b.metadata.get(PackageMetadataType.QBT_ENV), b.qbtEnv);
     }
 
     @Override

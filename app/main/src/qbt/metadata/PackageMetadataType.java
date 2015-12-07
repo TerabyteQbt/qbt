@@ -48,7 +48,7 @@ public enum PackageMetadataType implements MetadataType<PackageMetadataType> {
             }
         });
         b.put(false, ARCH_INDEPENDENT = new BooleanMetadataItem<PackageMetadataType>("archIndependent", false));
-        b.put(true, QBT_ENV = new MetadataItem<PackageMetadataType, Set<String>>("qbtEnv", ImmutableSet.<String>of()) {
+        b.put(false, QBT_ENV = new MetadataItem<PackageMetadataType, Set<String>>("qbtEnv", ImmutableSet.<String>of()) {
             @Override
             public String valueToString(Set<String> value) {
                 List<String> valueOrdered = Lists.newArrayList(value);
