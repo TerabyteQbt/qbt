@@ -8,13 +8,13 @@ import qbt.NormalDependencyType;
 import qbt.tip.PackageTip;
 
 public abstract class DependencyComputer<M, V> {
-    private static final class CacheKey {
+    public static final class CacheKey {
         public final PackageTip packageTip;
         public final Map<PackageTip, String> replacements;
 
         public CacheKey(PackageTip packageTip, Map<PackageTip, String> replacements) {
             this.packageTip = packageTip;
-            this.replacements = replacements;
+            this.replacements = ImmutableMap.copyOf(replacements);
         }
 
         @Override
