@@ -107,11 +107,21 @@ public abstract class DependencyComputer<M, V> {
             dependencyResultsBuilder.put(dependencyName, Pair.of(dependencyType, dependencyResult));
         }
         Map<String, Pair<NormalDependencyType, V>> dependencyResults = dependencyResultsBuilder.build();
-        return map(intermediate, packageTip, dependencyResults);
+        return map(intermediate, new MapData<V>(packageTip, dependencyResults));
+    }
+
+    public static final class MapData<V> {
+        public final PackageTip packageTip;
+        public final Map<String, Pair<NormalDependencyType, V>> dependencyResults;
+
+        private MapData(PackageTip packageTip, Map<String, Pair<NormalDependencyType, V>> dependencyResults) {
+            this.packageTip = packageTip;
+            this.dependencyResults = dependencyResults;
+        }
     }
 
     protected abstract M premap(PackageTip packageTip);
     protected abstract Map<String, Pair<NormalDependencyType, String>> getNormalDeps(M intermediate, PackageTip packageTip);
     protected abstract Map<PackageTip, String> getReplaceDeps(M intermediate, PackageTip packageTip);
-    protected abstract V map(M intermediate, PackageTip packageTip, Map<String, Pair<NormalDependencyType, V>> dependencyResults);
+    protected abstract V map(M intermediate, MapData<V> data);
 }

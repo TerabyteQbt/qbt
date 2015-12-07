@@ -3,7 +3,6 @@ package qbt.options;
 import com.google.common.collect.ImmutableSet;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
-import java.util.Map;
 import misc1.commons.ExceptionUtils;
 import misc1.commons.ds.LazyCollector;
 import org.apache.commons.lang3.tuple.Pair;
@@ -157,12 +156,12 @@ public final class PackageRepoSelection {
     public static ImmutableSet<PackageTip> inwardsClosure(QbtManifest manifest, ImmutableSet<PackageTip> packages) {
         DependencyComputer<PackageManifest, LazyCollector<PackageTip>> dependenciesComputer = new SimpleDependencyComputer<LazyCollector<PackageTip>>(manifest) {
             @Override
-            protected LazyCollector<PackageTip> map(PackageManifest intermediate, PackageTip packageTip, Map<String, Pair<NormalDependencyType, LazyCollector<PackageTip>>> dependencyResults) {
+            protected LazyCollector<PackageTip> map(PackageManifest intermediate, MapData<LazyCollector<PackageTip>> data) {
                 LazyCollector<PackageTip> ret = LazyCollector.of();
-                for(Pair<NormalDependencyType, LazyCollector<PackageTip>> e : dependencyResults.values()) {
+                for(Pair<NormalDependencyType, LazyCollector<PackageTip>> e : data.dependencyResults.values()) {
                     ret = ret.union(e.getRight());
                 }
-                ret = ret.union(LazyCollector.of(packageTip));
+                ret = ret.union(LazyCollector.of(data.packageTip));
                 return ret;
             }
         };
@@ -176,11 +175,11 @@ public final class PackageRepoSelection {
     public static ImmutableSet<PackageTip> outwardsClosure(QbtManifest manifest, final ImmutableSet<PackageTip> packages) {
         DependencyComputer<PackageManifest, Boolean> usesOutwardsComputer = new SimpleDependencyComputer<Boolean>(manifest) {
             @Override
-            protected Boolean map(PackageManifest packageManifest, PackageTip packageTip, Map<String, Pair<NormalDependencyType, Boolean>> dependencyResults) {
-                if(packages.contains(packageTip)) {
+            protected Boolean map(PackageManifest packageManifest, MapData<Boolean> data) {
+                if(packages.contains(data.packageTip)) {
                     return true;
                 }
-                for(Pair<NormalDependencyType, Boolean> dependencyResult : dependencyResults.values()) {
+                for(Pair<NormalDependencyType, Boolean> dependencyResult : data.dependencyResults.values()) {
                     if(dependencyResult.getRight()) {
                         return true;
                     }

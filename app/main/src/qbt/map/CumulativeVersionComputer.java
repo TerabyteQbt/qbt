@@ -87,8 +87,8 @@ public abstract class CumulativeVersionComputer<K> {
         }
 
         @Override
-        protected SimpleRecursivePackageData<Result> map(Result intermediate, PackageTip packageTip, Map<String, Pair<NormalDependencyType, SimpleRecursivePackageData<Result>>> dependencyResults) {
-            return new SimpleRecursivePackageData<Result>(intermediate, dependencyResults);
+        protected SimpleRecursivePackageData<Result> map(Result intermediate, MapData<SimpleRecursivePackageData<Result>> data) {
+            return new SimpleRecursivePackageData<Result>(intermediate, data.dependencyResults);
         }
     };
 
