@@ -12,6 +12,8 @@ import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
 import org.apache.commons.lang3.ObjectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
@@ -30,13 +32,15 @@ import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
 public class PushPins extends QbtCommand<PushPins.Options> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PushPins.class);
+
     @QbtCommandName("pushPins")
     public static interface Options extends QbtCommandOptions {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final ParallelismOptionsDelegate<Options> parallelism = new ParallelismOptionsDelegate<Options>();
         public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(RepoActionOptionsDelegate.NoArgsBehaviour.OVERRIDES);
-        public static final OptionsFragment<Options, ?, ImmutableList<String>> remote = new UnparsedOptionsFragment<Options>("QBT remote to which to push", false, 1, 1);
+        public static final OptionsFragment<Options, ?, ImmutableList<String>> remotes = new UnparsedOptionsFragment<Options>("QBT remote to which to push", false, null, null);
     }
 
     @Override
@@ -58,26 +62,37 @@ public class PushPins extends QbtCommand<PushPins.Options> {
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
-        Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
-        String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
-        final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
+        final Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
 
-        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
+        ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), new Function<String, ComputationTree<ObjectUtils.Null>>() {
             @Override
-            public ObjectUtils.Null apply(RepoTip repo) {
-                RepoManifest repoManifest = manifest.repos.get(repo);
-                if(repoManifest == null) {
-                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
-                }
-                VcsVersionDigest version = repoManifest.version;
-                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
-                RawRemote remote = qbtRemote.findRemote(repo, true);
+            public ComputationTree<ObjectUtils.Null> apply(final String qbtRemoteString) {
+                final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
+                return ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
+                    @Override
+                    public ObjectUtils.Null apply(RepoTip repo) {
+                        RepoManifest repoManifest = manifest.repos.get(repo);
+                        if(repoManifest == null) {
+                            throw new IllegalArgumentException("No such repo [tip]: " + repo);
+                        }
+                        VcsVersionDigest version = repoManifest.version;
+                        PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
+                        RawRemote remote = qbtRemote.findRemote(repo, true);
 
-                pinnedAccessor.pushToRemote(remote);
+                        pinnedAccessor.pushToRemote(remote);
 
-                return ObjectUtils.NULL;
+                        return ObjectUtils.NULL;
+                    }
+                }).ignore().transform(new Function<ObjectUtils.Null, ObjectUtils.Null>() {
+                    @Override
+                    public ObjectUtils.Null apply(ObjectUtils.Null input) {
+                        LOGGER.info("Completed pushing to remote " + qbtRemoteString);
+                        return input;
+                    }
+                });
             }
-        });
+        }));
+
         final WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool();
         try {
             new ComputationTreeComputer() {
