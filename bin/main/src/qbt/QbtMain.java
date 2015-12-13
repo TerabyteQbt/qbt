@@ -114,6 +114,6 @@ public final class QbtMain {
         for(String line : OptionsResults.help(r.getOptionsClass())) {
             System.err.println("   " + line);
         }
-        return 1;
+        return 0;
     }
 }
