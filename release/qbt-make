@@ -2,6 +2,6 @@
 
 set -e
 
-$INPUT_ARTIFACTS_DIR/weak/qbt_fringe.wrapper_generator.release/strong/qbt_fringe.wrapper_generator.release/bin/wrapper_generator $INPUT_ARTIFACTS_DIR/weak/qbt.app.main/strong $OUTPUT_ARTIFACTS_DIR \
+$INPUT_ARTIFACTS_DIR/weak/qbt_fringe.wrapper_generator.release/strong/qbt_fringe.wrapper_generator.release/bin/wrapper_generator $INPUT_ARTIFACTS_DIR/weak/qbt.app.cmd/strong $OUTPUT_ARTIFACTS_DIR \
     qbt qbt.QbtMain \
 
