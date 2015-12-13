@@ -10,7 +10,7 @@ import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtManifest;
 import qbt.config.QbtConfig;
-import qbt.map.BuildManifestCumulativeVersionComputer;
+import qbt.map.BuildCumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputerOptionsDelegate;
 import qbt.map.CumulativeVersionComputerOptionsResult;
@@ -56,7 +56,7 @@ public class ResolveManifestCumulativeVersions extends QbtCommand<ResolveManifes
         Collection<PackageTip> packages = Options.packages.getPackages(config, manifest, options);
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
 
-        CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildManifestCumulativeVersionComputer(config, manifest) {
+        CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildCumulativeVersionComputer(config, manifest) {
             @Override
             protected Map<String, String> getQbtEnv() {
                 return cumulativeVersionComputerOptionsResult.qbtEnv;

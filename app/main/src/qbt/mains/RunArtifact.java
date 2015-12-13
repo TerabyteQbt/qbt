@@ -27,7 +27,7 @@ import qbt.build.BuildData;
 import qbt.build.PackageMapperHelper;
 import qbt.build.PackageMapperHelperOptionsDelegate;
 import qbt.config.QbtConfig;
-import qbt.map.BuildManifestCumulativeVersionComputer;
+import qbt.map.BuildCumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputerOptionsDelegate;
 import qbt.map.CumulativeVersionComputerOptionsResult;
@@ -89,7 +89,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
                         }
                     };
 
-                    CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildManifestCumulativeVersionComputer(config, manifest) {
+                    CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildCumulativeVersionComputer(config, manifest) {
                         @Override
                         protected Map<String, String> getQbtEnv() {
                             return cumulativeVersionComputerOptionsResult.qbtEnv;

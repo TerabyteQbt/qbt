@@ -3,15 +3,17 @@ package qbt.map;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import misc1.commons.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import qbt.NormalDependencyType;
 import qbt.PackageManifest;
+import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
+import qbt.config.QbtConfig;
 import qbt.metadata.PackageMetadataType;
 import qbt.recursive.cv.CumulativeVersionDigest;
 import qbt.recursive.cv.CumulativeVersionNodeData;
@@ -19,6 +21,7 @@ import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataVersionAdder;
 import qbt.recursive.srpd.SimpleRecursivePackageData;
 import qbt.recursive.srpd.SimpleRecursivePackageDataCanonicalizer;
+import qbt.recursive.srpd.SimpleRecursivePackageDataTransformer;
 import qbt.repo.CommonRepoAccessor;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
@@ -38,26 +41,34 @@ public abstract class CumulativeVersionComputer<K> {
         }
     }
 
+    private final QbtConfig config;
+    private final DependencyComputer dependencyComputer;
+
+    public CumulativeVersionComputer(QbtConfig config, QbtManifest manifest) {
+        this.config = config;
+        this.dependencyComputer = new DependencyComputer(manifest);
+    }
+
     private final LoadingCache<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>> repoCache = CacheBuilder.newBuilder().build(new CacheLoader<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>>() {
         @Override
         public Pair<CommonRepoAccessor, VcsTreeDigest> load(Pair<RepoTip, VcsVersionDigest> input) {
             RepoTip repo = input.getLeft();
             VcsVersionDigest version = input.getRight();
 
-            CommonRepoAccessor commonRepoAccessor = requireRepo(repo, version);
+            CommonRepoAccessor commonRepoAccessor = config.requireCommonRepo(repo, version);
             VcsTreeDigest repoTree = commonRepoAccessor.getEffectiveTree(Maybe.of(""));
 
             return Pair.of(commonRepoAccessor, repoTree);
         }
     });
 
-    private final DependencyComputer<?, SimpleRecursivePackageData<Result>> dependencyComputer = new DependencyComputer<Result, SimpleRecursivePackageData<Result>>() {
+    private final SimpleRecursivePackageDataTransformer<DependencyComputer.Result, Result> requireRepoTransformer = new SimpleRecursivePackageDataTransformer<DependencyComputer.Result, Result>() {
         @Override
-        protected Result premap(PackageTip packageTip) {
-            Triple<RepoTip, RepoManifest, PackageManifest> requireManifestTriple = requireManifest(packageTip);
-            RepoTip repo = requireManifestTriple.getLeft();
-            RepoManifest repoManifest = requireManifestTriple.getMiddle();
-            PackageManifest packageManifest = requireManifestTriple.getRight();
+        protected Result transformResult(DependencyComputer.Result result, Map<String, Pair<NormalDependencyType, SimpleRecursivePackageData<Result>>> dependencyResults) {
+            PackageTip packageTip = result.packageTip;
+            RepoTip repo = result.repo;
+            RepoManifest repoManifest = result.repoManifest;
+            PackageManifest packageManifest = result.packageManifest;
             VcsVersionDigest version = repoManifest.version;
 
             Pair<CommonRepoAccessor, VcsTreeDigest> repoCacheResult = repoCache.getUnchecked(Pair.of(repo, version));
@@ -74,21 +85,6 @@ public abstract class CumulativeVersionComputer<K> {
             }
             CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.name, packageTree, CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
             return new Result(packageTip, commonRepoAccessor, packageManifest, cumulativeVersionNodeData);
-        }
-
-        @Override
-        protected Map<String, Pair<NormalDependencyType, String>> getNormalDeps(Result intermediate, PackageTip packageTip) {
-            return intermediate.packageManifest.normalDeps;
-        }
-
-        @Override
-        protected Map<PackageTip, String> getReplaceDeps(Result intermediate, PackageTip packageTip) {
-            return intermediate.packageManifest.replaceDeps;
-        }
-
-        @Override
-        protected SimpleRecursivePackageData<Result> map(Result intermediate, MapData<SimpleRecursivePackageData<Result>> data) {
-            return new SimpleRecursivePackageData<Result>(intermediate, data.dependencyResults);
         }
     };
 
@@ -121,14 +117,16 @@ public abstract class CumulativeVersionComputer<K> {
     }
 
     public CvRecursivePackageData<Result> compute(DependencyComputer.CacheKey key) {
-        SimpleRecursivePackageData<Result> raw = dependencyComputer.compute(key);
+        SimpleRecursivePackageData<DependencyComputer.Result> dcResult = dependencyComputer.compute(key);
+        SimpleRecursivePackageData<Result> raw = requireRepoTransformer.transform(dcResult);
         SimpleRecursivePackageData<Result> canonicalized = canonicalizer.transform(raw);
         CvRecursivePackageData<Result> versioned = versionAdder.transform(canonicalized);
         return versioned;
     }
 
-    protected abstract Triple<RepoTip, RepoManifest, PackageManifest> requireManifest(PackageTip packageTip);
-    protected abstract CommonRepoAccessor requireRepo(RepoTip repo, VcsVersionDigest version);
     protected abstract K canonicalizationKey(Result result);
-    protected abstract Map<String, String> getQbtEnv();
+
+    protected Map<String, String> getQbtEnv() {
+        return ImmutableMap.of();
+    }
 }

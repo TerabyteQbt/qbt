@@ -7,12 +7,13 @@ import misc1.commons.ExceptionUtils;
 import misc1.commons.ds.LazyCollector;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
-import qbt.PackageManifest;
 import qbt.QbtManifest;
 import qbt.RepoManifest;
 import qbt.config.QbtConfig;
 import qbt.map.DependencyComputer;
-import qbt.map.SimpleDependencyComputer;
+import qbt.map.PackageTipDependenciesMapper;
+import qbt.recursive.srpd.SimpleRecursivePackageData;
+import qbt.recursive.srpd.SimpleRecursivePackageDataMapper;
 import qbt.tip.AbstractTip;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
@@ -154,33 +155,25 @@ public final class PackageRepoSelection {
     }
 
     public static ImmutableSet<PackageTip> inwardsClosure(QbtManifest manifest, ImmutableSet<PackageTip> packages) {
-        DependencyComputer<PackageManifest, LazyCollector<PackageTip>> dependenciesComputer = new SimpleDependencyComputer<LazyCollector<PackageTip>>(manifest) {
-            @Override
-            protected LazyCollector<PackageTip> map(PackageManifest intermediate, MapData<LazyCollector<PackageTip>> data) {
-                LazyCollector<PackageTip> ret = LazyCollector.of();
-                for(Pair<NormalDependencyType, LazyCollector<PackageTip>> e : data.dependencyResults.values()) {
-                    ret = ret.union(e.getRight());
-                }
-                ret = ret.union(LazyCollector.of(data.packageTip));
-                return ret;
-            }
-        };
-        ImmutableSet.Builder<PackageTip> b = ImmutableSet.builder();
-        for(PackageTip pkg : manifest.packageToRepo.keySet()) {
-            b.addAll(dependenciesComputer.compute(pkg).forceSet());
+        DependencyComputer dependencyComputer = new DependencyComputer(manifest);
+        PackageTipDependenciesMapper dependenciesMapper = new PackageTipDependenciesMapper();
+        LazyCollector<PackageTip> b = LazyCollector.of();
+        for(PackageTip pkg : packages) {
+            b = b.union(dependenciesMapper.transform(dependencyComputer.compute(pkg)));
         }
-        return b.build();
+        return b.forceSet();
     }
 
     public static ImmutableSet<PackageTip> outwardsClosure(QbtManifest manifest, final ImmutableSet<PackageTip> packages) {
-        DependencyComputer<PackageManifest, Boolean> usesOutwardsComputer = new SimpleDependencyComputer<Boolean>(manifest) {
+        DependencyComputer dependencyComputer = new DependencyComputer(manifest);
+        SimpleRecursivePackageDataMapper<DependencyComputer.Result, Boolean> usesOutwardsMapper = new SimpleRecursivePackageDataMapper<DependencyComputer.Result, Boolean>() {
             @Override
-            protected Boolean map(PackageManifest packageManifest, MapData<Boolean> data) {
-                if(packages.contains(data.packageTip)) {
+            protected Boolean map(SimpleRecursivePackageData<DependencyComputer.Result> r) {
+                if(packages.contains(r.result.packageTip)) {
                     return true;
                 }
-                for(Pair<NormalDependencyType, Boolean> dependencyResult : data.dependencyResults.values()) {
-                    if(dependencyResult.getRight()) {
+                for(Pair<NormalDependencyType, SimpleRecursivePackageData<DependencyComputer.Result>> dependencyResult : r.children.values()) {
+                    if(transform(dependencyResult.getRight())) {
                         return true;
                     }
                 }
@@ -189,7 +182,7 @@ public final class PackageRepoSelection {
         };
         ImmutableSet.Builder<PackageTip> b = ImmutableSet.builder();
         for(PackageTip pkg : manifest.packageToRepo.keySet()) {
-            if(usesOutwardsComputer.compute(pkg)) {
+            if(usesOutwardsMapper.transform(dependencyComputer.compute(pkg))) {
                 b.add(pkg);
             }
         }
