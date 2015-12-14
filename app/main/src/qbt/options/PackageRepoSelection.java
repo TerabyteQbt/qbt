@@ -1,5 +1,6 @@
 package qbt.options;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
@@ -157,11 +158,11 @@ public final class PackageRepoSelection {
     public static ImmutableSet<PackageTip> inwardsClosure(QbtManifest manifest, ImmutableSet<PackageTip> packages) {
         DependencyComputer dependencyComputer = new DependencyComputer(manifest);
         PackageTipDependenciesMapper dependenciesMapper = new PackageTipDependenciesMapper();
-        LazyCollector<PackageTip> b = LazyCollector.of();
+        ImmutableList.Builder<LazyCollector<PackageTip>> b = ImmutableList.builder();
         for(PackageTip pkg : packages) {
-            b = b.union(dependenciesMapper.transform(dependencyComputer.compute(pkg)));
+            b.add(dependenciesMapper.transform(dependencyComputer.compute(pkg)));
         }
-        return b.forceSet();
+        return LazyCollector.unionIterable(b.build()).forceSet();
     }
 
     public static ImmutableSet<PackageTip> outwardsClosure(QbtManifest manifest, final ImmutableSet<PackageTip> packages) {

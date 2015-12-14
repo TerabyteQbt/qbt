@@ -1,5 +1,6 @@
 package qbt.map;
 
+import com.google.common.collect.ImmutableList;
 import misc1.commons.ds.LazyCollector;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
@@ -11,11 +12,10 @@ import qbt.tip.PackageTip;
 public class PackageTipDependenciesMapper extends SimpleRecursivePackageDataMapper<DependencyComputer.Result, LazyCollector<PackageTip>> {
     @Override
     protected LazyCollector<PackageTip> map(SimpleRecursivePackageData<DependencyComputer.Result> r) {
-        LazyCollector<PackageTip> ret = LazyCollector.of();
+        ImmutableList.Builder<LazyCollector<PackageTip>> b = ImmutableList.builder();
         for(Pair<NormalDependencyType, SimpleRecursivePackageData<DependencyComputer.Result>> e : r.children.values()) {
-            ret = ret.union(transform(e.getRight()));
+            b.add(transform(e.getRight()));
         }
-        ret = ret.union(LazyCollector.of(r.result.packageTip));
-        return ret;
+        return LazyCollector.unionIterable(b.build());
     }
 }
