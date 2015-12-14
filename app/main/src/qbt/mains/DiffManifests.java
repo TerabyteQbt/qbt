@@ -22,6 +22,7 @@ import qbt.config.QbtConfig;
 import qbt.diffmanifests.MapDiffer;
 import qbt.diffmanifests.NoEditMapDiffer;
 import qbt.diffmanifests.Runner;
+import qbt.diffmanifests.SetDiffer;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.repo.PinnedRepoAccessor;
@@ -43,6 +44,8 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
         public static final OptionsFragment<Options, ?, String> onNormalDepDel = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onNormalDepDel"), Maybe.<String>of(null), "Command");
         public static final OptionsFragment<Options, ?, String> onReplaceDepAdd = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onReplaceDepAdd"), Maybe.<String>of(null), "Command");
         public static final OptionsFragment<Options, ?, String> onReplaceDepDel = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onReplaceDepDel"), Maybe.<String>of(null), "Command");
+        public static final OptionsFragment<Options, ?, String> onVerifyDepAdd = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onVerifyDepAdd"), Maybe.<String>of(null), "Command");
+        public static final OptionsFragment<Options, ?, String> onVerifyDepDel = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onVerifyDepDel"), Maybe.<String>of(null), "Command");
         public static final OptionsFragment<Options, ?, String> onRepoAdd = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onRepoAdd"), Maybe.<String>of(null), "Command");
         public static final OptionsFragment<Options, ?, String> onRepoDel = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onRepoDel"), Maybe.<String>of(null), "Command");
         public static final OptionsFragment<Options, ?, String> onRepoEdit = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--onRepoEdit"), Maybe.<String>of(null), "Command");
@@ -263,6 +266,26 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
                 r = r.addEnv("DEPENDENCY_NAME", dep.name);
                 r = r.addEnv("DEPENDENCY_FROM_TIP", dep.tip);
                 r = r.addEnv("DEPENDENCY_TO_TIP", toTip);
+                r.run();
+            }
+        }.diff();
+
+        new SetDiffer<Pair<PackageTip, String>>(lhs.verifyDeps, rhs.verifyDeps, QbtManifest.verifyDepComparator) {
+            @Override
+            protected void add(Pair<PackageTip, String> dep) {
+                Runner r = packageRunner(options, options.get(Options.onVerifyDepAdd), repo, pkg);
+                r = r.addEnv("DEPENDENCY_NAME", dep.getLeft().name);
+                r = r.addEnv("DEPENDENCY_TIP", dep.getLeft().tip);
+                r = r.addEnv("DEPENDENCY_TYPE", dep.getRight());
+                r.run();
+            }
+
+            @Override
+            protected void del(Pair<PackageTip, String> dep) {
+                Runner r = packageRunner(options, options.get(Options.onVerifyDepDel), repo, pkg);
+                r = r.addEnv("DEPENDENCY_NAME", dep.getLeft().name);
+                r = r.addEnv("DEPENDENCY_TIP", dep.getLeft().tip);
+                r = r.addEnv("DEPENDENCY_TYPE", dep.getRight());
                 r.run();
             }
         }.diff();

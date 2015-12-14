@@ -1,7 +1,9 @@
 package qbt;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.metadata.Metadata;
 import qbt.metadata.MetadataItem;
@@ -12,23 +14,27 @@ public final class PackageManifest {
     public final Metadata<PackageMetadataType> metadata;
     public final Map<String, Pair<NormalDependencyType, String>> normalDeps;
     public final Map<PackageTip, String> replaceDeps;
+    public final Set<Pair<PackageTip, String>> verifyDeps;
 
-    private PackageManifest(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps) {
+    private PackageManifest(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
         this.metadata = metadata;
         this.normalDeps = normalDeps;
         this.replaceDeps = replaceDeps;
+        this.verifyDeps = verifyDeps;
     }
 
     private PackageManifest(Builder b) {
         this.metadata = b.metadata.build();
         this.normalDeps = b.normalDeps.build();
         this.replaceDeps = b.replaceDeps.build();
+        this.verifyDeps = b.verifyDeps.build();
     }
 
     public static class Builder {
         private final Metadata.Builder<PackageMetadataType> metadata;
         private final ImmutableMap.Builder<String, Pair<NormalDependencyType, String>> normalDeps = ImmutableMap.builder();
         private final ImmutableMap.Builder<PackageTip, String> replaceDeps = ImmutableMap.builder();
+        private final ImmutableSet.Builder<Pair<PackageTip, String>> verifyDeps = ImmutableSet.builder();
 
         private Builder(Metadata<PackageMetadataType> metadata) {
             this.metadata = metadata.builder();
@@ -54,6 +60,11 @@ public final class PackageManifest {
             return this;
         }
 
+        public Builder withVerifyDep(PackageTip p, String s) {
+            verifyDeps.add(Pair.of(p, s));
+            return this;
+        }
+
         public PackageManifest build() {
             return new PackageManifest(this);
         }
@@ -64,8 +75,8 @@ public final class PackageManifest {
     }
 
     // discouraged due to high coupling with exact contents
-    public static PackageManifest of(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps) {
-        return new PackageManifest(metadata, normalDeps, replaceDeps);
+    public static PackageManifest of(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
+        return new PackageManifest(metadata, normalDeps, replaceDeps, verifyDeps);
     }
 
     @Override
@@ -74,6 +85,7 @@ public final class PackageManifest {
         r = 31 * r + metadata.hashCode();
         r = 31 * r + normalDeps.hashCode();
         r = 31 * r + replaceDeps.hashCode();
+        r = 31 * r + verifyDeps.hashCode();
         return r;
     }
 
@@ -90,6 +102,9 @@ public final class PackageManifest {
             return false;
         }
         if(!replaceDeps.equals(other.replaceDeps)) {
+            return false;
+        }
+        if(!verifyDeps.equals(other.verifyDeps)) {
             return false;
         }
         return true;

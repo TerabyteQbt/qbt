@@ -1,18 +1,29 @@
 package qbt.mains;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import groovy.lang.GroovyShell;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
 import misc1.commons.Maybe;
 import misc1.commons.Result;
+import misc1.commons.algo.StronglyConnectedComponents;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.NamedStringListArgumentOptionsFragment;
@@ -42,12 +53,14 @@ import qbt.map.BuildCumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputerOptionsDelegate;
 import qbt.map.CumulativeVersionComputerOptionsResult;
+import qbt.map.DependencyComputer;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.PackageActionOptionsDelegate;
 import qbt.recursive.cv.CumulativeVersion;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
+import qbt.recursive.srpd.SimpleRecursivePackageData;
 import qbt.tip.PackageTip;
 import qbt.utils.ProcessHelper;
 
@@ -62,6 +75,11 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
         public static final OptionsFragment<BuildCommonOptions, ?, Boolean> shellOnError = new NamedBooleanFlagOptionsFragment<BuildCommonOptions>(ImmutableList.of("--shellOnError"), "Run a shell on failed builds");
         public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> outputs = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--output"), "Output specifications");
         public static final OptionsFragment<BuildCommonOptions, ?, String> reports = new NamedStringSingletonArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--reports"), Maybe.<String>of(null), "Directory into which to dump reports");
+
+        public static final OptionsFragment<BuildCommonOptions, ?, Boolean> verify = new NamedBooleanFlagOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verify"), "Include all verify links");
+        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyTypes = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyType"), "Include all verify links of this type");
+        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyRegexes = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyRegex"), "Include all verify links for which \"from/type/to\" matches this regex");
+        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyGroovies = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyGroovy"), "Include all verify links for which this groovy evaluates to true");
     }
 
     @QbtCommandName("buildPlumbing")
@@ -123,6 +141,8 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
         }
         final ImmutableMultimap<PublishTime, Pair<PublishFormat, String>> outputs = outputsBuilder.build();
 
+        final Predicate<Triple<PackageTip, String, PackageTip>> verifyPredicate = compileVerifyPredicate(options);
+
         final Path reportsDir;
         String reports = options.get(Options.reports);
         if(reports != null) {
@@ -170,7 +190,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
 
             @Override
             public ComputationTree<ObjectUtils.Null> run(final PackageMapperHelper.PackageMapperHelperCallbackCallback cb) {
-                CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>> computationMapper = new CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>>() {
+                final CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>> computationMapper = new CvRecursivePackageDataComputationMapper<CumulativeVersionComputer.Result, CvRecursivePackageData<CumulativeVersionComputer.Result>, CvRecursivePackageData<ArtifactReference>>() {
                     @Override
                     protected CvRecursivePackageData<ArtifactReference> map(CvRecursivePackageData<CumulativeVersionComputer.Result> commonRepoAccessor, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyResults) {
                         BuildData bd = new BuildData(commonRepoAccessor, dependencyResults);
@@ -211,28 +231,162 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                         return new CvRecursivePackageData<ArtifactReference>(commonRepoAccessor.v, artifactReference, dependencyResults);
                     }
                 };
-
-                ImmutableList.Builder<ComputationTree<ObjectUtils.Null>> computationTreesBuilder = ImmutableList.builder();
-                CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildCumulativeVersionComputer(config, manifest) {
+                final DependencyComputer dc = new DependencyComputer(manifest);
+                final StronglyConnectedComponents<DependencyComputer.CacheKey> verifyComponents = new StronglyConnectedComponents<DependencyComputer.CacheKey>() {
+                    @Override
+                    protected Iterable<DependencyComputer.CacheKey> getLinks(DependencyComputer.CacheKey key) {
+                        SimpleRecursivePackageData<DependencyComputer.Result> r = dc.compute(key);
+                        ImmutableList.Builder<DependencyComputer.CacheKey> b = ImmutableList.builder();
+                        for(Pair<NormalDependencyType, SimpleRecursivePackageData<DependencyComputer.Result>> e : r.children.values()) {
+                            b.add(e.getRight().result.key);
+                        }
+                        for(Pair<PackageTip, String> verifyDep : r.result.packageManifest.verifyDeps) {
+                            if(verifyPredicate.apply(Triple.of(r.result.packageTip, verifyDep.getRight(), verifyDep.getLeft()))) {
+                                b.add(new DependencyComputer.CacheKey(verifyDep.getLeft(), r.result.replacementsNext));
+                            }
+                        }
+                        return b.build();
+                    }
+                };
+                final CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildCumulativeVersionComputer(config, manifest) {
                     @Override
                     protected Map<String, String> getQbtEnv() {
                         return cumulativeVersionComputerOptionsResult.qbtEnv;
                     }
                 };
-                for(final PackageTip packageTip : packages) {
-                    CvRecursivePackageData<CumulativeVersionComputer.Result> r = cumulativeVersionComputer.compute(packageTip);
-                    computationTreesBuilder.add(computationMapper.transform(r).transform(new Function<CvRecursivePackageData<ArtifactReference>, ObjectUtils.Null>() {
+                final LoadingCache<DependencyComputer.CacheKey, ComputationTree<CvRecursivePackageData<ArtifactReference>>> mainBuildTrees = CacheBuilder.newBuilder().build(new CacheLoader<DependencyComputer.CacheKey, ComputationTree<CvRecursivePackageData<ArtifactReference>>>() {
+                    @Override
+                    public ComputationTree<CvRecursivePackageData<ArtifactReference>> load(DependencyComputer.CacheKey key) {
+                        CvRecursivePackageData<CumulativeVersionComputer.Result> r = cumulativeVersionComputer.compute(key);
+                        return computationMapper.transform(r);
+                    }
+                });
+                class VerifyTrees {
+                    private final LoadingCache<StronglyConnectedComponents.Component<DependencyComputer.CacheKey>, ComputationTree<ObjectUtils.Null>> cache = CacheBuilder.newBuilder().build(new CacheLoader<StronglyConnectedComponents.Component<DependencyComputer.CacheKey>, ComputationTree<ObjectUtils.Null>>() {
                         @Override
-                        public ObjectUtils.Null apply(CvRecursivePackageData<ArtifactReference> result) {
-                            LOGGER.info("Completed request package " + packageTip + "@" + result.v.getDigest().getRawDigest());
-                            runPublish(PublishTime.requested, packageTip, result.v, result.result.getRight());
-                            return ObjectUtils.NULL;
+                        public ComputationTree<ObjectUtils.Null> load(StronglyConnectedComponents.Component<DependencyComputer.CacheKey> c) {
+                            ImmutableList.Builder<ComputationTree<ObjectUtils.Null>> b = ImmutableList.builder();
+                            for(DependencyComputer.CacheKey key : c.vertices) {
+                                b.add(mainBuildTrees.getUnchecked(key).ignore());
+                            }
+                            for(StronglyConnectedComponents.Component<DependencyComputer.CacheKey> c2 : verifyComponents.getLinks(c)) {
+                                b.add(get(c2));
+                            }
+                            return ComputationTree.list(b.build()).ignore();
                         }
-                    }));
+                    });
+
+                    public ComputationTree<ObjectUtils.Null> get(StronglyConnectedComponents.Component<DependencyComputer.CacheKey> c) {
+                        return cache.getUnchecked(c);
+                    }
+                }
+                VerifyTrees verifyTrees = new VerifyTrees();
+
+                ImmutableList.Builder<ComputationTree<ObjectUtils.Null>> computationTreesBuilder = ImmutableList.builder();
+                for(final PackageTip packageTip : packages) {
+                    DependencyComputer.CacheKey key = new DependencyComputer.CacheKey(packageTip);
+                    StronglyConnectedComponents.Component<DependencyComputer.CacheKey> verifyComponent = verifyComponents.compute(key);
+                    LOGGER.debug("Verify component: " + key + " -> " + verifyComponent.vertices);
+
+                    ComputationTree<CvRecursivePackageData<ArtifactReference>> mainBuildTree = mainBuildTrees.getUnchecked(key);
+                    mainBuildTree = mainBuildTree.transform(new Function<CvRecursivePackageData<ArtifactReference>, CvRecursivePackageData<ArtifactReference>>() {
+                        @Override
+                        public CvRecursivePackageData<ArtifactReference> apply(CvRecursivePackageData<ArtifactReference> result) {
+                            LOGGER.info("Built requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
+                            return result;
+                        }
+                    });
+
+                    ComputationTree<ObjectUtils.Null> verifyTree = verifyTrees.get(verifyComponent);
+
+                    ComputationTree<CvRecursivePackageData<ArtifactReference>> verifiedTree = mainBuildTree.combineLeft(verifyTree);
+                    verifiedTree = verifiedTree.transform(new Function<CvRecursivePackageData<ArtifactReference>, CvRecursivePackageData<ArtifactReference>>() {
+                        @Override
+                        public CvRecursivePackageData<ArtifactReference> apply(CvRecursivePackageData<ArtifactReference> result) {
+                            LOGGER.info("Verified requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
+                            runPublish(PublishTime.requested, packageTip, result.v, result.result.getRight());
+                            return result;
+                        }
+                    });
+
+                    computationTreesBuilder.add(verifiedTree.ignore());
                 }
                 return ComputationTree.list(computationTreesBuilder.build()).ignore();
             }
         });
         return 0;
+    }
+
+    private static class VerifyNotingPredicate implements Predicate<Triple<PackageTip, String, PackageTip>> {
+        private final String reason;
+        private final Predicate<Triple<PackageTip, String, PackageTip>> delegate;
+        private final Map<Triple<PackageTip, String, PackageTip>, Boolean> cache = Maps.newHashMap();
+
+        public VerifyNotingPredicate(String reason, Predicate<Triple<PackageTip, String, PackageTip>> delegate) {
+            this.reason = reason;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean apply(Triple<PackageTip, String, PackageTip> input) {
+            Boolean already = cache.get(input);
+            if(already != null) {
+                return already;
+            }
+
+            boolean r = delegate.apply(input);
+            if(r) {
+                LOGGER.debug("Following verify link from " + input.getLeft() + " to " + input.getRight() + " type " + input.getMiddle() + " due to " + reason);
+            }
+            cache.put(input, r);
+
+            return r;
+        }
+    }
+
+    private static Predicate<Triple<PackageTip, String, PackageTip>> compileVerifyPredicate(OptionsResults<? extends BuildCommonOptions> options) {
+        ImmutableList.Builder<Predicate<Triple<PackageTip, String, PackageTip>>> b = ImmutableList.builder();
+        if(options.get(Options.verify)) {
+            b.add(new VerifyNotingPredicate("(verify all)", Predicates.<Triple<PackageTip, String, PackageTip>>alwaysTrue()));
+        }
+        {
+            ImmutableSet.Builder<String> verifyTypesBuilder = ImmutableSet.builder();
+            for(String verifyTypeArgument : options.get(Options.verifyTypes)) {
+                for(String verifyType : verifyTypeArgument.split(",")) {
+                    verifyTypesBuilder.add(verifyType);
+                }
+            }
+            final Set<String> verifyTypes = verifyTypesBuilder.build();
+            if(!verifyTypes.isEmpty()) {
+                b.add(new VerifyNotingPredicate("(verify type)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
+                    @Override
+                    public boolean apply(Triple<PackageTip, String, PackageTip> input) {
+                        return verifyTypes.contains(input.getMiddle());
+                    }
+                }));
+            }
+        }
+        for(String verifyRegex : options.get(Options.verifyRegexes)) {
+            final Pattern verifyPattern = Pattern.compile(verifyRegex);
+            b.add(new VerifyNotingPredicate("(verify regex /" + verifyRegex + "/)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
+                @Override
+                public boolean apply(Triple<PackageTip, String, PackageTip> input) {
+                    return verifyPattern.matcher(input.getLeft() + "/" + input.getMiddle() + "/" + input.getRight()).matches();
+                }
+            }));
+        }
+        for(final String verifyGroovy : options.get(Options.verifyGroovies)) {
+            b.add(new VerifyNotingPredicate("(verify groovy `" + verifyGroovy + "`)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
+                @Override
+                public boolean apply(Triple<PackageTip, String, PackageTip> input) {
+                    GroovyShell shell = new GroovyShell();
+                    shell.setVariable("from", input.getLeft());
+                    shell.setVariable("type", input.getMiddle());
+                    shell.setVariable("to", input.getRight());
+                    return (Boolean)shell.evaluate(verifyGroovy);
+                }
+            }));
+        }
+        return Predicates.or(b.build());
     }
 }

@@ -26,6 +26,7 @@ public final class QbtManifest {
     private static final Pattern METADATA_PATTERN = Pattern.compile("^        Metadata:([^=]*)=(.*)$");
     private static final Pattern NORMAL_DEP_PATTERN = Pattern.compile("^        ([A-Za-z]*):([0-9a-zA-Z._]*),([0-9a-zA-Z._]*)$");
     private static final Pattern REPLACE_DEP_PATTERN = Pattern.compile("^        (?:R|Replace):([0-9a-zA-Z._]*),([0-9a-zA-Z._]*),([0-9a-zA-Z._]*)$");
+    private static final Pattern VERIFY_DEP_PATTERN = Pattern.compile("^        (?:V|Verify):([0-9a-zA-Z._]*),([0-9a-zA-Z._]*),([0-9a-zA-Z._]*)$");
 
     public final ImmutableMap<RepoTip, RepoManifest> repos;
     public final ImmutableMap<PackageTip, RepoTip> packageToRepo;
@@ -147,6 +148,12 @@ public final class QbtManifest {
                 return;
             }
 
+            Matcher verifyDepMatcher = VERIFY_DEP_PATTERN.matcher(line);
+            if(verifyDepMatcher.matches()) {
+                packageBuilder = packageBuilder.withVerifyDep(PackageTip.TYPE.of(verifyDepMatcher.group(1), verifyDepMatcher.group(2)), verifyDepMatcher.group(3));
+                return;
+            }
+
             throw new IllegalArgumentException("expecting dependency or metadata line but got '" + line + "'");
         }
 
@@ -265,6 +272,50 @@ public final class QbtManifest {
         }
     }
 
+    private static class SetDeparser<K1, K2> extends Deparser<K1, Set<K2>> {
+        private final Comparator<K2> comparator;
+        private final Deparser<Pair<K1, K2>, ObjectUtils.Null> entryDeparser;
+
+        public SetDeparser(Comparator<K2> comparator, Deparser<Pair<K1, K2>, ObjectUtils.Null> entryDeparser) {
+            this.comparator = comparator;
+            this.entryDeparser = entryDeparser;
+        }
+
+        @Override
+        protected void deparseSimple(SimpleDeparseBuilder b, K1 k1, Set<K2> set) {
+            Set<K2> k2s = Sets.newTreeSet(comparator);
+            k2s.addAll(set);
+            for(K2 k2 : k2s) {
+                entryDeparser.deparseSimple(b, Pair.of(k1, k2), ObjectUtils.NULL);
+            }
+        }
+
+        @Override
+        protected void deparseConflict(ConflictDeparseBuilder b, K1 k1, Set<K2> lhs, Set<K2> mhs, Set<K2> rhs) {
+            Set<K2> k2s = Sets.newTreeSet(comparator);
+            k2s.addAll(lhs);
+            k2s.addAll(mhs);
+            k2s.addAll(rhs);
+            for(K2 k2 : k2s) {
+                boolean l = lhs.contains(k2);
+                boolean m = mhs.contains(k2);
+                boolean r = rhs.contains(k2);
+                boolean keep;
+                if(m) {
+                    // was present, either (or both) could have removed
+                    keep = l && r;
+                }
+                else {
+                    // wasn't present, either (or both) could add
+                    keep = l || r;
+                }
+                if(keep) {
+                    entryDeparser.deparseSimple(b, Pair.of(k1, k2), ObjectUtils.NULL);
+                }
+            }
+        }
+    }
+
     private static final Deparser<Pair<ObjectUtils.Null, String>, String> packageMetadataItemDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, String>, String>() {
         @Override
         protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, String> k, String v) {
@@ -294,6 +345,26 @@ public final class QbtManifest {
 
     private static final Deparser<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsDeparser = new MapDeparser<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, replaceDepDeparser);
 
+    private static final Deparser<Pair<ObjectUtils.Null, Pair<PackageTip, String>>, ObjectUtils.Null> verifyDepDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, Pair<PackageTip, String>>, ObjectUtils.Null>() {
+        @Override
+        protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, Pair<PackageTip, String>> k, ObjectUtils.Null v) {
+            b.add("        Verify:" + k.getRight().getLeft().name + "," + k.getRight().getLeft().tip + "," + k.getRight().getRight());
+        }
+    };
+
+    public static final Comparator<Pair<PackageTip, String>> verifyDepComparator = new Comparator<Pair<PackageTip, String>>() {
+        @Override
+        public int compare(Pair<PackageTip, String> a, Pair<PackageTip, String> b) {
+            int r1 = PackageTip.TYPE.COMPARATOR.compare(a.getLeft(), b.getLeft());
+            if(r1 != 0) {
+                return r1;
+            }
+            return a.getRight().compareTo(b.getRight());
+        }
+    };
+
+    private static final Deparser<ObjectUtils.Null, Set<Pair<PackageTip, String>>> verifyDepsDeparser = new SetDeparser<ObjectUtils.Null, Pair<PackageTip, String>>(verifyDepComparator, verifyDepDeparser);
+
     private static final Deparser<Pair<RepoTip, String>, PackageManifest> packageManifestDeparser = new Deparser<Pair<RepoTip, String>, PackageManifest>() {
         private Map<NormalDependencyType, Map<String, String>> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {
             Map<NormalDependencyType, Map<String, String>> ret = Maps.newHashMap();
@@ -314,6 +385,7 @@ public final class QbtManifest {
             packageMetadataDeparser.deparseSimple(b, ObjectUtils.NULL, v.metadata.toStringMap());
             packageNormalDepsDeparser.deparseSimple(b, ObjectUtils.NULL, invertNormalDeps(v.normalDeps));
             replaceDepsDeparser.deparseSimple(b, ObjectUtils.NULL, v.replaceDeps);
+            verifyDepsDeparser.deparseSimple(b, ObjectUtils.NULL, v.verifyDeps);
         }
 
         @Override
@@ -322,6 +394,7 @@ public final class QbtManifest {
             packageMetadataDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
             packageNormalDepsDeparser.deparseConflict(b, ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
             replaceDepsDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
+            verifyDepsDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
         }
     };
 

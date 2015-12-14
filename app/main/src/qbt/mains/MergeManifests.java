@@ -262,6 +262,42 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         }
     }
 
+    private static class SetMerger<K1, K2> extends Merger<K1, Set<K2>> {
+        private final Comparator<K2> comparator;
+
+        public SetMerger(Comparator<K2> comparator) {
+            this.comparator = comparator;
+        }
+
+        @Override
+        protected Triple<Set<K2>, Set<K2>, Set<K2>> mergeConflict(Context context, String label, K1 k1, Set<K2> lhs, Set<K2> mhs, Set<K2> rhs) {
+            Set<K2> k2s = Sets.newTreeSet(comparator);
+            k2s.addAll(lhs);
+            k2s.addAll(mhs);
+            k2s.addAll(rhs);
+            ImmutableSet.Builder<K2> b = ImmutableSet.builder();
+            for(K2 k2 : k2s) {
+                boolean l = lhs.contains(k2);
+                boolean m = mhs.contains(k2);
+                boolean r = rhs.contains(k2);
+                boolean keep;
+                if(m) {
+                    // was present, either (or both) could have removed
+                    keep = l && r;
+                }
+                else {
+                    // wasn't present, either (or both) could add
+                    keep = l || r;
+                }
+                if(keep) {
+                    b.add(k2);
+                }
+            }
+            Set<K2> ret = b.build();
+            return Triple.of(ret, ret, ret);
+        }
+    }
+
     private static class TrivialMerger<K, V> extends Merger<K, V> {
         @Override
         protected Triple<V, V, V> mergeConflict(Context context, String label, K k, V lhs, V mhs, V rhs) {
@@ -315,15 +351,18 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsMerger = new MapMerger<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, new TrivialMerger<Pair<ObjectUtils.Null, PackageTip>, String>());
 
+    private static final Merger<ObjectUtils.Null, Set<Pair<PackageTip, String>>> verifyDepsMerger = new SetMerger<ObjectUtils.Null, Pair<PackageTip, String>>(QbtManifest.verifyDepComparator);
+
     private static final Merger<Pair<ObjectUtils.Null, String>, PackageManifest> packageManifestMerger = new Merger<Pair<ObjectUtils.Null, String>, PackageManifest>() {
         @Override
         protected Triple<PackageManifest, PackageManifest, PackageManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
             Triple<Map<String, String>, Map<String, String>, Map<String, String>> mergedMetadata = metadataMerger.merge(context, combineLabel(label, "metadata"), ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
             Triple<Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>> mergedNormalDeps = normalDepsMerger.merge(context, combineLabel(label, "normalDeps"), ObjectUtils.NULL, lhs.normalDeps, mhs.normalDeps, rhs.normalDeps);
             Triple<Map<PackageTip, String>, Map<PackageTip, String>, Map<PackageTip, String>> mergedReplaceDeps = replaceDepsMerger.merge(context, combineLabel(label, "replaceDeps"), ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
-            PackageManifest newLhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getLeft()), mergedNormalDeps.getLeft(), mergedReplaceDeps.getLeft());
-            PackageManifest newMhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getMiddle()), mergedNormalDeps.getMiddle(), mergedReplaceDeps.getMiddle());
-            PackageManifest newRhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getRight()), mergedNormalDeps.getRight(), mergedReplaceDeps.getRight());
+            Triple<Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>> mergedVerifyDeps = verifyDepsMerger.merge(context, combineLabel(label, "verifyDeps"), ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
+            PackageManifest newLhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getLeft()), mergedNormalDeps.getLeft(), mergedReplaceDeps.getLeft(), mergedVerifyDeps.getLeft());
+            PackageManifest newMhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getMiddle()), mergedNormalDeps.getMiddle(), mergedReplaceDeps.getMiddle(), mergedVerifyDeps.getMiddle());
+            PackageManifest newRhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getRight()), mergedNormalDeps.getRight(), mergedReplaceDeps.getRight(), mergedVerifyDeps.getRight());
             return Triple.of(newLhs, newMhs, newRhs);
         }
     };
