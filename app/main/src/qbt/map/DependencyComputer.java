@@ -48,6 +48,11 @@ public final class DependencyComputer {
             }
             return true;
         }
+
+        @Override
+        public String toString() {
+            return packageTip + "@" + replacements;
+        }
     }
 
     public static final class Result {
