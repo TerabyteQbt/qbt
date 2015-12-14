@@ -51,16 +51,20 @@ public final class DependencyComputer {
     }
 
     public static final class Result {
+        public final CacheKey key;
         public final RepoTip repo;
         public final RepoManifest repoManifest;
         public final PackageTip packageTip;
         public final PackageManifest packageManifest;
+        public final ImmutableMap<PackageTip, String> replacementsNext;
 
-        public Result(RepoTip repo, RepoManifest repoManifest, PackageTip packageTip, PackageManifest packageManifest) {
+        public Result(CacheKey key, RepoTip repo, RepoManifest repoManifest, PackageTip packageTip, PackageManifest packageManifest, ImmutableMap<PackageTip, String> replacementsNext) {
+            this.key = key;
             this.repo = repo;
             this.repoManifest = repoManifest;
             this.packageTip = packageTip;
             this.packageManifest = packageManifest;
+            this.replacementsNext = replacementsNext;
         }
     }
 
@@ -132,7 +136,7 @@ public final class DependencyComputer {
                 replacementsNextBuilder.put(e);
             }
         }
-        Map<PackageTip, String> replacementsNext = replacementsNextBuilder.build();
+        ImmutableMap<PackageTip, String> replacementsNext = replacementsNextBuilder.build();
 
         ImmutableMap.Builder<String, Pair<NormalDependencyType, SimpleRecursivePackageData<Result>>> dependencyResultsBuilder = ImmutableMap.builder();
         for(Map.Entry<String, Pair<NormalDependencyType, String>> e : packageManifest.normalDeps.entrySet()) {
@@ -148,7 +152,7 @@ public final class DependencyComputer {
             }
             dependencyResultsBuilder.put(dependencyName, Pair.of(dependencyType, dependencyResult));
         }
-        Result result = new Result(repo, repoManifest, packageTip, packageManifest);
+        Result result = new Result(key, repo, repoManifest, packageTip, packageManifest, replacementsNext);
         Map<String, Pair<NormalDependencyType, SimpleRecursivePackageData<Result>>> dependencyResults = dependencyResultsBuilder.build();
         return new SimpleRecursivePackageData<Result>(result, dependencyResults);
     }
