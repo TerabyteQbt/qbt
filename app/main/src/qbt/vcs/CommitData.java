@@ -1,7 +1,6 @@
 package qbt.vcs;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructKey;
@@ -15,7 +14,7 @@ public final class CommitData extends Struct<CommitData> {
     }
 
     public static final StructKey<CommitData, VcsTreeDigest> TREE;
-    public static final StructKey<CommitData, List<VcsVersionDigest>> PARENTS;
+    public static final StructKey<CommitData, ImmutableList<VcsVersionDigest>> PARENTS;
     public static final StructKey<CommitData, String> AUTHOR_NAME;
     public static final StructKey<CommitData, String> AUTHOR_EMAIL;
     public static final StructKey<CommitData, String> AUTHOR_DATE;
@@ -28,7 +27,7 @@ public final class CommitData extends Struct<CommitData> {
         ImmutableList.Builder<StructKey<CommitData, ?>> b = ImmutableList.builder();
 
         b.add(TREE = new StructKey<CommitData, VcsTreeDigest>("tree"));
-        b.add(PARENTS = new StructKey<CommitData, List<VcsVersionDigest>>("parents"));
+        b.add(PARENTS = new StructKey<CommitData, ImmutableList<VcsVersionDigest>>("parents"));
         b.add(AUTHOR_NAME = new StructKey<CommitData, String>("authorName"));
         b.add(AUTHOR_EMAIL = new StructKey<CommitData, String>("authorEmail"));
         b.add(AUTHOR_DATE = new StructKey<CommitData, String>("authorDate"));
