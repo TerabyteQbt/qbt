@@ -38,7 +38,8 @@ public final class CommitData extends Struct<CommitData> {
         b.add(MESSAGE = new StructKey<CommitData, String>("message"));
 
         TYPE = new StructType<CommitData>(b.build()) {
-            public CommitData create(ImmutableSalvagingMap<StructKey<CommitData, ?>, Object> map) {
+            @Override
+            protected CommitData create(ImmutableSalvagingMap<StructKey<CommitData, ?>, Object> map) {
                 return new CommitData(map);
             }
         };
