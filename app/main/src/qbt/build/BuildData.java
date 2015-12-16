@@ -17,13 +17,6 @@ public final class BuildData {
     public final Metadata<PackageMetadataType> metadata;
     public final Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts;
 
-    private BuildData(CumulativeVersion v, CommonRepoAccessor commonRepoAccessor, Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
-        this.v = v;
-        this.commonRepoAccessor = commonRepoAccessor;
-        this.metadata = metadata;
-        this.dependencyArtifacts = dependencyArtifacts;
-    }
-
     public BuildData(CvRecursivePackageData<CumulativeVersionComputer.Result> commonRepoAccessor, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> dependencyArtifacts) {
         this.v = commonRepoAccessor.v;
         this.commonRepoAccessor = commonRepoAccessor.result.getRight().commonRepoAccessor;
