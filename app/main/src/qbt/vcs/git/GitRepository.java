@@ -101,11 +101,6 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public VcsVersionDigest fetchAndResolveRemoteBranch(String remote, String branch) {
-        return GitUtils.fetchAndResolveRemoteBranch(repositoryPath, remote, branch);
-    }
-
-    @Override
     public Iterable<String> getChangedPaths(VcsVersionDigest lhs, VcsVersionDigest rhs) {
         return GitUtils.getChangedPaths(repositoryPath, lhs, rhs);
     }

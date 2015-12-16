@@ -34,7 +34,6 @@ public interface Repository {
     // Various semi-crummy mutators invented for various semi-crummy needs
     public void checkout(VcsVersionDigest version);
     public void checkout(String localBranchName);
-    public VcsVersionDigest fetchAndResolveRemoteBranch(String remote, String branch);
     public void checkoutTree(VcsTreeDigest tree, Path dest);
     public void addConfigItem(String key, String value);
     public void createBranch(String name, VcsVersionDigest commit);

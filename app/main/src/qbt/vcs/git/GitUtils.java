@@ -259,10 +259,6 @@ public class GitUtils {
         ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, "+" + from.getRawDigest() + ":" + to);
     }
 
-    public static void fetch(Path dir, String remote, String ref) {
-        ProcessHelperUtils.runQuiet(dir, "git", "fetch", "-q", remote, ref);
-    }
-
     public static Iterable<VcsVersionDigest> mergeBases(Path repo, VcsVersionDigest lhs, VcsVersionDigest rhs) {
         ProcessHelper p = new ProcessHelper(repo, "git", "merge-base", "-a", lhs.getRawDigest().toString(), rhs.getRawDigest().toString());
         p = p.inheritError();
@@ -337,11 +333,6 @@ public class GitUtils {
             }
         });
         return b.build();
-    }
-
-    public static VcsVersionDigest fetchAndResolveRemoteBranch(Path dir, String remote, String branch) {
-        ProcessHelperUtils.runQuiet(dir, "git", "fetch", remote, "refs/heads/" + branch);
-        return revParse(dir, "FETCH_HEAD");
     }
 
     public static String getCurrentBranch(Path dir) {
