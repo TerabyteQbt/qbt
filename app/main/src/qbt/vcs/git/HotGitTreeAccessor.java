@@ -1,5 +1,6 @@
 package qbt.vcs.git;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
@@ -114,11 +115,12 @@ public class HotGitTreeAccessor implements TreeAccessor {
             if(e == null) {
                 return null;
             }
-            Pair<String, HashCode> p = e.rightOrNull();
-            if(p == null) {
-                return null;
-            }
-            return Either.<TreeAccessor, byte[]>right(GitUtils.readObject(dir, p.getRight()));
+            return e.transformRight(new Function<Pair<String, HashCode>, byte[]>() {
+                @Override
+                public byte[] apply(Pair<String, HashCode> input) {
+                    return GitUtils.readObject(dir, input.getRight());
+                }
+            });
         }
     }
 
