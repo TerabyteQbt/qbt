@@ -1,5 +1,6 @@
 package qbt.vcs;
 
+import java.util.Collection;
 import misc1.commons.Either;
 import qbt.VcsTreeDigest;
 
@@ -9,4 +10,5 @@ public interface TreeAccessor {
     public TreeAccessor remove(String path);
     public VcsTreeDigest getDigest();
     public boolean isEmpty();
+    public Collection<String> getEntryNames();
 }
