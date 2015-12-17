@@ -1,6 +1,8 @@
 package qbt.vcs.git;
 
 import java.nio.file.Path;
+import java.util.Collection;
+
 import misc1.commons.Either;
 import qbt.VcsTreeDigest;
 import qbt.vcs.TreeAccessor;
@@ -47,5 +49,10 @@ public class ColdGitTreeAccessor implements TreeAccessor {
     @Override
     public boolean isEmpty() {
         return getDelegate().isEmpty();
+    }
+    
+    @Override
+    public Collection<String> getEntryNames() {
+    	return getDelegate().getEntryNames();
     }
 }
