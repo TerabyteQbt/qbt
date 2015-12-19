@@ -145,7 +145,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
         else {
             Either<TreeAccessor, Pair<String, HashCode>> e = map.get(path);
             if(e == null) {
-                return null;
+                return this;
             }
             return with(path, null);
         }
