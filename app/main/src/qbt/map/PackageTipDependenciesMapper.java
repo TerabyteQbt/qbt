@@ -16,6 +16,7 @@ public class PackageTipDependenciesMapper extends SimpleRecursivePackageDataMapp
         for(Pair<NormalDependencyType, SimpleRecursivePackageData<DependencyComputer.Result>> e : r.children.values()) {
             b.add(transform(e.getRight()));
         }
+        b.add(LazyCollector.of(r.result.packageTip));
         return LazyCollector.unionIterable(b.build());
     }
 }
