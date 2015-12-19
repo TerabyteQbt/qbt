@@ -61,7 +61,23 @@ public class HotGitTreeAccessor implements TreeAccessor {
         this.map = b;
     }
 
+    private static final Either.Visitor<TreeAccessor, Pair<String, HashCode>, Boolean> IS_EITHER_EMPTY_TREE = new Either.Visitor<TreeAccessor, Pair<String, HashCode>, Boolean>() {
+        @Override
+        public Boolean left(TreeAccessor left) {
+            return left.isEmpty();
+        }
+
+        @Override
+        public Boolean right(Pair<String, HashCode> right) {
+            return false;
+        }
+    };
+
     private TreeAccessor with(String name, Either<TreeAccessor, Pair<String, HashCode>> child) {
+        if(child != null && child.visit(IS_EITHER_EMPTY_TREE)) {
+            child = null;
+        }
+
         ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> newMap = map;
         if(child == null) {
             newMap = newMap.simpleRemove(name);
@@ -84,9 +100,6 @@ public class HotGitTreeAccessor implements TreeAccessor {
                 subtreeAccessor = new HotGitTreeAccessor(dir, ImmutableSalvagingMap.<String, Either<TreeAccessor, Pair<String, HashCode>>>of());
             }
             subtreeAccessor = subtreeAccessor.replace(path1, contents);
-            if(subtreeAccessor.isEmpty()) {
-                return with(path0, null);
-            }
             return with(path0, Either.<TreeAccessor, Pair<String, HashCode>>left(subtreeAccessor));
         }
         else {
