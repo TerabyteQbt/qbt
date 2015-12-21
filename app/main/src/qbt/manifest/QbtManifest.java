@@ -1,4 +1,4 @@
-package qbt;
+package qbt.manifest;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
@@ -16,6 +16,10 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.Pair;
+import qbt.NormalDependencyType;
+import qbt.QbtHashUtils;
+import qbt.QbtUtils;
+import qbt.VcsVersionDigest;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 

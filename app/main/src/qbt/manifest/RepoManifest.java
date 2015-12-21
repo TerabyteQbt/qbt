@@ -1,7 +1,8 @@
-package qbt;
+package qbt.manifest;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import qbt.VcsVersionDigest;
 
 public final class RepoManifest {
     public final VcsVersionDigest version;

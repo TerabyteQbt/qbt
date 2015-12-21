@@ -13,8 +13,8 @@ import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
-import qbt.QbtManifest;
 import qbt.QbtUtils;
+import qbt.manifest.QbtManifest;
 
 public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, String> file;

@@ -1,7 +1,7 @@
 package qbt.options;
 
 import java.io.IOException;
-import qbt.QbtManifest;
+import qbt.manifest.QbtManifest;
 
 public interface ManifestOptionsResult {
     QbtManifest parse() throws IOException;

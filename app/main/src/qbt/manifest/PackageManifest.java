@@ -1,10 +1,11 @@
-package qbt;
+package qbt.manifest;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
+import qbt.NormalDependencyType;
 import qbt.metadata.Metadata;
 import qbt.metadata.MetadataItem;
 import qbt.metadata.PackageMetadataType;

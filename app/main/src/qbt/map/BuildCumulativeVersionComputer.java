@@ -1,7 +1,7 @@
 package qbt.map;
 
-import qbt.QbtManifest;
 import qbt.config.QbtConfig;
+import qbt.manifest.QbtManifest;
 import qbt.recursive.cv.CumulativeVersionNodeData;
 
 // If you're just using the results to build then only CV matters.

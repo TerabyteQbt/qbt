@@ -10,9 +10,9 @@ import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import qbt.QbtManifest;
-import qbt.RepoManifest;
 import qbt.config.QbtConfig;
+import qbt.manifest.QbtManifest;
+import qbt.manifest.RepoManifest;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
