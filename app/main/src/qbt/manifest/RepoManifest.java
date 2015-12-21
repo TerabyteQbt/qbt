@@ -1,83 +1,67 @@
 package qbt.manifest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import misc1.commons.ds.ImmutableSalvagingMap;
+import misc1.commons.ds.SimpleStructKey;
+import misc1.commons.ds.Struct;
+import misc1.commons.ds.StructBuilder;
+import misc1.commons.ds.StructKey;
+import misc1.commons.ds.StructType;
 import qbt.VcsVersionDigest;
 
-public final class RepoManifest {
+public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builder> {
     public final VcsVersionDigest version;
     public final Map<String, PackageManifest> packages;
 
-    private RepoManifest(VcsVersionDigest version, ImmutableMap<String, PackageManifest> packages) {
-        this.version = version;
-        this.packages = packages;
+    private RepoManifest(ImmutableMap<StructKey<RepoManifest, ?, ?>, Object> map) {
+        super(TYPE, map);
+        this.version = get(VERSION);
+        this.packages = get(PACKAGES).packages;
     }
 
-    private RepoManifest(Builder b) {
-        this.version = b.version;
-        this.packages = b.packages.build();
-    }
-
-    public static final class Builder {
-        private VcsVersionDigest version;
-        private final ImmutableMap.Builder<String, PackageManifest> packages = ImmutableMap.builder();
-
-        private Builder(VcsVersionDigest version) {
-            this.version = version;
+    public static class Builder extends StructBuilder<RepoManifest, Builder> {
+        public Builder(ImmutableSalvagingMap<StructKey<RepoManifest, ?, ?>, Object> map) {
+            super(TYPE, map);
         }
 
-        private Builder(RepoManifest manifest) {
-            this(manifest.version);
-            packages.putAll(manifest.packages);
-        }
-
-        public Builder withVersion(VcsVersionDigest version) {
-            this.version = version;
-            return this;
-        }
-
-        public Builder with(String pkg, PackageManifest manifest) {
-            packages.put(pkg, manifest);
-            return this;
-        }
-
-        public RepoManifest build() {
-            return new RepoManifest(this);
+        public Builder with(String pkg, PackageManifest.Builder packageBuilder) {
+            RepoManifestPackages.Builder packagesBuilder = get(PACKAGES);
+            packagesBuilder = packagesBuilder.with(pkg, packageBuilder);
+            return set(PACKAGES, packagesBuilder);
         }
     }
 
-    public static Builder builder(VcsVersionDigest version) {
-        return new Builder(version);
-    }
+    public static final SimpleStructKey<RepoManifest, VcsVersionDigest> VERSION;
+    public static final StructKey<RepoManifest, RepoManifestPackages, RepoManifestPackages.Builder> PACKAGES;
+    public static final StructType<RepoManifest, Builder> TYPE;
+    static {
+        ImmutableList.Builder<StructKey<RepoManifest, ?, ?>> b = ImmutableList.builder();
 
-    public Builder builder() {
-        return new Builder(this);
-    }
+        b.add(VERSION = new SimpleStructKey<RepoManifest, VcsVersionDigest>("version"));
+        b.add(PACKAGES = new StructKey<RepoManifest, RepoManifestPackages, RepoManifestPackages.Builder>("packages", RepoManifestPackages.TYPE.builder()) {
+            @Override
+            public RepoManifestPackages toStruct(RepoManifestPackages.Builder vb) {
+                return vb.build();
+            }
 
-    @Override
-    public int hashCode() {
-        int r = 0;
-        r = 31 * r + version.hashCode();
-        r = 31 * r + packages.hashCode();
-        return r;
-    }
+            @Override
+            public RepoManifestPackages.Builder toBuilder(RepoManifestPackages vs) {
+                return vs.builder();
+            }
+        });
 
-    @Override
-    public boolean equals(Object obj) {
-        if(!(obj instanceof RepoManifest)) {
-            return false;
-        }
-        RepoManifest other = (RepoManifest) obj;
-        if(!version.equals(other.version)) {
-            return false;
-        }
-        if(!packages.equals(other.packages)) {
-            return false;
-        }
-        return true;
-    }
+        TYPE = new StructType<RepoManifest, Builder>(b.build()) {
+            @Override
+            protected RepoManifest createUnchecked(ImmutableMap<StructKey<RepoManifest, ?, ?>, Object> map) {
+                return new RepoManifest(map);
+            }
 
-    public static RepoManifest of(VcsVersionDigest version, Map<String, PackageManifest> packages) {
-        return new RepoManifest(version, ImmutableMap.copyOf(packages));
+            @Override
+            protected RepoManifest.Builder createBuilder(ImmutableSalvagingMap<StructKey<RepoManifest, ?, ?>, Object> map) {
+                return new Builder(map);
+            }
+        };
     }
 }

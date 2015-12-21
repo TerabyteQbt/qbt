@@ -369,15 +369,23 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Map<String, PackageManifest>> repoManifestMapMerger = new MapMerger<ObjectUtils.Null, String, PackageManifest>(Ordering.<String>natural(), packageManifestMerger);
 
+    private static RepoManifest repoManifestOf(VcsVersionDigest version, Map<String, PackageManifest> packages) {
+        RepoManifest.Builder b = RepoManifest.TYPE.builder();
+        b = b.set(RepoManifest.VERSION, version);
+        for(Map.Entry<String, PackageManifest> e : packages.entrySet()) {
+            b = b.with(e.getKey(), e.getValue().builder());
+        }
+        return b.build();
+    }
     private static final Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest> repoManifestMerger = new Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest>() {
         @Override
         protected Triple<RepoManifest, RepoManifest, RepoManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
             RepoTip repo = k.getRight();
             Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergedVersions = versionMerger.merge(context, combineLabel(label, "version"), repo, lhs.version, mhs.version, rhs.version);
             Triple<Map<String, PackageManifest>, Map<String, PackageManifest>, Map<String, PackageManifest>> mergedPackages = repoManifestMapMerger.merge(context, combineLabel(label, "packages"), ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
-            RepoManifest newLhs = RepoManifest.of(mergedVersions.getLeft(), mergedPackages.getLeft());
-            RepoManifest newMhs = RepoManifest.of(mergedVersions.getMiddle(), mergedPackages.getMiddle());
-            RepoManifest newRhs = RepoManifest.of(mergedVersions.getRight(), mergedPackages.getRight());
+            RepoManifest newLhs = repoManifestOf(mergedVersions.getLeft(), mergedPackages.getLeft());
+            RepoManifest newMhs = repoManifestOf(mergedVersions.getMiddle(), mergedPackages.getMiddle());
+            RepoManifest newRhs = repoManifestOf(mergedVersions.getRight(), mergedPackages.getRight());
             return Triple.of(newLhs, newMhs, newRhs);
         }
     };

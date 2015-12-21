@@ -134,12 +134,12 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
                     r.run();
                 }
 
-                diffRepo(options, config, repo, RepoManifest.builder(rhs.version).build(), rhs);
+                diffRepo(options, config, repo, RepoManifest.TYPE.builder().set(RepoManifest.VERSION, rhs.version).build(), rhs);
             }
 
             @Override
             protected void del(RepoTip repo, RepoManifest lhs) {
-                diffRepo(options, config, repo, lhs, RepoManifest.builder(lhs.version).build());
+                diffRepo(options, config, repo, lhs, RepoManifest.TYPE.builder().set(RepoManifest.VERSION, lhs.version).build());
 
                 PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
 

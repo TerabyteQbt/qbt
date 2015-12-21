@@ -75,8 +75,7 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
                 return;
             }
 
-            PackageManifest completePackage = packageBuilder.build();
-            repoBuilder = repoBuilder.with(currentPackage, completePackage);
+            repoBuilder = repoBuilder.with(currentPackage, packageBuilder);
             currentPackage = null;
             packageBuilder = null;
         }
@@ -96,7 +95,8 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
             if(repoMatcher.matches()) {
                 closeRepo();
                 currentRepo = RepoTip.TYPE.of(repoMatcher.group(1), repoMatcher.group(2));
-                repoBuilder = RepoManifest.builder(new VcsVersionDigest(QbtHashUtils.parse(repoMatcher.group(3))));
+                repoBuilder = RepoManifest.TYPE.builder();
+                repoBuilder = repoBuilder.set(RepoManifest.VERSION, new VcsVersionDigest(QbtHashUtils.parse(repoMatcher.group(3))));
                 return;
             }
             else if(currentRepo == null) {

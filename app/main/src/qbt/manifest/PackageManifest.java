@@ -41,6 +41,13 @@ public final class PackageManifest {
             this.metadata = metadata.builder();
         }
 
+        private Builder(PackageManifest manifest) {
+            this(manifest.metadata);
+            normalDeps.putAll(manifest.normalDeps);
+            replaceDeps.putAll(manifest.replaceDeps);
+            verifyDeps.addAll(manifest.verifyDeps);
+        }
+
         public <T> Builder withMetadata(MetadataItem<PackageMetadataType, T> item, T value) {
             metadata.put(item, value);
             return this;
@@ -69,6 +76,10 @@ public final class PackageManifest {
         public PackageManifest build() {
             return new PackageManifest(this);
         }
+    }
+
+    public Builder builder() {
+        return new Builder(this);
     }
 
     public static Builder emptyBuilder() {

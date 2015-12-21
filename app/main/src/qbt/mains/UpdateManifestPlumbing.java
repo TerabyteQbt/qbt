@@ -108,7 +108,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                     continue;
                 }
                 pinnedAccessor.addPin(localRepoAccessor.dir, newVersion);
-                newManifest = newManifest.with(repo, repoManifest.builder().withVersion(newVersion));
+                newManifest = newManifest.with(repo, repoManifest.builder().set(RepoManifest.VERSION, newVersion));
                 LOGGER.info(String.format("Updated repo %s from %s to %s...", repo, version.getRawDigest(), newVersion.getRawDigest()));
             }
         }
