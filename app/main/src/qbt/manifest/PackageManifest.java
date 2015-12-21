@@ -32,7 +32,7 @@ public final class PackageManifest {
     }
 
     public static class Builder {
-        private final Metadata.Builder<PackageMetadataType> metadata;
+        private Metadata.Builder<PackageMetadataType> metadata;
         private final ImmutableMap.Builder<String, Pair<NormalDependencyType, String>> normalDeps = ImmutableMap.builder();
         private final ImmutableMap.Builder<PackageTip, String> replaceDeps = ImmutableMap.builder();
         private final ImmutableSet.Builder<Pair<PackageTip, String>> verifyDeps = ImmutableSet.builder();
@@ -49,12 +49,12 @@ public final class PackageManifest {
         }
 
         public <T> Builder withMetadata(MetadataItem<PackageMetadataType, T> item, T value) {
-            metadata.put(item, value);
+            metadata = metadata.put(item, value);
             return this;
         }
 
         public Builder withStringMetadata(String item, String value) {
-            metadata.putString(item, value);
+            metadata = metadata.putString(item, value);
             return this;
         }
 

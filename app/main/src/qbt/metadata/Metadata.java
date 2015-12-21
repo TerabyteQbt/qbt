@@ -2,11 +2,11 @@ package qbt.metadata;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import misc1.commons.ds.ImmutableSalvagingMap;
 
 public class Metadata<MT extends MetadataType<MT>> {
     private final MT metadataType;
@@ -19,22 +19,22 @@ public class Metadata<MT extends MetadataType<MT>> {
 
     public static final class Builder<MT extends MetadataType<MT>> {
         private final MT metadataType;
-        private Map<MetadataItem<MT, ?>, Object> values;
+        private final ImmutableSalvagingMap<MetadataItem<MT, ?>, Object> values;
 
-        private Builder(Metadata<MT> metadata) {
-            this.metadataType = metadata.metadataType;
-            // this sucks, but I have to be able to overwrite... damn you ImmutableMap.Builder
-            this.values = Maps.newHashMap(metadata.values);
+        private Builder(MT metadataType, ImmutableSalvagingMap<MetadataItem<MT, ?>, Object> values) {
+            this.metadataType = metadataType;
+            this.values = values;
         }
 
         public <T> Builder<MT> put(MetadataItem<MT, ?> item, T value) {
+            ImmutableSalvagingMap<MetadataItem<MT, ?>, Object> valuesNew;
             if(item.valueDefault.equals(value)) {
-                values.remove(item);
+                valuesNew = values.simpleRemove(item);
             }
             else {
-                values.put(item, value);
+                valuesNew = values.simplePut(item, value);
             }
-            return this;
+            return new Builder(metadataType, valuesNew);
         }
 
         public <T> Builder<MT> putString(MetadataItem<MT, ?> item, String value) {
@@ -46,12 +46,12 @@ public class Metadata<MT extends MetadataType<MT>> {
         }
 
         public Metadata<MT> build() {
-            return new Metadata<MT>(metadataType, ImmutableMap.copyOf(values));
+            return new Metadata<MT>(metadataType, values.toMap());
         }
     }
 
     public Builder<MT> builder() {
-        return new Builder<MT>(this);
+        return new Builder<MT>(metadataType, ImmutableSalvagingMap.copyOf(values));
     }
 
     public static <MT extends MetadataType<MT>> Metadata<MT> of(MT metadataType) {
