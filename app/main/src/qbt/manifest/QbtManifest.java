@@ -181,122 +181,143 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
     }
 
     private static interface ConflictDeparseBuilder extends SimpleDeparseBuilder {
-        public void addConflict(Iterable<String> lhs, Iterable<String> mhs, Iterable<String> rhs);
+        public void addConflict(String path, String type, Iterable<String> lhs, Iterable<String> mhs, Iterable<String> rhs);
     }
 
-    private static abstract class Deparser<K, V> {
-        public final void deparse(ConflictDeparseBuilder b, K k, V lhs, V mhs, V rhs) {
+    private static abstract class Deparser<C, V> {
+        private void deparseCompleteConflict(ConflictDeparseBuilder b, String path, C context, String type, V lhs, V mhs, V rhs) {
+            PoolSimpleDeparseBuilder lhsLines = new PoolSimpleDeparseBuilder();
+            if(lhs != null) {
+                deparseSimple(lhsLines, context, lhs);
+            }
+            PoolSimpleDeparseBuilder mhsLines = new PoolSimpleDeparseBuilder();
+            if(mhs != null) {
+                deparseSimple(mhsLines, context, mhs);
+            }
+            PoolSimpleDeparseBuilder rhsLines = new PoolSimpleDeparseBuilder();
+            if(rhs != null) {
+                deparseSimple(rhsLines, context, rhs);
+            }
+            b.addConflict(path, type, lhsLines.build(), mhsLines.build(), rhsLines.build());
+        }
+
+        public final void deparse(ConflictDeparseBuilder b, String path, C context, V lhs, V mhs, V rhs) {
             if(Objects.equal(mhs, lhs)) {
-                deparseSimple(b, k, rhs);
+                deparseSimple(b, context, rhs);
                 return;
             }
             if(Objects.equal(mhs, rhs)) {
-                deparseSimple(b, k, lhs);
+                deparseSimple(b, context, lhs);
                 return;
             }
             if(Objects.equal(lhs, rhs)) {
-                deparseSimple(b, k, lhs);
+                deparseSimple(b, context, lhs);
                 return;
             }
-            if(lhs == null || mhs == null || rhs == null) {
-                PoolSimpleDeparseBuilder lhsLines = new PoolSimpleDeparseBuilder();
-                if(lhs != null) {
-                    deparseSimple(lhsLines, k, lhs);
-                }
-                PoolSimpleDeparseBuilder mhsLines = new PoolSimpleDeparseBuilder();
-                if(mhs != null) {
-                    deparseSimple(mhsLines, k, mhs);
-                }
-                PoolSimpleDeparseBuilder rhsLines = new PoolSimpleDeparseBuilder();
-                if(rhs != null) {
-                    deparseSimple(rhsLines, k, rhs);
-                }
-                b.addConflict(lhsLines.build(), mhsLines.build(), rhsLines.build());
+            if(lhs == null) {
+                deparseCompleteConflict(b, path, context, "DELETE/EDIT", lhs, mhs, rhs);
                 return;
             }
-            deparseConflict(b, k, lhs, mhs, rhs);
+            if(mhs == null) {
+                deparseCompleteConflict(b, path, context, "ADD/ADD", lhs, mhs, rhs);
+                return;
+            }
+            if(rhs == null) {
+                deparseCompleteConflict(b, path, context, "EDIT/DELETE", lhs, mhs, rhs);
+                return;
+            }
+            deparseConflict(b, path, context, lhs, mhs, rhs);
         }
 
-        protected abstract void deparseSimple(SimpleDeparseBuilder b, K k, V v);
-        protected abstract void deparseConflict(ConflictDeparseBuilder b, K k, V lhs, V mhs, V rhs);
+        protected abstract void deparseSimple(SimpleDeparseBuilder b, C context, V v);
+        protected abstract void deparseConflict(ConflictDeparseBuilder b, String path, C context, V lhs, V mhs, V rhs);
     }
 
-    private static abstract class ConflictMarkerDeparser<K, V> extends Deparser<K, V> {
+    private static abstract class ConflictMarkerDeparser<C, V> extends Deparser<C, V> {
         @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, K k, V lhs, V mhs, V rhs) {
+        protected void deparseConflict(ConflictDeparseBuilder b, String path, C context, V lhs, V mhs, V rhs) {
             PoolSimpleDeparseBuilder lhsLines = new PoolSimpleDeparseBuilder();
-            deparseSimple(lhsLines, k, lhs);
+            deparseSimple(lhsLines, context, lhs);
             PoolSimpleDeparseBuilder mhsLines = new PoolSimpleDeparseBuilder();
-            deparseSimple(mhsLines, k, mhs);
+            deparseSimple(mhsLines, context, mhs);
             PoolSimpleDeparseBuilder rhsLines = new PoolSimpleDeparseBuilder();
-            deparseSimple(rhsLines, k, rhs);
-            b.addConflict(lhsLines.build(), mhsLines.build(), rhsLines.build());
+            deparseSimple(rhsLines, context, rhs);
+            b.addConflict(path, "EDIT/EDIT", lhsLines.build(), mhsLines.build(), rhsLines.build());
         }
     }
 
-    private static class MapDeparser<K1, K2, V> extends Deparser<K1, Map<K2, V>> {
-        private final Comparator<K2> comparator;
-        private final Deparser<Pair<K1, K2>, V> entryDeparser;
+    private static class MapDeparser<C, K, V> extends Deparser<C, Map<K, V>> {
+        private final Comparator<K> comparator;
+        private final Deparser<K, V> entryDeparser;
 
-        public MapDeparser(Comparator<K2> comparator, Deparser<Pair<K1, K2>, V> entryDeparser) {
+        public MapDeparser(Comparator<K> comparator, Deparser<K, V> entryDeparser) {
             this.comparator = comparator;
             this.entryDeparser = entryDeparser;
         }
 
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, K1 k1, Map<K2, V> map) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(map.keySet());
-            for(K2 k2 : k2s) {
-                entryDeparser.deparseSimple(b, Pair.of(k1, k2), map.get(k2));
+        protected void deparseSimple(SimpleDeparseBuilder b, C context, Map<K, V> map) {
+            Set<K> ks = Sets.newTreeSet(comparator);
+            ks.addAll(map.keySet());
+            for(K k : ks) {
+                entryDeparser.deparseSimple(b, k, map.get(k));
             }
         }
 
         @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, K1 k1, Map<K2, V> lhs, Map<K2, V> mhs, Map<K2, V> rhs) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(lhs.keySet());
-            k2s.addAll(mhs.keySet());
-            k2s.addAll(rhs.keySet());
-            for(K2 k2 : k2s) {
-                entryDeparser.deparse(b, Pair.of(k1, k2), lhs.get(k2), mhs.get(k2), rhs.get(k2));
+        protected void deparseConflict(ConflictDeparseBuilder b, String path, C context, Map<K, V> lhs, Map<K, V> mhs, Map<K, V> rhs) {
+            Set<K> ks = Sets.newTreeSet(comparator);
+            ks.addAll(lhs.keySet());
+            ks.addAll(mhs.keySet());
+            ks.addAll(rhs.keySet());
+            for(K k : ks) {
+                entryDeparser.deparse(b, path, k, lhs.get(k), mhs.get(k), rhs.get(k));
             }
         }
     }
 
-    private static final Deparser<Pair<ObjectUtils.Null, String>, String> packageMetadataItemDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, String>, String>() {
+    private static final Deparser<String, String> packageMetadataItemDeparser = new ConflictMarkerDeparser<String, String>() {
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, String> k, String v) {
-            b.add("        Metadata:" + k.getRight() + "=" + v);
+        protected void deparseSimple(SimpleDeparseBuilder b, String k, String v) {
+            b.add("        Metadata:" + k + "=" + v);
         }
     };
 
     private static final Deparser<ObjectUtils.Null, Map<String, String>> packageMetadataDeparser = new MapDeparser<ObjectUtils.Null, String, String>(Ordering.<String>natural(), packageMetadataItemDeparser);
 
-    private static final Deparser<Pair<Pair<ObjectUtils.Null, NormalDependencyType>, String>, String> normalDepDeparser = new ConflictMarkerDeparser<Pair<Pair<ObjectUtils.Null, NormalDependencyType>, String>, String>() {
+    private static final Deparser<Pair<NormalDependencyType, String>, String> normalDepDeparser = new ConflictMarkerDeparser<Pair<NormalDependencyType, String>, String>() {
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<Pair<ObjectUtils.Null, NormalDependencyType>, String> k, String v) {
-            b.add("        " + k.getLeft().getRight().getTag() + ":" + k.getRight() + "," + v);
+        protected void deparseSimple(SimpleDeparseBuilder b, Pair<NormalDependencyType, String> k, String v) {
+            b.add("        " + k.getLeft().getTag() + ":" + k.getRight() + "," + v);
         }
     };
 
-    private static final Deparser<Pair<ObjectUtils.Null, NormalDependencyType>, Map<String, String>> normalDepTypeDeparser = new MapDeparser<Pair<ObjectUtils.Null, NormalDependencyType>, String, String>(Ordering.<String>natural(), normalDepDeparser);
-
-    private static final Deparser<ObjectUtils.Null, Map<NormalDependencyType, Map<String, String>>> packageNormalDepsDeparser = new MapDeparser<ObjectUtils.Null, NormalDependencyType, Map<String, String>>(Ordering.<NormalDependencyType>natural(), normalDepTypeDeparser);
-
-    private static final Deparser<Pair<ObjectUtils.Null, PackageTip>, String> replaceDepDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, PackageTip>, String>() {
+    private static final Comparator<Pair<NormalDependencyType, String>> normalDepComparator = new Comparator<Pair<NormalDependencyType, String>>() {
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, PackageTip> k, String v) {
-            b.add("        Replace:" + k.getRight().name + "," + k.getRight().tip + "," + v);
+        public int compare(Pair<NormalDependencyType, String> a, Pair<NormalDependencyType, String> b) {
+            int r1 = a.getLeft().compareTo(b.getLeft());
+            if(r1 != 0) {
+                return r1;
+            }
+            return a.getRight().compareTo(b.getRight());
+        }
+    };
+
+    private static final Deparser<ObjectUtils.Null, Map<Pair<NormalDependencyType, String>, String>> packageNormalDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<NormalDependencyType, String>, String>(normalDepComparator, normalDepDeparser);
+
+    private static final Deparser<PackageTip, String> replaceDepDeparser = new ConflictMarkerDeparser<PackageTip, String>() {
+        @Override
+        protected void deparseSimple(SimpleDeparseBuilder b, PackageTip k, String v) {
+            b.add("        Replace:" + k.name + "," + k.tip + "," + v);
         }
     };
 
     private static final Deparser<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsDeparser = new MapDeparser<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, replaceDepDeparser);
 
-    private static final Deparser<Pair<ObjectUtils.Null, Pair<PackageTip, String>>, ObjectUtils.Null> verifyDepDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, Pair<PackageTip, String>>, ObjectUtils.Null>() {
+    private static final Deparser<Pair<PackageTip, String>, ObjectUtils.Null> verifyDepDeparser = new ConflictMarkerDeparser<Pair<PackageTip, String>, ObjectUtils.Null>() {
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, Pair<PackageTip, String>> k, ObjectUtils.Null v) {
-            b.add("        Verify:" + k.getRight().getLeft().name + "," + k.getRight().getLeft().tip + "," + k.getRight().getRight());
+        protected void deparseSimple(SimpleDeparseBuilder b, Pair<PackageTip, String> k, ObjectUtils.Null v) {
+            b.add("        Verify:" + k.getLeft().name + "," + k.getLeft().tip + "," + k.getRight());
         }
     };
 
@@ -313,23 +334,20 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
 
     private static final Deparser<ObjectUtils.Null, Map<Pair<PackageTip, String>, ObjectUtils.Null>> verifyDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<PackageTip, String>, ObjectUtils.Null>(verifyDepComparator, verifyDepDeparser);
 
-    private static final Deparser<Pair<RepoTip, String>, PackageManifest> packageManifestDeparser = new Deparser<Pair<RepoTip, String>, PackageManifest>() {
-        private Map<NormalDependencyType, Map<String, String>> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {
+    private static final Deparser<String, PackageManifest> packageManifestDeparser = new Deparser<String, PackageManifest>() {
+        private Map<Pair<NormalDependencyType, String>, String> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {
+            ImmutableMap.Builder<Pair<NormalDependencyType, String>, String> b = ImmutableMap.builder();
             Map<NormalDependencyType, Map<String, String>> ret = Maps.newHashMap();
             for(Map.Entry<String, Pair<NormalDependencyType, String>> e : normalDeps.entrySet()) {
                 NormalDependencyType normalDependencyType = e.getValue().getLeft();
-                Map<String, String> subRet = ret.get(normalDependencyType);
-                if(subRet == null) {
-                    ret.put(normalDependencyType, subRet = Maps.newHashMap());
-                }
-                subRet.put(e.getKey(), e.getValue().getRight());
+                b.put(Pair.of(e.getValue().getLeft(), e.getKey()), e.getValue().getRight());
             }
-            return ret;
+            return b.build();
         }
 
         @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, Pair<RepoTip, String> k, PackageManifest v) {
-            b.add("    " + k.getRight());
+        protected void deparseSimple(SimpleDeparseBuilder b, String k, PackageManifest v) {
+            b.add("    " + k);
             packageMetadataDeparser.deparseSimple(b, ObjectUtils.NULL, v.metadata.toStringMap());
             packageNormalDepsDeparser.deparseSimple(b, ObjectUtils.NULL, invertNormalDeps(v.normalDeps));
             replaceDepsDeparser.deparseSimple(b, ObjectUtils.NULL, v.replaceDeps);
@@ -337,12 +355,12 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
 
         @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, Pair<RepoTip, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
-            b.add("    " + k.getRight());
-            packageMetadataDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
-            packageNormalDepsDeparser.deparseConflict(b, ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
-            replaceDepsDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
-            verifyDepsDeparser.deparseConflict(b, ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
+        protected void deparseConflict(ConflictDeparseBuilder b, String path, String k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
+            b.add("    " + k);
+            packageMetadataDeparser.deparse(b, path, ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
+            packageNormalDepsDeparser.deparse(b, path, ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
+            replaceDepsDeparser.deparse(b, path, ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
+            verifyDepsDeparser.deparse(b, path, ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
         }
     };
 
@@ -353,31 +371,31 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     };
 
-    private static final Deparser<RepoTip, Map<String, PackageManifest>> repoManifestMapDeparser = new MapDeparser<RepoTip, String, PackageManifest>(Ordering.<String>natural(), packageManifestDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<String, PackageManifest>> repoManifestMapDeparser = new MapDeparser<ObjectUtils.Null, String, PackageManifest>(Ordering.<String>natural(), packageManifestDeparser);
 
-    private static final Deparser<Pair<ObjectUtils.Null, RepoTip>, RepoManifest> repoManifestDeparser = new Deparser<Pair<ObjectUtils.Null, RepoTip>, RepoManifest>() {
+    private static final Deparser<RepoTip, RepoManifest> repoManifestDeparser = new Deparser<RepoTip, RepoManifest>() {
         @Override
-        public void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest v) {
-            repoVersionDeparser.deparseSimple(b, k.getRight(), v.version);
-            repoManifestMapDeparser.deparseSimple(b, k.getRight(), v.packages);
+        public void deparseSimple(SimpleDeparseBuilder b, RepoTip k, RepoManifest v) {
+            repoVersionDeparser.deparseSimple(b, k, v.version);
+            repoManifestMapDeparser.deparseSimple(b, ObjectUtils.NULL, v.packages);
         }
 
         @Override
-        public void deparseConflict(ConflictDeparseBuilder b, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
-            repoVersionDeparser.deparse(b, k.getRight(), lhs.version, mhs.version, rhs.version);
-            repoManifestMapDeparser.deparse(b, k.getRight(), lhs.packages, mhs.packages, rhs.packages);
+        public void deparseConflict(ConflictDeparseBuilder b, String path, RepoTip k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
+            repoVersionDeparser.deparse(b, path, k, lhs.version, mhs.version, rhs.version);
+            repoManifestMapDeparser.deparse(b, path, ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
         }
     };
 
     private static final Deparser<ObjectUtils.Null, QbtManifest> qbtManifestDeparser = new Deparser<ObjectUtils.Null, QbtManifest>() {
         @Override
-        public void deparseSimple(SimpleDeparseBuilder b, ObjectUtils.Null k, QbtManifest v) {
-            qbtManifestMapDeparser.deparseSimple(b, k, v.repos);
+        public void deparseSimple(SimpleDeparseBuilder b, ObjectUtils.Null context, QbtManifest v) {
+            qbtManifestMapDeparser.deparseSimple(b, context, v.repos);
         }
 
         @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, ObjectUtils.Null k, QbtManifest lhs, QbtManifest mhs, QbtManifest rhs) {
-            qbtManifestMapDeparser.deparse(b, k, lhs.repos, mhs.repos, rhs.repos);
+        protected void deparseConflict(ConflictDeparseBuilder b, String path, ObjectUtils.Null context, QbtManifest lhs, QbtManifest mhs, QbtManifest rhs) {
+            qbtManifestMapDeparser.deparse(b, path, context, lhs.repos, mhs.repos, rhs.repos);
         }
     };
 
@@ -393,7 +411,7 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
             }
 
             @Override
-            public void addConflict(Iterable<String> lhs, Iterable<String> mhs, Iterable<String> rhs) {
+            public void addConflict(String path, String type, Iterable<String> lhs, Iterable<String> mhs, Iterable<String> rhs) {
                 ret.add("<<<<<<< " + lhsName);
                 ret.addAll(lhs);
                 ret.add("||||||| " + mhsName);
@@ -404,7 +422,7 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
                 conflicted.setTrue();
             }
         };
-        qbtManifestDeparser.deparse(b, ObjectUtils.NULL, lhs, mhs, rhs);
+        qbtManifestDeparser.deparse(b, "", ObjectUtils.NULL, lhs, mhs, rhs);
         return Pair.<Boolean, Iterable<String>>of(conflicted.booleanValue(), ret.build());
     }
 
