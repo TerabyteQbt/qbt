@@ -8,6 +8,7 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.merge.Merge;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
@@ -84,6 +85,11 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
             public Metadata.Builder<PackageMetadataType> toBuilder(Metadata<PackageMetadataType> vs) {
                 return vs.builder();
             }
+
+            @Override
+            public Merge<Metadata<PackageMetadataType>> merge() {
+                return Metadata.merge(PackageMetadataType.INSTANCE);
+            }
         });
         b.add(NORMAL_DEPS = new StructKey<PackageManifest, PackageManifestNormalDeps, PackageManifestNormalDeps.Builder>("normalDeps", PackageManifestNormalDeps.TYPE.builder()) {
             @Override
@@ -94,6 +100,11 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
             @Override
             public PackageManifestNormalDeps.Builder toBuilder(PackageManifestNormalDeps  vs) {
                 return vs.builder();
+            }
+
+            @Override
+            public Merge<PackageManifestNormalDeps> merge() {
+                return PackageManifestNormalDeps.TYPE.merge();
             }
         });
         b.add(REPLACE_DEPS = new StructKey<PackageManifest, PackageManifestReplaceDeps, PackageManifestReplaceDeps.Builder>("replaceDeps", PackageManifestReplaceDeps.TYPE.builder()) {
@@ -106,6 +117,11 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
             public PackageManifestReplaceDeps.Builder toBuilder(PackageManifestReplaceDeps  vs) {
                 return vs.builder();
             }
+
+            @Override
+            public Merge<PackageManifestReplaceDeps> merge() {
+                return PackageManifestReplaceDeps.TYPE.merge();
+            }
         });
         b.add(VERIFY_DEPS = new StructKey<PackageManifest, PackageManifestVerifyDeps, PackageManifestVerifyDeps.Builder>("verifyDeps", PackageManifestVerifyDeps.TYPE.builder()) {
             @Override
@@ -116,6 +132,11 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
             @Override
             public PackageManifestVerifyDeps.Builder toBuilder(PackageManifestVerifyDeps  vs) {
                 return vs.builder();
+            }
+
+            @Override
+            public Merge<PackageManifestVerifyDeps> merge() {
+                return PackageManifestVerifyDeps.TYPE.merge();
             }
         });
 

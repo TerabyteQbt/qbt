@@ -9,6 +9,7 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.merge.Merge;
 import qbt.VcsVersionDigest;
 
 public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builder> {
@@ -49,6 +50,11 @@ public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builde
             @Override
             public RepoManifestPackages.Builder toBuilder(RepoManifestPackages vs) {
                 return vs.builder();
+            }
+
+            @Override
+            public Merge<RepoManifestPackages> merge() {
+                return RepoManifestPackages.TYPE.merge();
             }
         });
 

@@ -1,5 +1,8 @@
 package qbt.metadata;
 
+import misc1.commons.merge.Merge;
+import misc1.commons.merge.Merges;
+
 public abstract class MetadataItem<MT, T> {
     public final String key;
     public final T valueDefault;
@@ -11,4 +14,8 @@ public abstract class MetadataItem<MT, T> {
 
     public abstract T valueFromString(String value);
     public abstract String valueToString(T value);
+
+    public Merge<T> merge() {
+        return Merges.trivial();
+    }
 }

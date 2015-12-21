@@ -1,12 +1,15 @@
 package qbt.metadata;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import misc1.commons.ds.ImmutableSalvagingMap;
+import misc1.commons.merge.Merge;
+import org.apache.commons.lang3.tuple.Triple;
 
 public class Metadata<MT extends MetadataType<MT>> {
     private final MT metadataType;
@@ -111,6 +114,38 @@ public class Metadata<MT extends MetadataType<MT>> {
             b = b.putString(e.getKey(), e.getValue());
         }
         return b.build();
+    }
+
+    public static <MT extends MetadataType<MT>> Merge<Metadata<MT>> merge(final MT metadataType) {
+        return new Merge<Metadata<MT>>() {
+            @Override
+            public Triple<Metadata<MT>, Metadata<MT>, Metadata<MT>> merge(final Metadata<MT> lhs, final Metadata<MT> mhs, final Metadata<MT> rhs) {
+                ImmutableSet.Builder<MetadataItem<MT, ?>> items = ImmutableSet.builder();
+                items.addAll(lhs.values.keySet());
+                items.addAll(mhs.values.keySet());
+                items.addAll(rhs.values.keySet());
+
+                class Helper {
+                    private Metadata.Builder<MT> lhsB = of(metadataType).builder();
+                    private Metadata.Builder<MT> mhsB = of(metadataType).builder();
+                    private Metadata.Builder<MT> rhsB = of(metadataType).builder();
+
+                    private <T> void mergeItem(MetadataItem<MT, T> item) {
+                        Triple<T, T, T> r = item.merge().merge(lhs.get(item), mhs.get(item), rhs.get(item));
+                        lhsB = lhsB.put(item, r.getLeft());
+                        mhsB = lhsB.put(item, r.getMiddle());
+                        rhsB = lhsB.put(item, r.getRight());
+                    }
+                }
+                Helper h = new Helper();
+
+                for(MetadataItem<MT, ?> item : items.build()) {
+                    h.mergeItem(item);
+                }
+
+                return Triple.of(h.lhsB.build(), h.mhsB.build(), h.rhsB.build());
+            }
+        };
     }
 
     @Override

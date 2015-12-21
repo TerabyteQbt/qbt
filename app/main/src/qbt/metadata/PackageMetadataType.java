@@ -7,8 +7,9 @@ import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import misc1.commons.Maybe;
+import misc1.commons.merge.Merge;
+import misc1.commons.merge.Merges;
 
 public enum PackageMetadataType implements MetadataType<PackageMetadataType> {
     INSTANCE;
@@ -17,7 +18,7 @@ public enum PackageMetadataType implements MetadataType<PackageMetadataType> {
     private static final ImmutableSet<MetadataItem<PackageMetadataType, ?>> ITEMS_IN_CV;
     public static final MetadataItem<PackageMetadataType, Maybe<String>> PREFIX;
     public static final MetadataItem<PackageMetadataType, Boolean> ARCH_INDEPENDENT;
-    public static final MetadataItem<PackageMetadataType, Set<String>> QBT_ENV;
+    public static final MetadataItem<PackageMetadataType, ImmutableSet<String>> QBT_ENV;
     public static final MetadataItem<PackageMetadataType, PackageBuildType> BUILD_TYPE;
     static {
         class ItemsBuilder {
@@ -48,19 +49,24 @@ public enum PackageMetadataType implements MetadataType<PackageMetadataType> {
             }
         });
         b.put(false, ARCH_INDEPENDENT = new BooleanMetadataItem<PackageMetadataType>("archIndependent", false));
-        b.put(false, QBT_ENV = new MetadataItem<PackageMetadataType, Set<String>>("qbtEnv", ImmutableSet.<String>of()) {
+        b.put(false, QBT_ENV = new MetadataItem<PackageMetadataType, ImmutableSet<String>>("qbtEnv", ImmutableSet.<String>of()) {
             @Override
-            public String valueToString(Set<String> value) {
+            public String valueToString(ImmutableSet<String> value) {
                 List<String> valueOrdered = Lists.newArrayList(value);
                 Collections.sort(valueOrdered);
                 return Joiner.on(",").join(valueOrdered);
             }
 
             @Override
-            public Set<String> valueFromString(String value) {
+            public ImmutableSet<String> valueFromString(String value) {
                 List<String> list = Lists.newArrayList(value.split(","));
                 Collections.sort(list);
                 return ImmutableSet.copyOf(list);
+            }
+
+            @Override
+            public Merge<ImmutableSet<String>> merge() {
+                return Merges.<String>set();
             }
         });
         b.put(true, BUILD_TYPE = new EnumMetadataItem<PackageMetadataType, PackageBuildType>("buildType", PackageBuildType.class, PackageBuildType.NORMAL));

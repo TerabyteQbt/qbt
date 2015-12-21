@@ -17,6 +17,7 @@ import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
+import misc1.commons.merge.Merge;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.Pair;
@@ -476,6 +477,11 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         @Override
         protected RepoManifest.Builder toBuilder(RepoManifest vs) {
             return vs.builder();
+        }
+
+        @Override
+        protected Merge<RepoManifest> mergeValue() {
+            return RepoManifest.TYPE.merge();
         }
     };
 }

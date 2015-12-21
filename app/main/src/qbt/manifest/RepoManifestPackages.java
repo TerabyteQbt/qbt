@@ -5,6 +5,7 @@ import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
+import misc1.commons.merge.Merge;
 
 public final class RepoManifestPackages extends MapStruct<RepoManifestPackages, RepoManifestPackages.Builder, String, PackageManifest, PackageManifest.Builder> {
     public final ImmutableMap<String, PackageManifest> packages;
@@ -39,6 +40,11 @@ public final class RepoManifestPackages extends MapStruct<RepoManifestPackages, 
         @Override
         protected PackageManifest.Builder toBuilder(PackageManifest vs) {
             return vs.builder();
+        }
+
+        @Override
+        protected Merge<PackageManifest> mergeValue() {
+            return PackageManifest.TYPE.merge();
         }
     };
 }
