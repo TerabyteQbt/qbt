@@ -87,7 +87,7 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
             }
 
             @Override
-            public boolean deparseConflict(String lhsName, QbtManifest lhs, String mhsName, QbtManifest mhs, String rhsName, QbtManifest rhs) {
+            public ImmutableList<Pair<String, String>> deparseConflict(String lhsName, QbtManifest lhs, String mhsName, QbtManifest mhs, String rhsName, QbtManifest rhs) {
                 switch(side) {
                     case LHS:
                     case MHS:
@@ -95,7 +95,7 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
                         throw new IllegalArgumentException("Cannot update a side of an existing manifest conflict!");
 
                     case NONE:
-                        Pair<Boolean, Iterable<String>> deparse = QbtManifest.deparseConflicts(lhsName, lhs, mhsName, mhs, rhsName, rhs);
+                        Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = QbtManifest.deparseConflicts(lhsName, lhs, mhsName, mhs, rhsName, rhs);
                         QbtUtils.writeLines(path, deparse.getRight());
                         return deparse.getLeft();
                 }

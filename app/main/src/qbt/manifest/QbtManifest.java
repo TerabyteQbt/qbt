@@ -19,7 +19,6 @@ import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
 import misc1.commons.merge.Merge;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.QbtHashUtils;
@@ -175,7 +174,7 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
             b.add(line);
         }
 
-        public Iterable<String> build() {
+        public ImmutableList<String> build() {
             return b.build();
         }
     }
@@ -246,6 +245,16 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     }
 
+    private static String addPath(String p1, String p2) {
+        if(p1.isEmpty()) {
+            return p2;
+        }
+        if(p2.isEmpty()) {
+            return p1;
+        }
+        return p1 + "/" + p2;
+    }
+
     private static class MapDeparser<C, K, V> extends Deparser<C, Map<K, V>> {
         private final Comparator<K> comparator;
         private final Deparser<K, V> entryDeparser;
@@ -271,8 +280,12 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
             ks.addAll(mhs.keySet());
             ks.addAll(rhs.keySet());
             for(K k : ks) {
-                entryDeparser.deparse(b, path, k, lhs.get(k), mhs.get(k), rhs.get(k));
+                entryDeparser.deparse(b, addPath(path, keyPath(k)), k, lhs.get(k), mhs.get(k), rhs.get(k));
             }
+        }
+
+        protected String keyPath(K k) {
+            return k.toString();
         }
     }
 
@@ -303,7 +316,12 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     };
 
-    private static final Deparser<ObjectUtils.Null, Map<Pair<NormalDependencyType, String>, String>> packageNormalDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<NormalDependencyType, String>, String>(normalDepComparator, normalDepDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<Pair<NormalDependencyType, String>, String>> packageNormalDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<NormalDependencyType, String>, String>(normalDepComparator, normalDepDeparser) {
+        @Override
+        protected String keyPath(Pair<NormalDependencyType, String> p) {
+            return p.getLeft().getTag() + "/" + p.getRight();
+        }
+    };
 
     private static final Deparser<PackageTip, String> replaceDepDeparser = new ConflictMarkerDeparser<PackageTip, String>() {
         @Override
@@ -332,7 +350,12 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     };
 
-    private static final Deparser<ObjectUtils.Null, Map<Pair<PackageTip, String>, ObjectUtils.Null>> verifyDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<PackageTip, String>, ObjectUtils.Null>(verifyDepComparator, verifyDepDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<Pair<PackageTip, String>, ObjectUtils.Null>> verifyDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<PackageTip, String>, ObjectUtils.Null>(verifyDepComparator, verifyDepDeparser) {
+        @Override
+        protected String keyPath(Pair<PackageTip, String> p) {
+            return p.getLeft() + "/" + p.getRight();
+        }
+    };
 
     private static final Deparser<String, PackageManifest> packageManifestDeparser = new Deparser<String, PackageManifest>() {
         private Map<Pair<NormalDependencyType, String>, String> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {
@@ -357,10 +380,10 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         @Override
         protected void deparseConflict(ConflictDeparseBuilder b, String path, String k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
             b.add("    " + k);
-            packageMetadataDeparser.deparse(b, path, ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
-            packageNormalDepsDeparser.deparse(b, path, ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
-            replaceDepsDeparser.deparse(b, path, ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
-            verifyDepsDeparser.deparse(b, path, ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
+            packageMetadataDeparser.deparse(b, addPath(path, "metadata"), ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
+            packageNormalDepsDeparser.deparse(b, addPath(path, "normalDeps"), ObjectUtils.NULL, invertNormalDeps(lhs.normalDeps), invertNormalDeps(mhs.normalDeps), invertNormalDeps(rhs.normalDeps));
+            replaceDepsDeparser.deparse(b, addPath(path, "replaceDeps"), ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
+            verifyDepsDeparser.deparse(b, addPath(path, "verifyDeps"), ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
         }
     };
 
@@ -382,8 +405,8 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
 
         @Override
         public void deparseConflict(ConflictDeparseBuilder b, String path, RepoTip k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
-            repoVersionDeparser.deparse(b, path, k, lhs.version, mhs.version, rhs.version);
-            repoManifestMapDeparser.deparse(b, path, ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
+            repoVersionDeparser.deparse(b, addPath(path, "version"), k, lhs.version, mhs.version, rhs.version);
+            repoManifestMapDeparser.deparse(b, addPath(path, "packages"), ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
         }
     };
 
@@ -401,32 +424,32 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
 
     private static final Deparser<ObjectUtils.Null, Map<RepoTip, RepoManifest>> qbtManifestMapDeparser = new MapDeparser<ObjectUtils.Null, RepoTip, RepoManifest>(RepoTip.TYPE.COMPARATOR, repoManifestDeparser);
 
-    public static Pair<Boolean, Iterable<String>> deparseConflicts(final String lhsName, QbtManifest lhs, final String mhsName, QbtManifest mhs, final String rhsName, QbtManifest rhs) {
-        final ImmutableList.Builder<String> ret = ImmutableList.builder();
-        final MutableBoolean conflicted = new MutableBoolean(false);
+    public static Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparseConflicts(final String lhsName, QbtManifest lhs, final String mhsName, QbtManifest mhs, final String rhsName, QbtManifest rhs) {
+        final ImmutableList.Builder<Pair<String, String>> conflicts = ImmutableList.builder();
+        final ImmutableList.Builder<String> lines = ImmutableList.builder();
         ConflictDeparseBuilder b = new ConflictDeparseBuilder() {
             @Override
             public void add(String line) {
-                ret.add(line);
+                lines.add(line);
             }
 
             @Override
             public void addConflict(String path, String type, Iterable<String> lhs, Iterable<String> mhs, Iterable<String> rhs) {
-                ret.add("<<<<<<< " + lhsName);
-                ret.addAll(lhs);
-                ret.add("||||||| " + mhsName);
-                ret.addAll(mhs);
-                ret.add("=======");
-                ret.addAll(rhs);
-                ret.add(">>>>>>> " + rhsName);
-                conflicted.setTrue();
+                conflicts.add(Pair.of(path, type));
+                lines.add("<<<<<<< " + lhsName);
+                lines.addAll(lhs);
+                lines.add("||||||| " + mhsName);
+                lines.addAll(mhs);
+                lines.add("=======");
+                lines.addAll(rhs);
+                lines.add(">>>>>>> " + rhsName);
             }
         };
         qbtManifestDeparser.deparse(b, "", ObjectUtils.NULL, lhs, mhs, rhs);
-        return Pair.<Boolean, Iterable<String>>of(conflicted.booleanValue(), ret.build());
+        return Pair.of(conflicts.build(), lines.build());
     }
 
-    public Iterable<String> deparse() {
+    public ImmutableList<String> deparse() {
         PoolSimpleDeparseBuilder b = new PoolSimpleDeparseBuilder();
         qbtManifestDeparser.deparseSimple(b, ObjectUtils.NULL, this);
         return b.build();

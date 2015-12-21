@@ -11,6 +11,7 @@ import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,12 +244,12 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         QbtManifest mhsMerged = mhsBuilder.build();
         QbtManifest rhsMerged = rhsBuilder.build();
 
-        boolean conflicted = Options.out.getResult(options).deparseConflict(lhsName, lhsMerged, mhsName, mhsMerged, rhsName, rhsMerged);
+        ImmutableList<Pair<String, String>> conflicts = Options.out.getResult(options).deparseConflict(lhsName, lhsMerged, mhsName, mhsMerged, rhsName, rhsMerged);
 
-        if(conflicted) {
-            LOGGER.error("Merge conflict!");
+        for(Pair<String, String> conflict : conflicts) {
+            LOGGER.error(conflict.getRight() + " conflict at " + conflict.getLeft());
         }
 
-        return conflicted ? 1 : 0;
+        return conflicts.isEmpty() ? 0 : 1;
     }
 }
