@@ -384,11 +384,18 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Map<RepoTip, RepoManifest>> qbtManifestMapMerger = new MapMerger<ObjectUtils.Null, RepoTip, RepoManifest>(RepoTip.TYPE.COMPARATOR, repoManifestMerger);
 
+    private static QbtManifest qbtManifestOf(Map<RepoTip, RepoManifest> m) {
+        QbtManifest.Builder b = QbtManifest.TYPE.builder();
+        for(Map.Entry<RepoTip, RepoManifest> e : m.entrySet()) {
+            b = b.with(e.getKey(), e.getValue().builder());
+        }
+        return b.build();
+    }
     private static final Merger<ObjectUtils.Null, QbtManifest> qbtManifestMerger = new Merger<ObjectUtils.Null, QbtManifest>() {
         @Override
         protected Triple<QbtManifest, QbtManifest, QbtManifest> mergeConflict(Context context, String label, ObjectUtils.Null k, QbtManifest lhs, QbtManifest mhs, QbtManifest rhs) {
             Triple<Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>> merged = qbtManifestMapMerger.merge(context, label, ObjectUtils.NULL, lhs.repos, mhs.repos, rhs.repos);
-            return Triple.of(QbtManifest.of(merged.getLeft()), QbtManifest.of(merged.getMiddle()), QbtManifest.of(merged.getRight()));
+            return Triple.of(qbtManifestOf(merged.getLeft()), qbtManifestOf(merged.getMiddle()), qbtManifestOf(merged.getRight()));
         }
     };
 }

@@ -13,6 +13,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import misc1.commons.ds.ImmutableSalvagingMap;
+import misc1.commons.ds.MapStruct;
+import misc1.commons.ds.MapStructBuilder;
+import misc1.commons.ds.MapStructType;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,7 +27,7 @@ import qbt.VcsVersionDigest;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
-public final class QbtManifest {
+public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builder, RepoTip, RepoManifest, RepoManifest.Builder> {
     private static final Pattern REPO_PATTERN = Pattern.compile("^([0-9a-zA-Z._]*),([0-9a-zA-Z._]*):([0-9a-f]{40})$");
     private static final Pattern OLD_PACKAGE_PATTERN = Pattern.compile("^    ([0-9a-zA-Z._]*):(.*)$");
     private static final Pattern PACKAGE_PATTERN = Pattern.compile("^    ([0-9a-zA-Z._]*)$");
@@ -36,6 +40,8 @@ public final class QbtManifest {
     public final ImmutableMap<PackageTip, RepoTip> packageToRepo;
 
     private QbtManifest(ImmutableMap<RepoTip, RepoManifest> repos) {
+        super(TYPE, repos);
+
         this.repos = repos;
 
         ImmutableMap.Builder<PackageTip, RepoTip> packageToRepoBuilder = ImmutableMap.builder();
@@ -47,27 +53,9 @@ public final class QbtManifest {
         this.packageToRepo = packageToRepoBuilder.build();
     }
 
-    private QbtManifest(Builder b) {
-        this(ImmutableMap.copyOf(b.repos));
-    }
-
-    public static class Builder {
-        private final Map<RepoTip, RepoManifest> repos = Maps.newHashMap();
-
-        private Builder() {
-        }
-
-        private Builder(QbtManifest manifest) {
-            repos.putAll(manifest.repos);
-        }
-
-        public Builder with(RepoTip repo, RepoManifest manifest) {
-            repos.put(repo, manifest);
-            return this;
-        }
-
-        public QbtManifest build() {
-            return new QbtManifest(this);
+    public static class Builder extends MapStructBuilder<QbtManifest, Builder, RepoTip, RepoManifest, RepoManifest.Builder> {
+        public Builder(ImmutableSalvagingMap<RepoTip, RepoManifest.Builder> map) {
+            super(TYPE, map);
         }
     }
 
@@ -76,7 +64,7 @@ public final class QbtManifest {
     }
 
     private static final class Parser {
-        private Builder b = new Builder();
+        private Builder b = TYPE.builder();
         private RepoTip currentRepo = null;
         private RepoManifest.Builder repoBuilder = null;
         private String currentPackage = null;
@@ -98,8 +86,7 @@ public final class QbtManifest {
                 return;
             }
             closePackage();
-            RepoManifest completeRepo = repoBuilder.build();
-            b = b.with(currentRepo, completeRepo);
+            b = b.with(currentRepo, repoBuilder);
             currentRepo = null;
             repoBuilder = null;
         }
@@ -470,32 +457,25 @@ public final class QbtManifest {
         return b.build();
     }
 
-    public Builder builder() {
-        return new Builder(this);
-    }
-
-    public static Builder emptyBuilder() {
-        return new Builder();
-    }
-
-    @Override
-    public int hashCode() {
-        return repos.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if(!(obj instanceof QbtManifest)) {
-            return false;
+    public static final MapStructType<QbtManifest, Builder, RepoTip, RepoManifest, RepoManifest.Builder> TYPE = new MapStructType<QbtManifest, Builder, RepoTip, RepoManifest, RepoManifest.Builder>() {
+        @Override
+        protected QbtManifest create(ImmutableMap<RepoTip, RepoManifest> map) {
+            return new QbtManifest(map);
         }
-        QbtManifest other = (QbtManifest)obj;
-        if(!repos.equals(other.repos)) {
-            return false;
-        }
-        return true;
-    }
 
-    public static QbtManifest of(Map<RepoTip, RepoManifest> repos) {
-        return new QbtManifest(ImmutableMap.copyOf(repos));
-    }
+        @Override
+        protected Builder createBuilder(ImmutableSalvagingMap<RepoTip, RepoManifest.Builder> map) {
+            return new Builder(map);
+        }
+
+        @Override
+        protected RepoManifest toStruct(RepoManifest.Builder vb) {
+            return vb.build();
+        }
+
+        @Override
+        protected RepoManifest.Builder toBuilder(RepoManifest vs) {
+            return vs.builder();
+        }
+    };
 }
