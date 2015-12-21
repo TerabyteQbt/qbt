@@ -1,9 +1,14 @@
 package qbt.manifest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map;
-import java.util.Set;
+import misc1.commons.ds.ImmutableSalvagingMap;
+import misc1.commons.ds.Struct;
+import misc1.commons.ds.StructBuilder;
+import misc1.commons.ds.StructKey;
+import misc1.commons.ds.StructType;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.metadata.Metadata;
@@ -11,114 +16,119 @@ import qbt.metadata.MetadataItem;
 import qbt.metadata.PackageMetadataType;
 import qbt.tip.PackageTip;
 
-public final class PackageManifest {
+public final class PackageManifest extends Struct<PackageManifest, PackageManifest.Builder> {
     public final Metadata<PackageMetadataType> metadata;
-    public final Map<String, Pair<NormalDependencyType, String>> normalDeps;
-    public final Map<PackageTip, String> replaceDeps;
-    public final Set<Pair<PackageTip, String>> verifyDeps;
+    public final ImmutableMap<String, Pair<NormalDependencyType, String>> normalDeps;
+    public final ImmutableMap<PackageTip, String> replaceDeps;
+    public final ImmutableSet<Pair<PackageTip, String>> verifyDeps;
 
-    private PackageManifest(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
-        this.metadata = metadata;
-        this.normalDeps = normalDeps;
-        this.replaceDeps = replaceDeps;
-        this.verifyDeps = verifyDeps;
+    private PackageManifest(ImmutableMap<StructKey<PackageManifest, ?, ?>, Object> map) {
+        super(TYPE, map);
+        this.metadata = get(METADATA);
+        this.normalDeps = get(NORMAL_DEPS).map;
+        this.replaceDeps = get(REPLACE_DEPS).map;
+        this.verifyDeps = get(VERIFY_DEPS).map.keySet();
     }
 
-    private PackageManifest(Builder b) {
-        this.metadata = b.metadata.build();
-        this.normalDeps = b.normalDeps.build();
-        this.replaceDeps = b.replaceDeps.build();
-        this.verifyDeps = b.verifyDeps.build();
-    }
-
-    public static class Builder {
-        private Metadata.Builder<PackageMetadataType> metadata;
-        private final ImmutableMap.Builder<String, Pair<NormalDependencyType, String>> normalDeps = ImmutableMap.builder();
-        private final ImmutableMap.Builder<PackageTip, String> replaceDeps = ImmutableMap.builder();
-        private final ImmutableSet.Builder<Pair<PackageTip, String>> verifyDeps = ImmutableSet.builder();
-
-        private Builder(Metadata<PackageMetadataType> metadata) {
-            this.metadata = metadata.builder();
-        }
-
-        private Builder(PackageManifest manifest) {
-            this(manifest.metadata);
-            normalDeps.putAll(manifest.normalDeps);
-            replaceDeps.putAll(manifest.replaceDeps);
-            verifyDeps.addAll(manifest.verifyDeps);
+    public static class Builder extends StructBuilder<PackageManifest, Builder> {
+        public Builder(ImmutableSalvagingMap<StructKey<PackageManifest, ?, ?>, Object> map) {
+            super(TYPE, map);
         }
 
         public <T> Builder withMetadata(MetadataItem<PackageMetadataType, T> item, T value) {
-            metadata = metadata.put(item, value);
-            return this;
+            Metadata.Builder<PackageMetadataType> b = get(METADATA);
+            b = b.put(item, value);
+            return set(METADATA, b);
         }
 
         public Builder withStringMetadata(String item, String value) {
-            metadata = metadata.putString(item, value);
-            return this;
+            Metadata.Builder<PackageMetadataType> b = get(METADATA);
+            b = b.putString(item, value);
+            return set(METADATA, b);
         }
 
         public Builder withNormalDep(PackageTip p, NormalDependencyType type) {
-            normalDeps.put(p.name, Pair.of(type, p.tip));
-            return this;
+            PackageManifestNormalDeps.Builder b = get(NORMAL_DEPS);
+            b = b.with(p.name, Pair.of(type, p.tip));
+            return set(NORMAL_DEPS, b);
         }
 
         public Builder withReplaceDep(PackageTip p, String s) {
-            replaceDeps.put(p, s);
-            return this;
+            PackageManifestReplaceDeps.Builder b = get(REPLACE_DEPS);
+            b = b.with(p, s);
+            return set(REPLACE_DEPS, b);
         }
 
         public Builder withVerifyDep(PackageTip p, String s) {
-            verifyDeps.add(Pair.of(p, s));
-            return this;
-        }
-
-        public PackageManifest build() {
-            return new PackageManifest(this);
+            PackageManifestVerifyDeps.Builder b = get(VERIFY_DEPS);
+            b = b.with(Pair.of(p, s), ObjectUtils.NULL);
+            return set(VERIFY_DEPS, b);
         }
     }
 
-    public Builder builder() {
-        return new Builder(this);
-    }
+    public static final StructKey<PackageManifest, Metadata<PackageMetadataType>, Metadata.Builder<PackageMetadataType>> METADATA;
+    public static final StructKey<PackageManifest, PackageManifestNormalDeps, PackageManifestNormalDeps.Builder> NORMAL_DEPS;
+    public static final StructKey<PackageManifest, PackageManifestReplaceDeps, PackageManifestReplaceDeps.Builder> REPLACE_DEPS;
+    public static final StructKey<PackageManifest, PackageManifestVerifyDeps, PackageManifestVerifyDeps.Builder> VERIFY_DEPS;
+    public static final StructType<PackageManifest, Builder> TYPE;
+    static {
+        ImmutableList.Builder<StructKey<PackageManifest, ?, ?>> b = ImmutableList.builder();
 
-    public static Builder emptyBuilder() {
-        return new Builder(PackageMetadataType.of());
-    }
+        b.add(METADATA = new StructKey<PackageManifest, Metadata<PackageMetadataType>, Metadata.Builder<PackageMetadataType>>("metadata", PackageMetadataType.of().builder()) {
+            @Override
+            public Metadata<PackageMetadataType> toStruct(Metadata.Builder<PackageMetadataType> vb) {
+                return vb.build();
+            }
 
-    // discouraged due to high coupling with exact contents
-    public static PackageManifest of(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
-        return new PackageManifest(metadata, normalDeps, replaceDeps, verifyDeps);
-    }
+            @Override
+            public Metadata.Builder<PackageMetadataType> toBuilder(Metadata<PackageMetadataType> vs) {
+                return vs.builder();
+            }
+        });
+        b.add(NORMAL_DEPS = new StructKey<PackageManifest, PackageManifestNormalDeps, PackageManifestNormalDeps.Builder>("normalDeps", PackageManifestNormalDeps.TYPE.builder()) {
+            @Override
+            public PackageManifestNormalDeps toStruct(PackageManifestNormalDeps.Builder vb) {
+                return vb.build();
+            }
 
-    @Override
-    public int hashCode() {
-        int r = 0;
-        r = 31 * r + metadata.hashCode();
-        r = 31 * r + normalDeps.hashCode();
-        r = 31 * r + replaceDeps.hashCode();
-        r = 31 * r + verifyDeps.hashCode();
-        return r;
-    }
+            @Override
+            public PackageManifestNormalDeps.Builder toBuilder(PackageManifestNormalDeps  vs) {
+                return vs.builder();
+            }
+        });
+        b.add(REPLACE_DEPS = new StructKey<PackageManifest, PackageManifestReplaceDeps, PackageManifestReplaceDeps.Builder>("replaceDeps", PackageManifestReplaceDeps.TYPE.builder()) {
+            @Override
+            public PackageManifestReplaceDeps toStruct(PackageManifestReplaceDeps.Builder vb) {
+                return vb.build();
+            }
 
-    @Override
-    public boolean equals(Object obj) {
-        if(!(obj instanceof PackageManifest)) {
-            return false;
-        }
-        PackageManifest other = (PackageManifest) obj;
-        if(!metadata.equals(other.metadata)) {
-            return false;
-        }
-        if(!normalDeps.equals(other.normalDeps)) {
-            return false;
-        }
-        if(!replaceDeps.equals(other.replaceDeps)) {
-            return false;
-        }
-        if(!verifyDeps.equals(other.verifyDeps)) {
-            return false;
-        }
-        return true;
+            @Override
+            public PackageManifestReplaceDeps.Builder toBuilder(PackageManifestReplaceDeps  vs) {
+                return vs.builder();
+            }
+        });
+        b.add(VERIFY_DEPS = new StructKey<PackageManifest, PackageManifestVerifyDeps, PackageManifestVerifyDeps.Builder>("verifyDeps", PackageManifestVerifyDeps.TYPE.builder()) {
+            @Override
+            public PackageManifestVerifyDeps toStruct(PackageManifestVerifyDeps.Builder vb) {
+                return vb.build();
+            }
+
+            @Override
+            public PackageManifestVerifyDeps.Builder toBuilder(PackageManifestVerifyDeps  vs) {
+                return vs.builder();
+            }
+        });
+
+        TYPE = new StructType<PackageManifest, Builder>(b.build()) {
+            @Override
+            protected PackageManifest createUnchecked(ImmutableMap<StructKey<PackageManifest, ?, ?>, Object> map) {
+                return new PackageManifest(map);
+            }
+
+            @Override
+            protected PackageManifest.Builder createBuilder(ImmutableSalvagingMap<StructKey<PackageManifest, ?, ?>, Object> map) {
+                return new Builder(map);
+            }
+        };
     }
 }

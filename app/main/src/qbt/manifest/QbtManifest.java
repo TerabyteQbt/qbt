@@ -108,13 +108,13 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
             if(oldPackageMatcher.matches()) {
                 closePackage();
                 currentPackage = oldPackageMatcher.group(1);
-                packageBuilder = PackageManifest.emptyBuilder().withStringMetadata("prefix", oldPackageMatcher.group(2));
+                packageBuilder = PackageManifest.TYPE.builder().withStringMetadata("prefix", oldPackageMatcher.group(2));
                 return;
             }
             else if(packageMatcher.matches()) {
                 closePackage();
                 currentPackage = packageMatcher.group(1);
-                packageBuilder = PackageManifest.emptyBuilder();
+                packageBuilder = PackageManifest.TYPE.builder();
                 return;
             }
             else if(currentPackage == null) {

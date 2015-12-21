@@ -32,8 +32,12 @@ import qbt.QbtTempDir;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
 import qbt.manifest.PackageManifest;
+import qbt.manifest.PackageManifestNormalDeps;
+import qbt.manifest.PackageManifestReplaceDeps;
+import qbt.manifest.PackageManifestVerifyDeps;
 import qbt.manifest.QbtManifest;
 import qbt.manifest.RepoManifest;
+import qbt.metadata.Metadata;
 import qbt.metadata.PackageMetadataType;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
@@ -353,6 +357,31 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     private static final Merger<ObjectUtils.Null, Set<Pair<PackageTip, String>>> verifyDepsMerger = new SetMerger<ObjectUtils.Null, Pair<PackageTip, String>>(QbtManifest.verifyDepComparator);
 
+    private static PackageManifest packageManifestOf(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
+        PackageManifest.Builder b = PackageManifest.TYPE.builder();
+
+        b = b.set(PackageManifest.METADATA, metadata.builder());
+
+        PackageManifestNormalDeps.Builder bNormalDeps = PackageManifestNormalDeps.TYPE.builder();
+        for(Map.Entry<String, Pair<NormalDependencyType, String>> e : normalDeps.entrySet()) {
+            bNormalDeps = bNormalDeps.with(e.getKey(), e.getValue());
+        }
+        b = b.set(PackageManifest.NORMAL_DEPS, bNormalDeps);
+
+        PackageManifestReplaceDeps.Builder bReplaceDeps = PackageManifestReplaceDeps.TYPE.builder();
+        for(Map.Entry<PackageTip, String> e : replaceDeps.entrySet()) {
+            bReplaceDeps = bReplaceDeps.with(e.getKey(), e.getValue());
+        }
+        b = b.set(PackageManifest.REPLACE_DEPS, bReplaceDeps);
+
+        PackageManifestVerifyDeps.Builder bVerifyDeps = PackageManifestVerifyDeps.TYPE.builder();
+        for(Pair<PackageTip, String> p : verifyDeps) {
+            bVerifyDeps = bVerifyDeps.with(p, ObjectUtils.NULL);
+        }
+        b = b.set(PackageManifest.VERIFY_DEPS, bVerifyDeps);
+
+        return b.build();
+    }
     private static final Merger<Pair<ObjectUtils.Null, String>, PackageManifest> packageManifestMerger = new Merger<Pair<ObjectUtils.Null, String>, PackageManifest>() {
         @Override
         protected Triple<PackageManifest, PackageManifest, PackageManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
@@ -360,9 +389,9 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
             Triple<Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>> mergedNormalDeps = normalDepsMerger.merge(context, combineLabel(label, "normalDeps"), ObjectUtils.NULL, lhs.normalDeps, mhs.normalDeps, rhs.normalDeps);
             Triple<Map<PackageTip, String>, Map<PackageTip, String>, Map<PackageTip, String>> mergedReplaceDeps = replaceDepsMerger.merge(context, combineLabel(label, "replaceDeps"), ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
             Triple<Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>> mergedVerifyDeps = verifyDepsMerger.merge(context, combineLabel(label, "verifyDeps"), ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
-            PackageManifest newLhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getLeft()), mergedNormalDeps.getLeft(), mergedReplaceDeps.getLeft(), mergedVerifyDeps.getLeft());
-            PackageManifest newMhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getMiddle()), mergedNormalDeps.getMiddle(), mergedReplaceDeps.getMiddle(), mergedVerifyDeps.getMiddle());
-            PackageManifest newRhs = PackageManifest.of(PackageMetadataType.fromStringMap(mergedMetadata.getRight()), mergedNormalDeps.getRight(), mergedReplaceDeps.getRight(), mergedVerifyDeps.getRight());
+            PackageManifest newLhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getLeft()), mergedNormalDeps.getLeft(), mergedReplaceDeps.getLeft(), mergedVerifyDeps.getLeft());
+            PackageManifest newMhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getMiddle()), mergedNormalDeps.getMiddle(), mergedReplaceDeps.getMiddle(), mergedVerifyDeps.getMiddle());
+            PackageManifest newRhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getRight()), mergedNormalDeps.getRight(), mergedReplaceDeps.getRight(), mergedVerifyDeps.getRight());
             return Triple.of(newLhs, newMhs, newRhs);
         }
     };

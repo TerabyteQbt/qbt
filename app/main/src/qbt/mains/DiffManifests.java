@@ -195,12 +195,12 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             @Override
             protected void add(String pkg, PackageManifest rhs) {
                 packageRunner(options, options.get(Options.onPackageAdd), repo, pkg).run();
-                diffPackage(options, config, repo, pkg, PackageManifest.emptyBuilder().build(), rhs);
+                diffPackage(options, config, repo, pkg, PackageManifest.TYPE.builder().build(), rhs);
             }
 
             @Override
             protected void del(String pkg, PackageManifest lhs) {
-                diffPackage(options, config, repo, pkg, lhs, PackageManifest.emptyBuilder().build());
+                diffPackage(options, config, repo, pkg, lhs, PackageManifest.TYPE.builder().build());
                 packageRunner(options, options.get(Options.onPackageDel), repo, pkg).run();
             }
 
