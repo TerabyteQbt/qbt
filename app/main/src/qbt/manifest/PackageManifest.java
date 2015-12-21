@@ -2,7 +2,6 @@ package qbt.manifest;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
@@ -21,14 +20,14 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
     public final Metadata<PackageMetadataType> metadata;
     public final ImmutableMap<String, Pair<NormalDependencyType, String>> normalDeps;
     public final ImmutableMap<PackageTip, String> replaceDeps;
-    public final ImmutableSet<Pair<PackageTip, String>> verifyDeps;
+    public final ImmutableMap<Pair<PackageTip, String>, ObjectUtils.Null> verifyDeps;
 
     private PackageManifest(ImmutableMap<StructKey<PackageManifest, ?, ?>, Object> map) {
         super(TYPE, map);
         this.metadata = get(METADATA);
         this.normalDeps = get(NORMAL_DEPS).map;
         this.replaceDeps = get(REPLACE_DEPS).map;
-        this.verifyDeps = get(VERIFY_DEPS).map.keySet();
+        this.verifyDeps = get(VERIFY_DEPS).map;
     }
 
     public static class Builder extends StructBuilder<PackageManifest, Builder> {

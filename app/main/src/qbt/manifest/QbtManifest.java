@@ -264,50 +264,6 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     }
 
-    private static class SetDeparser<K1, K2> extends Deparser<K1, Set<K2>> {
-        private final Comparator<K2> comparator;
-        private final Deparser<Pair<K1, K2>, ObjectUtils.Null> entryDeparser;
-
-        public SetDeparser(Comparator<K2> comparator, Deparser<Pair<K1, K2>, ObjectUtils.Null> entryDeparser) {
-            this.comparator = comparator;
-            this.entryDeparser = entryDeparser;
-        }
-
-        @Override
-        protected void deparseSimple(SimpleDeparseBuilder b, K1 k1, Set<K2> set) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(set);
-            for(K2 k2 : k2s) {
-                entryDeparser.deparseSimple(b, Pair.of(k1, k2), ObjectUtils.NULL);
-            }
-        }
-
-        @Override
-        protected void deparseConflict(ConflictDeparseBuilder b, K1 k1, Set<K2> lhs, Set<K2> mhs, Set<K2> rhs) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(lhs);
-            k2s.addAll(mhs);
-            k2s.addAll(rhs);
-            for(K2 k2 : k2s) {
-                boolean l = lhs.contains(k2);
-                boolean m = mhs.contains(k2);
-                boolean r = rhs.contains(k2);
-                boolean keep;
-                if(m) {
-                    // was present, either (or both) could have removed
-                    keep = l && r;
-                }
-                else {
-                    // wasn't present, either (or both) could add
-                    keep = l || r;
-                }
-                if(keep) {
-                    entryDeparser.deparseSimple(b, Pair.of(k1, k2), ObjectUtils.NULL);
-                }
-            }
-        }
-    }
-
     private static final Deparser<Pair<ObjectUtils.Null, String>, String> packageMetadataItemDeparser = new ConflictMarkerDeparser<Pair<ObjectUtils.Null, String>, String>() {
         @Override
         protected void deparseSimple(SimpleDeparseBuilder b, Pair<ObjectUtils.Null, String> k, String v) {
@@ -355,7 +311,7 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     };
 
-    private static final Deparser<ObjectUtils.Null, Set<Pair<PackageTip, String>>> verifyDepsDeparser = new SetDeparser<ObjectUtils.Null, Pair<PackageTip, String>>(verifyDepComparator, verifyDepDeparser);
+    private static final Deparser<ObjectUtils.Null, Map<Pair<PackageTip, String>, ObjectUtils.Null>> verifyDepsDeparser = new MapDeparser<ObjectUtils.Null, Pair<PackageTip, String>, ObjectUtils.Null>(verifyDepComparator, verifyDepDeparser);
 
     private static final Deparser<Pair<RepoTip, String>, PackageManifest> packageManifestDeparser = new Deparser<Pair<RepoTip, String>, PackageManifest>() {
         private Map<NormalDependencyType, Map<String, String>> invertNormalDeps(Map<String, Pair<NormalDependencyType, String>> normalDeps) {

@@ -8,6 +8,7 @@ import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
 import qbt.NormalDependencyType;
@@ -19,7 +20,6 @@ import qbt.config.QbtConfig;
 import qbt.diffmanifests.MapDiffer;
 import qbt.diffmanifests.NoEditMapDiffer;
 import qbt.diffmanifests.Runner;
-import qbt.diffmanifests.SetDiffer;
 import qbt.manifest.PackageManifest;
 import qbt.manifest.QbtManifest;
 import qbt.manifest.RepoManifest;
@@ -270,9 +270,9 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             }
         }.diff();
 
-        new SetDiffer<Pair<PackageTip, String>>(lhs.verifyDeps, rhs.verifyDeps, QbtManifest.verifyDepComparator) {
+        new NoEditMapDiffer<Pair<PackageTip, String>, ObjectUtils.Null>(lhs.verifyDeps, rhs.verifyDeps, QbtManifest.verifyDepComparator) {
             @Override
-            protected void add(Pair<PackageTip, String> dep) {
+            protected void add(Pair<PackageTip, String> dep, ObjectUtils.Null v) {
                 Runner r = packageRunner(options, options.get(Options.onVerifyDepAdd), repo, pkg);
                 r = r.addEnv("DEPENDENCY_NAME", dep.getLeft().name);
                 r = r.addEnv("DEPENDENCY_TIP", dep.getLeft().tip);
@@ -281,7 +281,7 @@ public final class DiffManifests extends QbtCommand<DiffManifests.Options> {
             }
 
             @Override
-            protected void del(Pair<PackageTip, String> dep) {
+            protected void del(Pair<PackageTip, String> dep, ObjectUtils.Null v) {
                 Runner r = packageRunner(options, options.get(Options.onVerifyDepDel), repo, pkg);
                 r = r.addEnv("DEPENDENCY_NAME", dep.getLeft().name);
                 r = r.addEnv("DEPENDENCY_TIP", dep.getLeft().tip);

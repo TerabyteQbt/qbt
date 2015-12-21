@@ -240,7 +240,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                         for(Pair<NormalDependencyType, SimpleRecursivePackageData<DependencyComputer.Result>> e : r.children.values()) {
                             b.add(e.getRight().result.key);
                         }
-                        for(Pair<PackageTip, String> verifyDep : r.result.packageManifest.verifyDeps) {
+                        for(Pair<PackageTip, String> verifyDep : r.result.packageManifest.verifyDeps.keySet()) {
                             if(verifyPredicate.apply(Triple.of(r.result.packageTip, verifyDep.getRight(), verifyDep.getLeft()))) {
                                 b.add(new DependencyComputer.CacheKey(verifyDep.getLeft(), r.result.replacementsNext));
                             }
