@@ -1,50 +1,33 @@
 package qbt.mains;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
 import misc1.commons.Maybe;
 import misc1.commons.options.NamedEnumSingletonArgumentOptionsFragment;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
-import qbt.NormalDependencyType;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtTempDir;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.PackageManifest;
-import qbt.manifest.PackageManifestNormalDeps;
-import qbt.manifest.PackageManifestReplaceDeps;
-import qbt.manifest.PackageManifestVerifyDeps;
 import qbt.manifest.QbtManifest;
 import qbt.manifest.RepoManifest;
-import qbt.metadata.Metadata;
-import qbt.metadata.PackageMetadataType;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
 import qbt.repo.PinnedRepoAccessor;
-import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 import qbt.utils.ProcessHelper;
 import qbt.vcs.LocalVcs;
@@ -109,16 +92,6 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         };
     }
 
-    private static final class Context {
-        public final QbtConfig config;
-        public final Strategy strategy;
-
-        public Context(QbtConfig config, final Strategy strategy) {
-            this.config = config;
-            this.strategy = strategy;
-        }
-    }
-
     private static Strategy parseStrategyOptions(OptionsResults<? extends Options> options) {
         ImmutableList.Builder<Strategy> b = ImmutableList.builder();
         final ShellActionOptionsResult shellActionOptionsResult = Options.shellAction.getResultsOptional(options);
@@ -179,8 +152,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
     @Override
     public int run(OptionsResults<? extends Options> options) throws IOException {
         QbtConfig config = Options.config.getConfig(options);
-
-        Context context = new Context(config, parseStrategyOptions(options));
+        Strategy strategy = parseStrategyOptions(options);
 
         QbtManifest lhs = Options.lhs.getResult(options).parse();
         QbtManifest mhs = Options.mhs.getResult(options).parse();
@@ -189,145 +161,61 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         String mhsName = options.get(Options.mhsName);
         String rhsName = options.get(Options.rhsName);
 
+        // First: merge anything automatic
+        {
+            Triple<QbtManifest, QbtManifest, QbtManifest> merged = QbtManifest.TYPE.merge().merge(lhs, mhs, rhs);
+            lhs = merged.getLeft();
+            mhs = merged.getMiddle();
+            rhs = merged.getRight();
+        }
+
+        // Second: EDIT/EDIT conflicts in version are put through strategy
         ImmutableSet.Builder<RepoTip> repos = ImmutableSet.builder();
         repos.addAll(lhs.repos.keySet());
         repos.addAll(mhs.repos.keySet());
         repos.addAll(rhs.repos.keySet());
 
-        Triple<QbtManifest, QbtManifest, QbtManifest> merged = qbtManifestMerger.merge(context, "", ObjectUtils.NULL, lhs, mhs, rhs);
-        boolean conflicted = Options.out.getResult(options).deparseConflict(lhsName, merged.getLeft(), mhsName, merged.getMiddle(), rhsName, merged.getRight());
-
-        return conflicted ? 1 : 0;
-    }
-
-    private static abstract class Merger<K, V> {
-        public final Triple<V, V, V> merge(Context context, String label, K k, V lhs, V mhs, V rhs) {
-            if(Objects.equal(lhs, mhs)) {
-                return Triple.of(rhs, rhs, rhs);
+        QbtManifest.Builder lhsBuilder = lhs.builder();
+        QbtManifest.Builder mhsBuilder = mhs.builder();
+        QbtManifest.Builder rhsBuilder = rhs.builder();
+        for(RepoTip repo : repos.build()) {
+            RepoManifest lhsRepoManifest = lhs.repos.get(repo);
+            if(lhsRepoManifest == null) {
+                continue;
             }
-            if(Objects.equal(rhs, mhs)) {
-                return Triple.of(lhs, lhs, lhs);
+            RepoManifest mhsRepoManifest = mhs.repos.get(repo);
+            if(mhsRepoManifest == null) {
+                continue;
             }
-            if(Objects.equal(lhs, rhs)) {
-                return Triple.of(lhs, lhs, lhs);
+            RepoManifest rhsRepoManifest = rhs.repos.get(repo);
+            if(rhsRepoManifest == null) {
+                continue;
             }
-            if(lhs == null || rhs == null) {
-                LOGGER.error("[" + label + "] DELETE/EDIT conflict");
-                return Triple.of(lhs, mhs, rhs);
+
+            VcsVersionDigest lhsVersion = lhsRepoManifest.version;
+            VcsVersionDigest mhsVersion = mhsRepoManifest.version;
+            VcsVersionDigest rhsVersion = rhsRepoManifest.version;
+
+            if(lhsVersion.equals(mhsVersion) && mhsVersion.equals(rhsVersion)) {
+                continue;
             }
-            if(mhs == null) {
-                LOGGER.error("[" + label + "] ADD/ADD conflict");
-                return Triple.of(lhs, mhs, rhs);
-            }
-            return mergeConflict(context, label, k, lhs, mhs, rhs);
-        }
 
-        protected String combineLabel(String label, Object e) {
-            if(!label.isEmpty()) {
-                label += "/";
-            }
-            return label + e;
-        }
-
-        protected abstract Triple<V, V, V> mergeConflict(Context context, String label, K k, V lhs, V mhs, V rhs);
-    }
-
-    private static class MapMerger<K1, K2, V> extends Merger<K1, Map<K2, V>> {
-        private final Comparator<K2> comparator;
-        private final Merger<Pair<K1, K2>, V> entryMerger;
-
-        public MapMerger(Comparator<K2> comparator, Merger<Pair<K1, K2>, V> entryMerger) {
-            this.comparator = comparator;
-            this.entryMerger = entryMerger;
-        }
-
-        @Override
-        protected Triple<Map<K2, V>, Map<K2, V>, Map<K2, V>> mergeConflict(Context context, String label, K1 k1, Map<K2, V> lhs, Map<K2, V> mhs, Map<K2, V> rhs) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(lhs.keySet());
-            k2s.addAll(mhs.keySet());
-            k2s.addAll(rhs.keySet());
-            ImmutableMap.Builder<K2, V> lhsBuilder = ImmutableMap.builder();
-            ImmutableMap.Builder<K2, V> mhsBuilder = ImmutableMap.builder();
-            ImmutableMap.Builder<K2, V> rhsBuilder = ImmutableMap.builder();
-            for(K2 k2 : k2s) {
-                Triple<V, V, V> result = entryMerger.merge(context, combineLabel(label, k2), Pair.of(k1, k2), lhs.get(k2), mhs.get(k2), rhs.get(k2));
-                if(result.getLeft() != null) {
-                    lhsBuilder.put(k2, result.getLeft());
-                }
-                if(result.getMiddle() != null) {
-                    mhsBuilder.put(k2, result.getMiddle());
-                }
-                if(result.getRight() != null) {
-                    rhsBuilder.put(k2, result.getRight());
-                }
-            }
-            return Triple.<Map<K2, V>, Map<K2, V>, Map<K2, V>>of(lhsBuilder.build(), mhsBuilder.build(), rhsBuilder.build());
-        }
-    }
-
-    private static class SetMerger<K1, K2> extends Merger<K1, Set<K2>> {
-        private final Comparator<K2> comparator;
-
-        public SetMerger(Comparator<K2> comparator) {
-            this.comparator = comparator;
-        }
-
-        @Override
-        protected Triple<Set<K2>, Set<K2>, Set<K2>> mergeConflict(Context context, String label, K1 k1, Set<K2> lhs, Set<K2> mhs, Set<K2> rhs) {
-            Set<K2> k2s = Sets.newTreeSet(comparator);
-            k2s.addAll(lhs);
-            k2s.addAll(mhs);
-            k2s.addAll(rhs);
-            ImmutableSet.Builder<K2> b = ImmutableSet.builder();
-            for(K2 k2 : k2s) {
-                boolean l = lhs.contains(k2);
-                boolean m = mhs.contains(k2);
-                boolean r = rhs.contains(k2);
-                boolean keep;
-                if(m) {
-                    // was present, either (or both) could have removed
-                    keep = l && r;
-                }
-                else {
-                    // wasn't present, either (or both) could add
-                    keep = l || r;
-                }
-                if(keep) {
-                    b.add(k2);
-                }
-            }
-            Set<K2> ret = b.build();
-            return Triple.of(ret, ret, ret);
-        }
-    }
-
-    private static class TrivialMerger<K, V> extends Merger<K, V> {
-        @Override
-        protected Triple<V, V, V> mergeConflict(Context context, String label, K k, V lhs, V mhs, V rhs) {
-            LOGGER.error("[" + label + "] EDIT/EDIT conflict");
-            return Triple.of(lhs, mhs, rhs);
-        }
-    }
-
-    private static final Merger<RepoTip, VcsVersionDigest> versionMerger = new Merger<RepoTip, VcsVersionDigest>() {
-        @Override
-        protected Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergeConflict(Context context, String label, RepoTip repo, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
-            PinnedRepoAccessor lhsResult = context.config.localPinsRepo.requirePin(repo, lhs);
+            PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion);
             LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
 
-            PinnedRepoAccessor mhsResult = context.config.localPinsRepo.requirePin(repo, mhs);
+            PinnedRepoAccessor mhsResult = config.localPinsRepo.requirePin(repo, mhsVersion);
             LocalVcs mhsLocalVcs = mhsResult.getLocalVcs();
 
-            PinnedRepoAccessor rhsResult = context.config.localPinsRepo.requirePin(repo, rhs);
+            PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion);
             LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
 
             if(!lhsLocalVcs.equals(mhsLocalVcs) || !rhsLocalVcs.equals(mhsLocalVcs)) {
-                LOGGER.error("[" + label + "] Found mis-matched VCS: " + lhsLocalVcs + ", " + mhsLocalVcs + ", " + rhsLocalVcs);
-                return Triple.of(lhs, mhs, rhs);
+                LOGGER.error("[" + repo + "] Found mis-matched VCS: " + lhsLocalVcs + ", " + mhsLocalVcs + ", " + rhsLocalVcs);
+                continue;
             }
             LocalVcs localVcs = lhsLocalVcs;
 
+            VcsVersionDigest result;
             try(QbtTempDir tempDir = new QbtTempDir()) {
                 Path repoDir = tempDir.path;
                 localVcs.createWorkingRepo(repoDir);
@@ -335,104 +223,32 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                 mhsResult.findCommit(repoDir);
                 rhsResult.findCommit(repoDir);
                 Repository repository = localVcs.getRepository(repoDir);
-                context.strategy.invoke(repo, repository, lhs, mhs, rhs);
-                VcsVersionDigest result = repository.getCurrentCommit();
+                try {
+                    strategy.invoke(repo, repository, lhsVersion, mhsVersion, rhsVersion);
+                }
+                catch(RuntimeException e) {
+                    LOGGER.error("[" + repo + "]", e);
+                    continue;
+                }
+                result = repository.getCurrentCommit();
                 lhsResult.addPin(repoDir, result);
                 rhsResult.addPin(repoDir, result);
-
-                return Triple.of(result, result, result);
             }
-            catch(RuntimeException e) {
-                LOGGER.error("[" + label + "]", e);
-                return Triple.of(lhs, mhs, rhs);
-            }
+
+            lhsBuilder = lhsBuilder.with(repo, lhsRepoManifest.builder().set(RepoManifest.VERSION, result));
+            mhsBuilder = mhsBuilder.with(repo, mhsRepoManifest.builder().set(RepoManifest.VERSION, result));
+            rhsBuilder = rhsBuilder.with(repo, rhsRepoManifest.builder().set(RepoManifest.VERSION, result));
         }
-    };
+        QbtManifest lhsMerged = lhsBuilder.build();
+        QbtManifest mhsMerged = mhsBuilder.build();
+        QbtManifest rhsMerged = rhsBuilder.build();
 
-    private static final Merger<ObjectUtils.Null, Map<String, String>> metadataMerger = new MapMerger<ObjectUtils.Null, String, String>(Ordering.<String>natural(), new TrivialMerger<Pair<ObjectUtils.Null, String>, String>());
+        boolean conflicted = Options.out.getResult(options).deparseConflict(lhsName, lhsMerged, mhsName, mhsMerged, rhsName, rhsMerged);
 
-    private static final Merger<ObjectUtils.Null, Map<String, Pair<NormalDependencyType, String>>> normalDepsMerger = new MapMerger<ObjectUtils.Null, String, Pair<NormalDependencyType, String>>(Ordering.<String>natural(), new TrivialMerger<Pair<ObjectUtils.Null, String>, Pair<NormalDependencyType, String>>());
-
-    private static final Merger<ObjectUtils.Null, Map<PackageTip, String>> replaceDepsMerger = new MapMerger<ObjectUtils.Null, PackageTip, String>(PackageTip.TYPE.COMPARATOR, new TrivialMerger<Pair<ObjectUtils.Null, PackageTip>, String>());
-
-    private static final Merger<ObjectUtils.Null, Set<Pair<PackageTip, String>>> verifyDepsMerger = new SetMerger<ObjectUtils.Null, Pair<PackageTip, String>>(QbtManifest.verifyDepComparator);
-
-    private static PackageManifest packageManifestOf(Metadata<PackageMetadataType> metadata, Map<String, Pair<NormalDependencyType, String>> normalDeps, Map<PackageTip, String> replaceDeps, Set<Pair<PackageTip, String>> verifyDeps) {
-        PackageManifest.Builder b = PackageManifest.TYPE.builder();
-
-        b = b.set(PackageManifest.METADATA, metadata.builder());
-
-        PackageManifestNormalDeps.Builder bNormalDeps = PackageManifestNormalDeps.TYPE.builder();
-        for(Map.Entry<String, Pair<NormalDependencyType, String>> e : normalDeps.entrySet()) {
-            bNormalDeps = bNormalDeps.with(e.getKey(), e.getValue());
+        if(conflicted) {
+            LOGGER.error("Merge conflict!");
         }
-        b = b.set(PackageManifest.NORMAL_DEPS, bNormalDeps);
 
-        PackageManifestReplaceDeps.Builder bReplaceDeps = PackageManifestReplaceDeps.TYPE.builder();
-        for(Map.Entry<PackageTip, String> e : replaceDeps.entrySet()) {
-            bReplaceDeps = bReplaceDeps.with(e.getKey(), e.getValue());
-        }
-        b = b.set(PackageManifest.REPLACE_DEPS, bReplaceDeps);
-
-        PackageManifestVerifyDeps.Builder bVerifyDeps = PackageManifestVerifyDeps.TYPE.builder();
-        for(Pair<PackageTip, String> p : verifyDeps) {
-            bVerifyDeps = bVerifyDeps.with(p, ObjectUtils.NULL);
-        }
-        b = b.set(PackageManifest.VERIFY_DEPS, bVerifyDeps);
-
-        return b.build();
+        return conflicted ? 1 : 0;
     }
-    private static final Merger<Pair<ObjectUtils.Null, String>, PackageManifest> packageManifestMerger = new Merger<Pair<ObjectUtils.Null, String>, PackageManifest>() {
-        @Override
-        protected Triple<PackageManifest, PackageManifest, PackageManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, String> k, PackageManifest lhs, PackageManifest mhs, PackageManifest rhs) {
-            Triple<Map<String, String>, Map<String, String>, Map<String, String>> mergedMetadata = metadataMerger.merge(context, combineLabel(label, "metadata"), ObjectUtils.NULL, lhs.metadata.toStringMap(), mhs.metadata.toStringMap(), rhs.metadata.toStringMap());
-            Triple<Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>, Map<String, Pair<NormalDependencyType, String>>> mergedNormalDeps = normalDepsMerger.merge(context, combineLabel(label, "normalDeps"), ObjectUtils.NULL, lhs.normalDeps, mhs.normalDeps, rhs.normalDeps);
-            Triple<Map<PackageTip, String>, Map<PackageTip, String>, Map<PackageTip, String>> mergedReplaceDeps = replaceDepsMerger.merge(context, combineLabel(label, "replaceDeps"), ObjectUtils.NULL, lhs.replaceDeps, mhs.replaceDeps, rhs.replaceDeps);
-            Triple<Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>, Set<Pair<PackageTip, String>>> mergedVerifyDeps = verifyDepsMerger.merge(context, combineLabel(label, "verifyDeps"), ObjectUtils.NULL, lhs.verifyDeps, mhs.verifyDeps, rhs.verifyDeps);
-            PackageManifest newLhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getLeft()), mergedNormalDeps.getLeft(), mergedReplaceDeps.getLeft(), mergedVerifyDeps.getLeft());
-            PackageManifest newMhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getMiddle()), mergedNormalDeps.getMiddle(), mergedReplaceDeps.getMiddle(), mergedVerifyDeps.getMiddle());
-            PackageManifest newRhs = packageManifestOf(PackageMetadataType.fromStringMap(mergedMetadata.getRight()), mergedNormalDeps.getRight(), mergedReplaceDeps.getRight(), mergedVerifyDeps.getRight());
-            return Triple.of(newLhs, newMhs, newRhs);
-        }
-    };
-
-    private static final Merger<ObjectUtils.Null, Map<String, PackageManifest>> repoManifestMapMerger = new MapMerger<ObjectUtils.Null, String, PackageManifest>(Ordering.<String>natural(), packageManifestMerger);
-
-    private static RepoManifest repoManifestOf(VcsVersionDigest version, Map<String, PackageManifest> packages) {
-        RepoManifest.Builder b = RepoManifest.TYPE.builder();
-        b = b.set(RepoManifest.VERSION, version);
-        for(Map.Entry<String, PackageManifest> e : packages.entrySet()) {
-            b = b.with(e.getKey(), e.getValue().builder());
-        }
-        return b.build();
-    }
-    private static final Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest> repoManifestMerger = new Merger<Pair<ObjectUtils.Null, RepoTip>, RepoManifest>() {
-        @Override
-        protected Triple<RepoManifest, RepoManifest, RepoManifest> mergeConflict(Context context, String label, Pair<ObjectUtils.Null, RepoTip> k, RepoManifest lhs, RepoManifest mhs, RepoManifest rhs) {
-            RepoTip repo = k.getRight();
-            Triple<VcsVersionDigest, VcsVersionDigest, VcsVersionDigest> mergedVersions = versionMerger.merge(context, combineLabel(label, "version"), repo, lhs.version, mhs.version, rhs.version);
-            Triple<Map<String, PackageManifest>, Map<String, PackageManifest>, Map<String, PackageManifest>> mergedPackages = repoManifestMapMerger.merge(context, combineLabel(label, "packages"), ObjectUtils.NULL, lhs.packages, mhs.packages, rhs.packages);
-            RepoManifest newLhs = repoManifestOf(mergedVersions.getLeft(), mergedPackages.getLeft());
-            RepoManifest newMhs = repoManifestOf(mergedVersions.getMiddle(), mergedPackages.getMiddle());
-            RepoManifest newRhs = repoManifestOf(mergedVersions.getRight(), mergedPackages.getRight());
-            return Triple.of(newLhs, newMhs, newRhs);
-        }
-    };
-
-    private static final Merger<ObjectUtils.Null, Map<RepoTip, RepoManifest>> qbtManifestMapMerger = new MapMerger<ObjectUtils.Null, RepoTip, RepoManifest>(RepoTip.TYPE.COMPARATOR, repoManifestMerger);
-
-    private static QbtManifest qbtManifestOf(Map<RepoTip, RepoManifest> m) {
-        QbtManifest.Builder b = QbtManifest.TYPE.builder();
-        for(Map.Entry<RepoTip, RepoManifest> e : m.entrySet()) {
-            b = b.with(e.getKey(), e.getValue().builder());
-        }
-        return b.build();
-    }
-    private static final Merger<ObjectUtils.Null, QbtManifest> qbtManifestMerger = new Merger<ObjectUtils.Null, QbtManifest>() {
-        @Override
-        protected Triple<QbtManifest, QbtManifest, QbtManifest> mergeConflict(Context context, String label, ObjectUtils.Null k, QbtManifest lhs, QbtManifest mhs, QbtManifest rhs) {
-            Triple<Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>, Map<RepoTip, RepoManifest>> merged = qbtManifestMapMerger.merge(context, label, ObjectUtils.NULL, lhs.repos, mhs.repos, rhs.repos);
-            return Triple.of(qbtManifestOf(merged.getLeft()), qbtManifestOf(merged.getMiddle()), qbtManifestOf(merged.getRight()));
-        }
-    };
 }
