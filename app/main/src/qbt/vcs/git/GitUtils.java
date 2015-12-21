@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
-import misc1.commons.ds.StructBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
@@ -475,7 +474,7 @@ public class GitUtils {
                     if(committerDate == null) {
                         throw new IllegalStateException();
                     }
-                    StructBuilder<CommitData> cd = CommitData.TYPE.builder();
+                    CommitData.Builder cd = CommitData.TYPE.builder();
                     cd = cd.set(CommitData.TREE, currentTree);
                     cd = cd.set(CommitData.PARENTS, currentParents.build());
                     cd = cd.set(CommitData.AUTHOR_NAME, authorName);
