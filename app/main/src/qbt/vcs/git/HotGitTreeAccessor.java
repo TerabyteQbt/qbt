@@ -47,7 +47,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
             String mode = m.group(1);
             String type = m.group(2);
             HashCode object = QbtHashUtils.parse(m.group(3));
-            String name = m.group(4);
+            String name = decodeName(m.group(4));
             if(type.equals("blob")) {
                 b = b.simplePut(name, Either.<TreeAccessor, Pair<String, HashCode>>right(Pair.of(mode, object)));
                 continue;
@@ -185,7 +185,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
 
                     @Override
                     public String right(Pair<String, HashCode> p) {
-                        return p.getLeft() + " blob " + p.getRight() + "\t" + e.getKey();
+                        return p.getLeft() + " blob " + p.getRight() + "\t" + encodeName(e.getKey());
                     }
                 }));
             }
@@ -210,5 +210,87 @@ public class HotGitTreeAccessor implements TreeAccessor {
     @Override
     public Collection<String> getEntryNames() {
         return map.keys();
+    }
+
+    private static String decodeName(String s) {
+        if(!s.startsWith("\"")) {
+            return s;
+        }
+        if(s.length() < 2 || !s.endsWith("\"")) {
+            throw new IllegalArgumentException("Bad ls-tree name: " + s);
+        }
+        String sq = s.substring(1, s.length() - 1);
+        int i = 0;
+        StringBuilder sb = new StringBuilder();
+        while(true) {
+            if(i == sq.length()) {
+                return sb.toString();
+            }
+            char c = sq.charAt(i);
+            if(c != '\\') {
+                sb.append(c);
+                ++i;
+                continue;
+            }
+            if(i + 1 == sq.length()) {
+                throw new IllegalArgumentException("Bad ls-tree name: " + s);
+            }
+            char c2 = sq.charAt(i + 1);
+            switch(c2) {
+                case '\\':
+                case '"':
+                    sb.append(c2);
+                    break;
+
+                case 't':
+                    sb.append('\t');
+                    break;
+
+                case 'r':
+                    sb.append('\r');
+                    break;
+
+                case 'n':
+                    sb.append('\n');
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Bad ls-tree name: " + s);
+            }
+            i += 2;
+        }
+    }
+
+    private static String encodeName(String s) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\"");
+        for(int i = 0; i < s.length(); ++i) {
+            char c = s.charAt(i);
+            switch(c) {
+                case '\\':
+                case '"':
+                    sb.append('\\');
+                    sb.append(c);
+                    break;
+
+                case '\t':
+                    sb.append("\\t");
+                    break;
+
+                case '\r':
+                    sb.append("\\r");
+                    break;
+
+                case '\n':
+                    sb.append("\\n");
+                    break;
+
+                default:
+                    sb.append(c);
+                    break;
+            }
+        }
+        sb.append("\"");
+        return sb.toString();
     }
 }
