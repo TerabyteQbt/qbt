@@ -3,9 +3,14 @@ package qbt.build;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
+import misc1.commons.ExceptionUtils;
 import misc1.commons.Maybe;
 import misc1.commons.Result;
 import misc1.commons.ph.ProcessHelper;
@@ -177,17 +182,33 @@ public final class BuildUtils {
             public Integer apply(ProcessHelper p) {
                 p = p.putEnv("OUTPUT_ARTIFACTS_DIR", artifactsDir.toString());
                 p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toString());
-                return p.run(new ProcessHelper.Callback<Integer>() {
-                    @Override
-                    public void line(boolean isError, String line) {
-                        LOGGER.info("[" + bd.v.prettyDigest() + "] " + line);
-                    }
+                try(Writer out = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.out").toFile()))) {
+                    try(Writer err = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.err").toFile()))) {
+                        return p.run(new ProcessHelper.Callback<Integer>() {
+                            @Override
+                            public void line(boolean isError, String line) {
+                                Writer w = isError ? err : out;
+                                try {
+                                    w.write(line);
+                                    w.write('\n');
+                                }
+                                catch(IOException e) {
+                                    throw ExceptionUtils.commute(e);
+                                }
 
-                    @Override
-                    public Integer complete(int exitCode) {
-                        return exitCode;
+                                LOGGER.info("[" + bd.v.prettyDigest() + "] " + line);
+                            }
+
+                            @Override
+                            public Integer complete(int exitCode) {
+                                return exitCode;
+                            }
+                        });
                     }
-                });
+                }
+                catch(IOException e) {
+                    throw ExceptionUtils.commute(e);
+                }
             }
         });
         if(exitCode != 0) {
