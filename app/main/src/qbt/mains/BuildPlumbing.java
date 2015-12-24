@@ -42,6 +42,7 @@ import qbt.NormalDependencyType;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
+import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.artifactcacher.ArtifactReference;
 import qbt.build.BuildData;
@@ -209,16 +210,23 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                                 shellLock.lock();
                                 try {
                                     LOGGER.info("Invoking error shell for " + v.prettyDigest(), buildError);
-                                    BuildUtils.runPackageCommand(new String[] {System.getenv("SHELL")}, bd, new Function<ProcessHelper, Void>() {
-                                        @Override
-                                        public Void apply(ProcessHelper p) {
-                                            p = p.inheritInput();
-                                            p = p.inheritOutput();
-                                            p = p.inheritError();
-                                            p.run().requireSuccess();
-                                            return null;
+                                    try(QbtTempDir tempDir = new QbtTempDir()) {
+                                        final Path reportsDir = tempDir.resolve("reports");
+                                        if(reports != null) {
+                                            reports.materializeDirectory(Maybe.<FreeScope>not(), reportsDir);
                                         }
-                                    });
+                                        BuildUtils.runPackageCommand(new String[] {System.getenv("SHELL")}, bd, new Function<ProcessHelper, Void>() {
+                                            @Override
+                                            public Void apply(ProcessHelper p) {
+                                                p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toAbsolutePath().toString());
+                                                p = p.inheritInput();
+                                                p = p.inheritOutput();
+                                                p = p.inheritError();
+                                                p.run().requireSuccess();
+                                                return null;
+                                            }
+                                        });
+                                    }
                                 }
                                 finally {
                                     shellLock.unlock();
