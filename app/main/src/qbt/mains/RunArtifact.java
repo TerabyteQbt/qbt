@@ -13,6 +13,7 @@ import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
+import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
@@ -36,7 +37,6 @@ import qbt.options.ManifestOptionsDelegate;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
 import qbt.tip.PackageTip;
-import qbt.utils.ProcessHelper;
 
 public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
     @QbtCommandName("runArtifact")
@@ -113,12 +113,12 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
                     args[0] = outputsDir.resolve(args[0]).toString();
                 }
                 Path dir = options.get(Options.artifactsDir) ? outputsDir : Paths.get(".");
-                ProcessHelper p = new ProcessHelper(dir, args);
+                ProcessHelper p = ProcessHelper.of(dir, args);
                 p = p.putEnv("ARTIFACTS_DIR", outputsDir.toString());
                 p = p.inheritError();
                 p = p.inheritInput();
                 p = p.inheritOutput();
-                return p.completeExitCode();
+                return p.run().exitCode;
             }
         }
     }

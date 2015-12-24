@@ -9,6 +9,7 @@ import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
@@ -37,7 +38,6 @@ import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
 import qbt.recursive.cvrpd.CvRecursivePackageDataTransformer;
 import qbt.recursive.utils.RecursiveDataUtils;
 import qbt.tip.PackageTip;
-import qbt.utils.ProcessHelper;
 
 public class RunPackage extends QbtCommand<RunPackage.Options> {
     @QbtCommandName("runPackage")
@@ -118,7 +118,7 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
                     p = p.inheritInput();
                     p = p.inheritOutput();
                     p = p.inheritError();
-                    p.completeVoid();
+                    p.run().requireSuccess();
                     return null;
                 }
             });

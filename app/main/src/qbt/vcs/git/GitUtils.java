@@ -23,13 +23,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
+import misc1.commons.ph.ProcessHelper;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.TypedDigest;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
-import qbt.utils.ProcessHelper;
 import qbt.utils.ProcessHelperUtils;
 import qbt.vcs.CommitData;
 import qbt.vcs.CommitLevel;
@@ -41,16 +41,30 @@ public class GitUtils {
 
     public static final VcsTreeDigest EMPTY_TREE = new VcsTreeDigest(QbtHashUtils.parse("4b825dc642cb6eb9a060e54bf8d69288fbee4904"));
 
+    static ProcessHelper ph(Path dir, String... cmd) {
+        ProcessHelper p = ProcessHelper.of(dir, cmd);
+        p = ProcessHelperUtils.stripGitEnv(p);
+        return p;
+    }
+
+    static HashCode sha1(ProcessHelper ph) {
+        return QbtHashUtils.parse(ph.run().requireLine().substring(0, 40));
+    }
+
+    private static void runQuiet(Path dir, String... cmd) {
+        ph(dir, cmd).run().requireSuccess();
+    }
+
     private static String getPrefix(Path dir) {
-        ProcessHelper p = new ProcessHelper(dir, "git", "rev-parse", "--show-prefix");
+        ProcessHelper p = ph(dir, "git", "rev-parse", "--show-prefix");
         p = p.inheritError();
-        return p.completeLine();
+        return p.run().requireLine();
     }
 
     public static Path getRoot(Path dir) {
-        ProcessHelper p = new ProcessHelper(dir, "git", "rev-parse", "--show-toplevel");
+        ProcessHelper p = ph(dir, "git", "rev-parse", "--show-toplevel");
         p = p.inheritError();
-        return Paths.get(p.completeLine());
+        return Paths.get(p.run().requireLine());
     }
 
     private static VcsTreeDigest getSubIndex(Path dir) {
@@ -61,25 +75,25 @@ public class GitUtils {
         ProcessHelper p;
 
         String prefix = getPrefix(dir);
-        p = new ProcessHelper(getRoot(dir), "git", "ls-files", "--", prefix);
+        p = ph(getRoot(dir), "git", "ls-files", "--", prefix);
         p = p.inheritError();
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
-        if(p.completeWasEmpty()) {
+        if(p.run().requireSuccess().stdout.isEmpty()) {
             return EMPTY_TREE;
         }
 
-        p = new ProcessHelper(dir, "git", "write-tree", "--prefix=" + prefix);
+        p = ph(dir, "git", "write-tree", "--prefix=" + prefix);
         p = p.inheritError();
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
-        return new VcsTreeDigest(p.completeSha1());
+        return new VcsTreeDigest(sha1(p));
     }
 
     public static boolean isClean(Path dir) {
-        return new ProcessHelper(dir, "git", "status", "--porcelain", ".").inheritError().completeWasEmpty();
+        return ph(dir, "git", "status", "--porcelain", ".").inheritError().run().requireSuccess().stdout.isEmpty();
     }
 
     public static boolean isClean(Path dir, CommitLevel level) {
@@ -89,72 +103,72 @@ public class GitUtils {
     }
 
     public static boolean objectExists(Path repo, TypedDigest object) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "cat-file", "-e", String.valueOf(object.getRawDigest()));
+        ProcessHelper p = ph(repo, "git", "cat-file", "-e", String.valueOf(object.getRawDigest()));
         p = p.inheritOutput();
         p = p.inheritError();
-        return p.completeWasSuccess();
+        return p.run().exitCode == 0;
     }
 
     public static boolean isAncestorOf(Path repo, VcsVersionDigest ancestor, VcsVersionDigest descendent) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "merge-base", "--is-ancestor", String.valueOf(ancestor.getRawDigest()), String.valueOf(descendent.getRawDigest()));
+        ProcessHelper p = ph(repo, "git", "merge-base", "--is-ancestor", String.valueOf(ancestor.getRawDigest()), String.valueOf(descendent.getRawDigest()));
         p = p.inheritOutput();
         p = p.inheritError();
-        return p.completeWasSuccess();
+        return p.run().exitCode == 0;
     }
 
     public static void fetchRemote(Path repo, String name) {
-        ProcessHelperUtils.runQuiet(repo, "git", "fetch", "-q", name);
+        runQuiet(repo, "git", "fetch", "-q", name);
     }
 
     public static Iterable<String> showFile(Path repo, VcsVersionDigest commit, String path) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "show", commit.getRawDigest() + ":" + path);
+        ProcessHelper p = ph(repo, "git", "show", commit.getRawDigest() + ":" + path);
         p = p.inheritError();
-        return p.completeLines();
+        return p.run().requireSuccess().stdout;
     }
 
     public static Iterable<String> showFile(Path repo, VcsTreeDigest tree, String path) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "show", tree.getRawDigest() + ":" + path);
+        ProcessHelper p = ph(repo, "git", "show", tree.getRawDigest() + ":" + path);
         p = p.inheritError();
-        return p.completeLines();
+        return p.run().requireSuccess().stdout;
     }
 
     public static VcsTreeDigest getSubtree(Path repo, VcsVersionDigest commit, String path) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "rev-parse", commit.getRawDigest() + ":" + path);
+        ProcessHelper p = ph(repo, "git", "rev-parse", commit.getRawDigest() + ":" + path);
         p = p.inheritError();
-        return new VcsTreeDigest(p.completeSha1());
+        return new VcsTreeDigest(sha1(p));
     }
 
     public static VcsTreeDigest getSubtree(Path repo, VcsTreeDigest tree, String path) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "rev-parse", tree.getRawDigest() + ":" + path);
+        ProcessHelper p = ph(repo, "git", "rev-parse", tree.getRawDigest() + ":" + path);
         p = p.inheritError();
-        return new VcsTreeDigest(p.completeSha1());
+        return new VcsTreeDigest(sha1(p));
     }
 
     public static boolean remoteExists(String spec) {
-        ProcessHelper p = new ProcessHelper(Paths.get("/"), "git", "ls-remote", spec);
+        ProcessHelper p = ph(Paths.get("/"), "git", "ls-remote", spec);
         p = p.ignoreOutput();
         p = p.ignoreError();
-        return p.completeWasSuccess();
+        return p.run().exitCode == 0;
     }
 
     public static void createWorkingRepo(Path repo) {
-        ProcessHelperUtils.runQuiet(repo, "git", "init", "-q");
+        runQuiet(repo, "git", "init", "-q");
     }
 
     public static void createCacheRepo(Path repo) {
-        ProcessHelperUtils.runQuiet(repo, "git", "init", "-q", "--bare");
+        runQuiet(repo, "git", "init", "-q", "--bare");
     }
 
     public static void addRemote(Path repo, String name, String spec) {
-        ProcessHelperUtils.runQuiet(repo, "git", "remote", "add", name, spec);
+        runQuiet(repo, "git", "remote", "add", name, spec);
     }
 
     private static void archiveTree(Path repo, VcsTreeDigest tree, Path tar) {
-        ProcessHelperUtils.runQuiet(repo, "git", "archive", "-o", tar.toAbsolutePath().toString(), String.valueOf(tree.getRawDigest()));
+        runQuiet(repo, "git", "archive", "-o", tar.toAbsolutePath().toString(), String.valueOf(tree.getRawDigest()));
     }
 
     private static void explodeTar(Path dir, Path tar) {
-        ProcessHelperUtils.runQuiet(dir, "tar", "-xf", tar.toAbsolutePath().toString());
+        runQuiet(dir, "tar", "-xf", tar.toAbsolutePath().toString());
     }
 
     public static void checkoutTree(Path repo, VcsTreeDigest tree, Path path) {
@@ -166,47 +180,47 @@ public class GitUtils {
     }
 
     public static VcsVersionDigest getCurrentCommit(Path dir) {
-        ProcessHelper p = new ProcessHelper(dir, "git", "rev-parse", "HEAD");
+        ProcessHelper p = ph(dir, "git", "rev-parse", "HEAD");
         p = p.inheritError();
-        return new VcsVersionDigest(p.completeSha1());
+        return new VcsVersionDigest(sha1(p));
     }
 
     public static void checkout(Path dir, VcsVersionDigest commit) {
-        ProcessHelperUtils.runQuiet(dir, "git", "checkout", "-q", String.valueOf(commit.getRawDigest()));
+        runQuiet(dir, "git", "checkout", "-q", String.valueOf(commit.getRawDigest()));
     }
 
     public static void checkout(Path dir, String branchName) {
-        ProcessHelperUtils.runQuiet(dir, "git", "checkout", "-q", branchName);
+        runQuiet(dir, "git", "checkout", "-q", branchName);
     }
 
     public static void merge(Path dir, VcsVersionDigest commit) {
-        ProcessHelperUtils.runQuiet(dir, "git", "merge", "-q", String.valueOf(commit.getRawDigest()));
+        runQuiet(dir, "git", "merge", "-q", String.valueOf(commit.getRawDigest()));
     }
 
     public static void rebase(Path dir, VcsVersionDigest from, VcsVersionDigest to) {
-        ProcessHelperUtils.runQuiet(dir, "git", "rebase", "--onto", "HEAD", from.getRawDigest().toString(), to.getRawDigest().toString());
+        runQuiet(dir, "git", "rebase", "--onto", "HEAD", from.getRawDigest().toString(), to.getRawDigest().toString());
     }
 
     public static void fetchPins(Path dir, String remote) {
-        ProcessHelperUtils.runQuiet(dir, "git", "fetch", "-q", remote, "refs/qbt-pins/*:refs/qbt-pins/*");
+        runQuiet(dir, "git", "fetch", "-q", remote, "refs/qbt-pins/*:refs/qbt-pins/*");
     }
 
     public static void addPinToRemote(Path dir, String remote, VcsVersionDigest commit) {
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-pins/" + commit.getRawDigest());
+        runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-pins/" + commit.getRawDigest());
     }
 
     public static void addLocalPinToRemote(Path dir, String remote, VcsVersionDigest commit) {
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-local-pins/" + commit.getRawDigest());
+        runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-local-pins/" + commit.getRawDigest());
     }
 
     private static int manageLocalPins(Path dir) {
         ImmutableList.Builder<VcsVersionDigest> localPinsBuilder = ImmutableList.builder();
-        for(String line : new ProcessHelper(dir, "git", "rev-parse", "--glob=refs/qbt-local-pins/*").inheritError().completeLines()) {
+        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-local-pins/*").inheritError().run().requireSuccess().stdout) {
             localPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
         }
         List<VcsVersionDigest> localPins = localPinsBuilder.build();
         ImmutableList.Builder<VcsVersionDigest> cachedPinsBuilder = ImmutableList.builder();
-        for(String line : new ProcessHelper(dir, "git", "rev-parse", "--glob=refs/qbt-pins/*").inheritError().completeLines()) {
+        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-pins/*").inheritError().run().requireSuccess().stdout) {
             cachedPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
         }
         List<VcsVersionDigest> cachedPins = cachedPinsBuilder.build();
@@ -220,7 +234,7 @@ public class GitUtils {
         int kept = 0;
         for(VcsVersionDigest localPin : localPins) {
             if(!pinsKeep.contains(localPin)) {
-                ProcessHelperUtils.runQuiet(dir, "git", "update-ref", "-d", "refs/qbt-local-pins/" + localPin.getRawDigest());
+                runQuiet(dir, "git", "update-ref", "-d", "refs/qbt-local-pins/" + localPin.getRawDigest());
             }
             else {
                 ++kept;
@@ -244,23 +258,23 @@ public class GitUtils {
             return 0;
         }
         // nope, we gotta push
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, "refs/qbt-local-pins/*:refs/qbt-pins/*");
+        runQuiet(dir, "git", "push", "-q", remote, "refs/qbt-local-pins/*:refs/qbt-pins/*");
         // count is not strictly correct on races but so be it
         return kept;
     }
 
     public static void publishBranch(Path dir, String remote, VcsVersionDigest commit, String name) {
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, "+" + commit.getRawDigest() + ":refs/heads/" + name);
+        runQuiet(dir, "git", "push", "-q", remote, "+" + commit.getRawDigest() + ":refs/heads/" + name);
     }
 
     public static void forcePush(Path dir, String remote, VcsVersionDigest from, String to) {
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "-q", remote, "+" + from.getRawDigest() + ":" + to);
+        runQuiet(dir, "git", "push", "-q", remote, "+" + from.getRawDigest() + ":" + to);
     }
 
     public static Iterable<VcsVersionDigest> mergeBases(Path repo, VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        ProcessHelper p = new ProcessHelper(repo, "git", "merge-base", "-a", lhs.getRawDigest().toString(), rhs.getRawDigest().toString());
+        ProcessHelper p = ph(repo, "git", "merge-base", "-a", lhs.getRawDigest().toString(), rhs.getRawDigest().toString());
         p = p.inheritError();
-        return Iterables.transform(p.completeLines(), new Function<String, VcsVersionDigest>() {
+        return Iterables.transform(p.run().requireSuccess().stdout, new Function<String, VcsVersionDigest>() {
             @Override
             public VcsVersionDigest apply(String line) {
                 return new VcsVersionDigest(QbtHashUtils.parse(line));
@@ -292,9 +306,9 @@ public class GitUtils {
     public static VcsTreeDigest getWorkingTree(Path dir, CommitLevel level) {
         Path realIndexFile;
         {
-            ProcessHelper p = new ProcessHelper(dir, "git", "rev-parse", "--git-dir");
+            ProcessHelper p = ph(dir, "git", "rev-parse", "--git-dir");
             p = p.inheritError();
-            realIndexFile = dir.resolve(p.completeLine()).resolve("index").toAbsolutePath();
+            realIndexFile = dir.resolve(p.run().requireLine()).resolve("index").toAbsolutePath();
         }
 
         try(QbtTempDir tempDir = new QbtTempDir()) {
@@ -304,7 +318,7 @@ public class GitUtils {
             }
             String[] commitLevelAdd = commitLevelAdd(level);
             if(commitLevelAdd != null) {
-                ProcessHelperUtils.runQuiet(dir, ImmutableMap.of("GIT_INDEX_FILE", tempIndexFile.toString()), commitLevelAdd);
+                ph(dir, commitLevelAdd).putEnv("GIT_INDEX_FILE", tempIndexFile.toString()).run().requireSuccess();
             }
             return getSubIndex(dir, tempIndexFile);
         }
@@ -314,35 +328,31 @@ public class GitUtils {
     }
 
     public static VcsVersionDigest revParse(Path dir, String arg) {
-        return new VcsVersionDigest(new ProcessHelper(dir, "git", "rev-parse", arg).inheritError().completeSha1());
+        return new VcsVersionDigest(sha1(ph(dir, "git", "rev-parse", arg).inheritError()));
     }
 
     public static Multimap<String, String> getAllConfig(Path dir) {
-        final ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
-        new ProcessHelper(dir, "git", "config", "-l").inheritError().completeLinesCallback(new Function<String, Void>() {
-            @Override
-            public Void apply(String line) {
-                int i = line.indexOf('=');
-                if(i == -1) {
-                    throw new IllegalStateException("Bogus git config -l line: " + line);
-                }
-                b.put(line.substring(0, i), line.substring(i + 1));
-                return null;
+        ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
+        for(String line : ph(dir, "git", "config", "-l").inheritError().run().requireSuccess().stdout) {
+            int i = line.indexOf('=');
+            if(i == -1) {
+                throw new IllegalStateException("Bogus git config -l line: " + line);
             }
-        });
+            b.put(line.substring(0, i), line.substring(i + 1));
+        }
         return b.build();
     }
 
     public static void addConfigItem(Path dir, String key, String value) {
-        ProcessHelperUtils.runQuiet(dir, "git", "config", "--add", key, value);
+        runQuiet(dir, "git", "config", "--add", key, value);
     }
 
     public static Iterable<String> getChangedPaths(Path dir, VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        return new ProcessHelper(dir, "git", "diff", "--name-only", lhs.getRawDigest().toString(), rhs.getRawDigest().toString()).inheritError().completeLines();
+        return ph(dir, "git", "diff", "--name-only", lhs.getRawDigest().toString(), rhs.getRawDigest().toString()).inheritError().run().requireSuccess().stdout;
     }
 
     public static VcsVersionDigest getFirstParent(Path repoDir, VcsVersionDigest after) {
-        return new VcsVersionDigest(new ProcessHelper(repoDir, "git", "rev-parse", after.getRawDigest() + "^").inheritError().completeSha1());
+        return new VcsVersionDigest(sha1(ph(repoDir, "git", "rev-parse", after.getRawDigest() + "^").inheritError()));
     }
 
     public static List<VcsVersionDigest> mergeBaseIndependent(Path repo, Collection<VcsVersionDigest> subCommitParents) {
@@ -352,40 +362,40 @@ public class GitUtils {
         ImmutableList.Builder<String> commandBuilder = ImmutableList.builder();
         commandBuilder.add("git", "merge-base", "--independent");
         commandBuilder.addAll(Iterables.transform(subCommitParents, VcsVersionDigest.DEPARSE_FUNCTION));
-        return ImmutableList.copyOf(Iterables.transform(new ProcessHelper(repo, commandBuilder.build().toArray(new String[0])).inheritError().completeLines(), VcsVersionDigest.PARSE_FUNCTION));
+        return ImmutableList.copyOf(Iterables.transform(ph(repo, commandBuilder.build().toArray(new String[0])).inheritError().run().requireSuccess().stdout, VcsVersionDigest.PARSE_FUNCTION));
     }
 
     public static String getCommitterEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(new ProcessHelper(repo, "git", "log", "-1", "--format=%cE", commit.getRawDigest().toString()).inheritError().completeLines());
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cE", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
     }
     public static String getCommitterName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(new ProcessHelper(repo, "git", "log", "-1", "--format=%cN", commit.getRawDigest().toString()).inheritError().completeLines());
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cN", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
     }
     public static String getAuthorEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(new ProcessHelper(repo, "git", "log", "-1", "--format=%aE", commit.getRawDigest().toString()).inheritError().completeLines());
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aE", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
     }
     public static String getAuthorName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(new ProcessHelper(repo, "git", "log", "-1", "--format=%aN", commit.getRawDigest().toString()).inheritError().completeLines());
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aN", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
     }
 
     public static void createBranch(Path dir, String name, VcsVersionDigest commit) {
-        ProcessHelperUtils.runQuiet(dir, "git", "branch", name, commit.getRawDigest().toString());
+        runQuiet(dir, "git", "branch", name, commit.getRawDigest().toString());
     }
 
     public static void rsyncBranches(Path dir, String localPrefix, String remote, String remotePrefix) {
-        ProcessHelperUtils.runQuiet(dir, "git", "push", "--prune", "--force", remote, "refs/heads/" + localPrefix + "*:refs/heads/" + remotePrefix + "*");
+        runQuiet(dir, "git", "push", "--prune", "--force", remote, "refs/heads/" + localPrefix + "*:refs/heads/" + remotePrefix + "*");
     }
 
     public static VcsVersionDigest commit(Path dir, boolean amend, String message, CommitLevel level) {
         String[] commitLevelAdd = commitLevelAdd(level);
         if(commitLevelAdd != null) {
-            ProcessHelperUtils.runQuiet(dir, commitLevelAdd);
+            runQuiet(dir, commitLevelAdd);
         }
         if(amend) {
-            ProcessHelperUtils.runQuiet(dir, "git", "commit", "--amend", "-m" + message);
+            runQuiet(dir, "git", "commit", "--amend", "-m" + message);
         }
         else {
-            ProcessHelperUtils.runQuiet(dir, "git", "commit", "-m" + message);
+            runQuiet(dir, "git", "commit", "-m" + message);
         }
         return getCurrentCommit(dir);
     }
@@ -508,9 +518,9 @@ public class GitUtils {
             }
         }
         Parser pp = new Parser();
-        ProcessHelper p = new ProcessHelper(dir, args);
+        ProcessHelper p = ph(dir, args);
         p = p.inheritError();
-        for(String line : p.completeLines()) {
+        for(String line : p.run().requireSuccess().stdout) {
             pp.parseLine(line);
         }
         return pp.eof();
@@ -523,14 +533,14 @@ public class GitUtils {
             commitTreeCommand.add("-p", parent.getRawDigest().toString());
         }
         commitTreeCommand.add(commitData.get(CommitData.TREE).getRawDigest().toString());
-        ProcessHelper p = new ProcessHelper(dir, commitTreeCommand.build().toArray(new String[0]));
+        ProcessHelper p = ph(dir, commitTreeCommand.build().toArray(new String[0]));
         p = p.putEnv("GIT_AUTHOR_NAME", commitData.get(CommitData.AUTHOR_NAME));
         p = p.putEnv("GIT_AUTHOR_EMAIL", commitData.get(CommitData.AUTHOR_EMAIL));
         p = p.putEnv("GIT_AUTHOR_DATE", commitData.get(CommitData.AUTHOR_DATE));
         p = p.putEnv("GIT_COMMITTER_NAME", commitData.get(CommitData.COMMITTER_NAME));
         p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.get(CommitData.COMMITTER_EMAIL));
         p = p.putEnv("GIT_COMMITTER_DATE", commitData.get(CommitData.COMMITTER_DATE));
-        HashCode object = p.inheritError().completeSha1();
+        HashCode object = sha1(p.inheritError());
         return new VcsVersionDigest(object);
     }
 
@@ -543,14 +553,14 @@ public class GitUtils {
             catch(IOException e) {
                 throw ExceptionUtils.commute(e);
             }
-            return new ProcessHelper(dir, "git", "hash-object", "-w", tempFile.toString()).inheritError().completeSha1();
+            return sha1(ph(dir, "git", "hash-object", "-w", tempFile.toString()).inheritError());
         }
     }
 
     public static byte[] readObject(Path dir, HashCode object) {
         try(QbtTempDir tempDir = new QbtTempDir()) {
             Path tempFile = tempDir.resolve("object");
-            new ProcessHelper(dir, "git", "show", object.toString()).fileOutput(tempFile).inheritError().completeVoid();
+            ph(dir, "git", "show", object.toString()).fileOutput(tempFile).inheritError().run().requireSuccess();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
                 Files.copy(tempFile.toFile(), baos);
@@ -563,8 +573,8 @@ public class GitUtils {
     }
 
     public static List<String> getUserVisibleStatus(Path dir) {
-        ProcessHelper p = new ProcessHelper(dir, "git", "status", "--short");
+        ProcessHelper p = ph(dir, "git", "status", "--short");
         p = p.inheritError();
-        return p.completeLines();
+        return p.run().requireSuccess().stdout;
     }
 }

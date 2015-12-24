@@ -30,6 +30,7 @@ import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -62,7 +63,6 @@ import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
 import qbt.recursive.srpd.SimpleRecursivePackageData;
 import qbt.tip.PackageTip;
-import qbt.utils.ProcessHelper;
 
 public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
     private static final Logger LOGGER = LoggerFactory.getLogger(BuildPlumbing.class);
@@ -215,7 +215,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                                             p = p.inheritInput();
                                             p = p.inheritOutput();
                                             p = p.inheritError();
-                                            p.completeVoid();
+                                            p.run().requireSuccess();
                                             return null;
                                         }
                                     });

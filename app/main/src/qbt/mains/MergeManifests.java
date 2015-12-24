@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -11,6 +10,7 @@ import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.ph.ProcessHelper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ import qbt.options.ShellActionOptionsDelegate;
 import qbt.options.ShellActionOptionsResult;
 import qbt.repo.PinnedRepoAccessor;
 import qbt.tip.RepoTip;
-import qbt.utils.ProcessHelper;
+import qbt.utils.ProcessHelperUtils;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.Repository;
 
@@ -101,7 +101,8 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                 @Override
                 public void invoke(final RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
                     repository.checkout(lhs);
-                    ProcessHelper p = new ProcessHelper(repository.getRoot(), shellActionOptionsResult.commandArray);
+                    ProcessHelper p = ProcessHelper.of(repository.getRoot(), shellActionOptionsResult.commandArray);
+                    p = ProcessHelperUtils.stripGitEnv(p);
                     p = p.putEnv("LHS", lhs.getRawDigest().toString());
                     p = p.putEnv("MHS", mhs.getRawDigest().toString());
                     p = p.putEnv("RHS", rhs.getRawDigest().toString());
@@ -121,17 +122,10 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                         p = p.inheritInput();
                         p = p.inheritOutput();
                         p = p.inheritError();
-                        p.completeVoid();
+                        p.run().requireSuccess();
                     }
                     else {
-                        p = p.combineError();
-                        p.completeLinesCallback(new Function<String, Void>() {
-                            @Override
-                            public Void apply(String line) {
-                                System.out.println("[" + repo + "] " + line);
-                                return null;
-                            }
-                        });
+                        p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
                     }
                 }
             });

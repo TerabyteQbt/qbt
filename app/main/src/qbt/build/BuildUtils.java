@@ -1,7 +1,6 @@
 package qbt.build;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -9,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import misc1.commons.Maybe;
 import misc1.commons.Result;
+import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -25,7 +25,6 @@ import qbt.metadata.PackageBuildType;
 import qbt.metadata.PackageMetadataType;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataMapper;
-import qbt.utils.ProcessHelper;
 import qbt.utils.TarballUtils;
 
 public final class BuildUtils {
@@ -104,17 +103,16 @@ public final class BuildUtils {
 
                 try(PackageDirectory packageDirectory = PackageDirectories.forBuildData(bd)) {
                     Path packageDir = packageDirectory.getDir();
-                    ProcessHelper p = new ProcessHelper(packageDir, command);
+                    ProcessHelper p = ProcessHelper.of(packageDir, command);
                     p = p.putEnv("INPUT_ARTIFACTS_DIR", inputsDir.toAbsolutePath().toString());
                     p = p.putEnv("PACKAGE_DIR", packageDir.toAbsolutePath().toString());
                     p = p.putEnv("PACKAGE_NAME", bd.v.getPackageName());
                     p = p.putEnv("PACKAGE_CUMULATIVE_VERSION", bd.v.getDigest().getRawDigest().toString());
-                    p = p.stripEnv(new Predicate<Pair<String, String>>() {
-                        @Override
-                        public boolean apply(Pair<String, String> e) {
-                            return e.getKey().startsWith("QBT_ENV_");
+                    for(String key : p.get(ProcessHelper.ENV).keys()) {
+                        if(key.startsWith("QBT_ENV_")) {
+                            p = p.removeEnv(key);
                         }
-                    });
+                    }
                     for(Map.Entry<String, String> e : bd.v.result.qbtEnv.entrySet()) {
                         p = p.putEnv("QBT_ENV_" + e.getKey(), e.getValue());
                     }
@@ -177,14 +175,17 @@ public final class BuildUtils {
         int exitCode = runPackageCommand(new String[] {"./qbt-make"}, bd, new Function<ProcessHelper, Integer>() {
             @Override
             public Integer apply(ProcessHelper p) {
-                p = p.combineError();
                 p = p.putEnv("OUTPUT_ARTIFACTS_DIR", artifactsDir.toString());
                 p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toString());
-                return p.completeLinesCallbackExitCode(new Function<String, Void>() {
+                return p.run(new ProcessHelper.Callback<Integer>() {
                     @Override
-                    public Void apply(String line) {
+                    public void line(boolean isError, String line) {
                         LOGGER.info("[" + bd.v.prettyDigest() + "] " + line);
-                        return null;
+                    }
+
+                    @Override
+                    public Integer complete(int exitCode) {
+                        return exitCode;
                     }
                 });
             }

@@ -1,10 +1,10 @@
 package qbt.diffmanifests;
 
-import com.google.common.base.Function;
+import misc1.commons.ph.ProcessHelper;
 import qbt.QbtTempDir;
 import qbt.VcsVersionDigest;
 import qbt.repo.PinnedRepoAccessor;
-import qbt.utils.ProcessHelper;
+import qbt.utils.ProcessHelperUtils;
 import qbt.vcs.LocalVcs;
 
 public abstract class Runner {
@@ -50,7 +50,7 @@ public abstract class Runner {
         public RealRunner(String prefix, String command) {
             this.prefix = prefix;
             this.dir = new QbtTempDir();
-            this.p = new ProcessHelper(dir.path, "sh", "-c", command);
+            this.p = ProcessHelper.of(dir.path, "sh", "-c", command);
             this.localVcs = null;
         }
 
@@ -88,19 +88,12 @@ public abstract class Runner {
         public void run() {
             try {
                 if(prefix != null) {
-                    p = p.combineError();
-                    p.completeLinesCallback(new Function<String, Void>() {
-                        @Override
-                        public Void apply(String line) {
-                            System.out.println("[" + prefix + "] " + line);
-                            return null;
-                        }
-                    });
+                    p.run(ProcessHelperUtils.simplePrefixCallback(prefix));
                 }
                 else {
                     p = p.inheritOutput();
                     p = p.inheritError();
-                    p.completeVoid();
+                    p.run().requireSuccess();
                 }
             }
             finally {

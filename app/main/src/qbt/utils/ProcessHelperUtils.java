@@ -1,36 +1,36 @@
 package qbt.utils;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
-import java.util.Map;
-import org.apache.commons.lang3.tuple.Pair;
+import misc1.commons.ph.ProcessHelper;
 
-public class ProcessHelperUtils {
+public final class ProcessHelperUtils {
     private ProcessHelperUtils() {
-        // no
+        // nope
     }
 
-    public static void runQuiet(Path dir, String... cmd) {
-        runQuiet(dir, ImmutableMap.<String, String>of(), cmd);
+    public static ProcessHelper stripGitEnv(ProcessHelper p) {
+        // Fuckers, these break all sorts of things and are also insane.  `git`
+        // is so bad at handling environment variables if `qbt` is run
+        // underneath git at any point (e.g.  mergeDriver) all hell breaks
+        // loose.
+        p = p.removeEnv("GIT_DIR");
+        p = p.removeEnv("GIT_WORK_TREE");
+        return p;
     }
 
-    public static void runQuiet(Path dir, Map<String, String> env, String... cmd) {
-        ProcessHelper p = new ProcessHelper(dir, cmd);
-        p = p.combineError();
-        for(Map.Entry<String, String> e : env.entrySet()) {
-            p = p.putEnv(e.getKey(), e.getValue());
-        }
-        Pair<ImmutableList<String>, Integer> r = p.completeLinesAndExitCode();
-        int exit = r.getRight();
-        if(exit != 0) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(p.getDescription() + " failed: " + exit);
-            for(String line : r.getLeft()) {
-                sb.append("\n");
-                sb.append(line);
+    public static ProcessHelper.Callback<?> simplePrefixCallback(final String prefix) {
+        return new ProcessHelper.Callback<Void>() {
+            @Override
+            public void line(boolean isError, String line) {
+                (isError ? System.err : System.out).println("[" + prefix + "] " + line);
             }
-            throw new RuntimeException(sb.toString());
-        }
+
+            @Override
+            public Void complete(int exitCode) {
+                if(exitCode != 0) {
+                    throw new RuntimeException("[" + prefix + "] Non-zero exit: " + exitCode);
+                }
+                return null;
+            }
+        };
     }
 }

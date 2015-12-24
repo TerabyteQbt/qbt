@@ -14,6 +14,7 @@ import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
+import misc1.commons.ph.ProcessHelper;
 import org.apache.commons.lang3.ObjectUtils;
 import qbt.HelpTier;
 import qbt.QbtCommand;
@@ -32,7 +33,7 @@ import qbt.options.ShellActionOptionsResult;
 import qbt.repo.LocalRepoAccessor;
 import qbt.repo.PinnedRepoAccessor;
 import qbt.tip.RepoTip;
-import qbt.utils.ProcessHelper;
+import qbt.utils.ProcessHelperUtils;
 
 public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.Options> {
     public static interface RunOverridesCommonOptions {
@@ -102,7 +103,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                 if(localRepoAccessor == null) {
                     return ObjectUtils.NULL;
                 }
-                ProcessHelper p = new ProcessHelper(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
+                ProcessHelper p = ProcessHelper.of(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
                 class VersionAdder {
                     public ProcessHelper addVersion(ProcessHelper p, String name, VcsVersionDigest version) {
                         String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
@@ -129,22 +130,15 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                     p = p.inheritInput();
                     p = p.inheritOutput();
                     p = p.inheritError();
-                    p.completeVoid();
+                    p.run().requireSuccess();
                 }
                 else if(options.get(Options.noPrefix)) {
                     p = p.inheritOutput();
                     p = p.inheritError();
-                    p.completeVoid();
+                    p.run().requireSuccess();
                 }
                 else {
-                    p = p.combineError();
-                    p.completeLinesCallback(new Function<String, Void>() {
-                        @Override
-                        public Void apply(String line) {
-                            System.out.println("[" + repo + "] " + line);
-                            return null;
-                        }
-                    });
+                    p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
                 }
                 return ObjectUtils.NULL;
             }

@@ -9,13 +9,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Path;
+import misc1.commons.ph.ProcessHelper;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import qbt.mains.BuildPorcelain;
 import qbt.mains.RunOverridesPorcelain;
-import qbt.utils.ProcessHelper;
 import qbt.utils.TarballUtils;
 
 public class IntegrationTests {
@@ -95,7 +95,7 @@ public class IntegrationTests {
         String p2c12Random = h.checkRandom2(null);
         Assert.assertNotEquals(p2c11Random, p2c12Random);
 
-        new ProcessHelper(workspace.resolve("local/HEAD/r1"), "git", "add", "-A").inheritError().ignoreOutput().completeVoid();
+        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "add", "-A").inheritError().ignoreOutput().run().requireSuccess();
         for(int i = 0; i < 2; ++i) {
             h.build();
             h.checkContent("1", "2");
@@ -103,7 +103,7 @@ public class IntegrationTests {
             h.checkRandom2(p2c12Random);
         }
 
-        new ProcessHelper(workspace.resolve("local/HEAD/r1"), "git", "commit", "-a", "-m.").inheritError().ignoreOutput().completeVoid();
+        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "commit", "-a", "-m.").inheritError().ignoreOutput().run().requireSuccess();
         for(int i = 0; i < 2; ++i) {
             h.build();
             h.checkContent("1", "2");
@@ -169,8 +169,8 @@ public class IntegrationTests {
         // changed file immediately, presumably due to mtime checking
         // shennanigans.  We force the index to drop anything it thinks it
         // knows.
-        if(new ProcessHelper(file.getParent(), "git", "rev-parse", "--git-dir").ignoreError().ignoreOutput().completeWasSuccess()) {
-            new ProcessHelper(file.getParent(), "git", "update-index", "--no-assume-unchanged", file.getFileName().toString()).inheritError().ignoreOutput().completeVoid();
+        if(ProcessHelper.of(file.getParent(), "git", "rev-parse", "--git-dir").ignoreError().ignoreOutput().run().exitCode == 0) {
+            ProcessHelper.of(file.getParent(), "git", "update-index", "--no-assume-unchanged", file.getFileName().toString()).inheritError().ignoreOutput().run().requireSuccess();
         }
     }
 
