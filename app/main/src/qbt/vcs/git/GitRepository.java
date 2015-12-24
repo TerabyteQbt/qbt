@@ -1,6 +1,5 @@
 package qbt.vcs.git;
 
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -47,11 +46,6 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public String getCurrentBranch() {
-        return GitUtils.getCurrentBranch(repositoryPath);
-    }
-
-    @Override
     public Iterable<String> showFile(VcsVersionDigest commit, String path) {
         return GitUtils.showFile(repositoryPath, commit, path);
     }
@@ -74,15 +68,6 @@ public class GitRepository implements Repository {
     @Override
     public Multimap<String, String> getAllConfig() {
         return GitUtils.getAllConfig(repositoryPath);
-    }
-
-    @Override
-    public Multimap<String, String> getCurrentBranchConfig() {
-        String currentBranch = GitUtils.getCurrentBranch(repositoryPath);
-        if(currentBranch == null) {
-            return ImmutableMultimap.of();
-        }
-        return GitUtils.getBranchConfig(repositoryPath, currentBranch);
     }
 
     @Override

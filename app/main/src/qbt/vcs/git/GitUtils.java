@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtHashUtils;
 import qbt.QbtTempDir;
 import qbt.QbtUtils;
@@ -331,30 +330,6 @@ public class GitUtils {
                 return null;
             }
         });
-        return b.build();
-    }
-
-    public static String getCurrentBranch(Path dir) {
-        Pair<ImmutableList<String>, Integer> ret = new ProcessHelper(dir, "git", "symbolic-ref", "HEAD").ignoreError().completeLinesAndExitCode();
-        if(ret.getRight() != 0) {
-            return null;
-        }
-        String value = Iterables.getOnlyElement(ret.getLeft());
-        String prefix = "refs/heads/";
-        if(!value.startsWith(prefix)) {
-            return null;
-        }
-        return value.substring(prefix.length());
-    }
-
-    public static Multimap<String, String> getBranchConfig(Path dir, String currentBranch) {
-        ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
-        String prefix = "branch." + currentBranch + ".";
-        for(Map.Entry<String, String> e : getAllConfig(dir).entries()) {
-            if(e.getKey().startsWith(prefix)) {
-                b.put(e.getKey().substring(prefix.length()), e.getValue());
-            }
-        }
         return b.build();
     }
 

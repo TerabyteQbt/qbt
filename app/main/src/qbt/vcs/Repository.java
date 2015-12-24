@@ -13,13 +13,11 @@ public interface Repository {
     public VcsTreeDigest getEffectiveTree(String subpath);
     public boolean isAncestorOf(VcsVersionDigest ancestor, VcsVersionDigest descendent);
     public VcsVersionDigest getCurrentCommit();
-    public String getCurrentBranch();
     public Iterable<String> showFile(VcsVersionDigest commit, String path);
     public Iterable<String> showFile(VcsTreeDigest commit, String path);
     public Iterable<VcsVersionDigest> mergeBases(VcsVersionDigest lhs, VcsVersionDigest rhs);
     public boolean commitExists(VcsVersionDigest version);
     public Multimap<String, String> getAllConfig();
-    public Multimap<String, String> getCurrentBranchConfig();
     public boolean isClean();
     public boolean isClean(CommitLevel level);
     public Path getRoot();
