@@ -38,7 +38,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
         this.dir = dir;
 
         ImmutableSalvagingMap<String, Either<TreeAccessor, Pair<String, HashCode>>> b = ImmutableSalvagingMap.of();
-        for(String line : GitUtils.ph(dir, "git", "ls-tree", tree.getRawDigest().toString()).inheritError().run().requireSuccess().stdout) {
+        for(String line : GitUtils.ph(dir, "git", "ls-tree", tree.getRawDigest().toString()).run().requireSuccess().stdout) {
             Matcher m = PATTERN.matcher(line);
             if(!m.matches()) {
                 throw new IllegalStateException();
@@ -193,7 +193,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
             try(QbtTempDir tempDir = new QbtTempDir()) {
                 Path tempFile = tempDir.resolve("object");
                 QbtUtils.writeLines(tempFile, lines.build());
-                rawDigest = GitUtils.sha1(GitUtils.ph(dir, "git", "mktree").fileInput(tempFile).inheritError());
+                rawDigest = GitUtils.sha1(GitUtils.ph(dir, "git", "mktree").fileInput(tempFile));
             }
 
             digestLocal = digest = new VcsTreeDigest(rawDigest);

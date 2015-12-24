@@ -56,15 +56,11 @@ public class GitUtils {
     }
 
     private static String getPrefix(Path dir) {
-        ProcessHelper p = ph(dir, "git", "rev-parse", "--show-prefix");
-        p = p.inheritError();
-        return p.run().requireLine();
+        return ph(dir, "git", "rev-parse", "--show-prefix").run().requireLine();
     }
 
     public static Path getRoot(Path dir) {
-        ProcessHelper p = ph(dir, "git", "rev-parse", "--show-toplevel");
-        p = p.inheritError();
-        return Paths.get(p.run().requireLine());
+        return Paths.get(ph(dir, "git", "rev-parse", "--show-toplevel").run().requireLine());
     }
 
     private static VcsTreeDigest getSubIndex(Path dir) {
@@ -76,7 +72,6 @@ public class GitUtils {
 
         String prefix = getPrefix(dir);
         p = ph(getRoot(dir), "git", "ls-files", "--", prefix);
-        p = p.inheritError();
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
@@ -85,7 +80,6 @@ public class GitUtils {
         }
 
         p = ph(dir, "git", "write-tree", "--prefix=" + prefix);
-        p = p.inheritError();
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
@@ -93,7 +87,7 @@ public class GitUtils {
     }
 
     public static boolean isClean(Path dir) {
-        return ph(dir, "git", "status", "--porcelain", ".").inheritError().run().requireSuccess().stdout.isEmpty();
+        return ph(dir, "git", "status", "--porcelain", ".").run().requireSuccess().stdout.isEmpty();
     }
 
     public static boolean isClean(Path dir, CommitLevel level) {
@@ -103,17 +97,11 @@ public class GitUtils {
     }
 
     public static boolean objectExists(Path repo, TypedDigest object) {
-        ProcessHelper p = ph(repo, "git", "cat-file", "-e", String.valueOf(object.getRawDigest()));
-        p = p.inheritOutput();
-        p = p.inheritError();
-        return p.run().exitCode == 0;
+        return ph(repo, "git", "cat-file", "-e", String.valueOf(object.getRawDigest())).run().exitCode == 0;
     }
 
     public static boolean isAncestorOf(Path repo, VcsVersionDigest ancestor, VcsVersionDigest descendent) {
-        ProcessHelper p = ph(repo, "git", "merge-base", "--is-ancestor", String.valueOf(ancestor.getRawDigest()), String.valueOf(descendent.getRawDigest()));
-        p = p.inheritOutput();
-        p = p.inheritError();
-        return p.run().exitCode == 0;
+        return ph(repo, "git", "merge-base", "--is-ancestor", String.valueOf(ancestor.getRawDigest()), String.valueOf(descendent.getRawDigest())).run().exitCode == 0;
     }
 
     public static void fetchRemote(Path repo, String name) {
@@ -121,34 +109,23 @@ public class GitUtils {
     }
 
     public static Iterable<String> showFile(Path repo, VcsVersionDigest commit, String path) {
-        ProcessHelper p = ph(repo, "git", "show", commit.getRawDigest() + ":" + path);
-        p = p.inheritError();
-        return p.run().requireSuccess().stdout;
+        return ph(repo, "git", "show", commit.getRawDigest() + ":" + path).run().requireSuccess().stdout;
     }
 
     public static Iterable<String> showFile(Path repo, VcsTreeDigest tree, String path) {
-        ProcessHelper p = ph(repo, "git", "show", tree.getRawDigest() + ":" + path);
-        p = p.inheritError();
-        return p.run().requireSuccess().stdout;
+        return ph(repo, "git", "show", tree.getRawDigest() + ":" + path).run().requireSuccess().stdout;
     }
 
     public static VcsTreeDigest getSubtree(Path repo, VcsVersionDigest commit, String path) {
-        ProcessHelper p = ph(repo, "git", "rev-parse", commit.getRawDigest() + ":" + path);
-        p = p.inheritError();
-        return new VcsTreeDigest(sha1(p));
+        return new VcsTreeDigest(sha1(ph(repo, "git", "rev-parse", commit.getRawDigest() + ":" + path)));
     }
 
     public static VcsTreeDigest getSubtree(Path repo, VcsTreeDigest tree, String path) {
-        ProcessHelper p = ph(repo, "git", "rev-parse", tree.getRawDigest() + ":" + path);
-        p = p.inheritError();
-        return new VcsTreeDigest(sha1(p));
+        return new VcsTreeDigest(sha1(ph(repo, "git", "rev-parse", tree.getRawDigest() + ":" + path)));
     }
 
     public static boolean remoteExists(String spec) {
-        ProcessHelper p = ph(Paths.get("/"), "git", "ls-remote", spec);
-        p = p.ignoreOutput();
-        p = p.ignoreError();
-        return p.run().exitCode == 0;
+        return ph(Paths.get("/"), "git", "ls-remote", spec).run().exitCode == 0;
     }
 
     public static void createWorkingRepo(Path repo) {
@@ -180,9 +157,7 @@ public class GitUtils {
     }
 
     public static VcsVersionDigest getCurrentCommit(Path dir) {
-        ProcessHelper p = ph(dir, "git", "rev-parse", "HEAD");
-        p = p.inheritError();
-        return new VcsVersionDigest(sha1(p));
+        return new VcsVersionDigest(sha1(ph(dir, "git", "rev-parse", "HEAD")));
     }
 
     public static void checkout(Path dir, VcsVersionDigest commit) {
@@ -215,12 +190,12 @@ public class GitUtils {
 
     private static int manageLocalPins(Path dir) {
         ImmutableList.Builder<VcsVersionDigest> localPinsBuilder = ImmutableList.builder();
-        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-local-pins/*").inheritError().run().requireSuccess().stdout) {
+        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-local-pins/*").run().requireSuccess().stdout) {
             localPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
         }
         List<VcsVersionDigest> localPins = localPinsBuilder.build();
         ImmutableList.Builder<VcsVersionDigest> cachedPinsBuilder = ImmutableList.builder();
-        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-pins/*").inheritError().run().requireSuccess().stdout) {
+        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-pins/*").run().requireSuccess().stdout) {
             cachedPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
         }
         List<VcsVersionDigest> cachedPins = cachedPinsBuilder.build();
@@ -273,7 +248,6 @@ public class GitUtils {
 
     public static Iterable<VcsVersionDigest> mergeBases(Path repo, VcsVersionDigest lhs, VcsVersionDigest rhs) {
         ProcessHelper p = ph(repo, "git", "merge-base", "-a", lhs.getRawDigest().toString(), rhs.getRawDigest().toString());
-        p = p.inheritError();
         return Iterables.transform(p.run().requireSuccess().stdout, new Function<String, VcsVersionDigest>() {
             @Override
             public VcsVersionDigest apply(String line) {
@@ -304,12 +278,7 @@ public class GitUtils {
     }
 
     public static VcsTreeDigest getWorkingTree(Path dir, CommitLevel level) {
-        Path realIndexFile;
-        {
-            ProcessHelper p = ph(dir, "git", "rev-parse", "--git-dir");
-            p = p.inheritError();
-            realIndexFile = dir.resolve(p.run().requireLine()).resolve("index").toAbsolutePath();
-        }
+        Path realIndexFile = dir.resolve(ph(dir, "git", "rev-parse", "--git-dir").run().requireLine()).resolve("index").toAbsolutePath();
 
         try(QbtTempDir tempDir = new QbtTempDir()) {
             Path tempIndexFile = tempDir.resolve("temp.index");
@@ -328,12 +297,12 @@ public class GitUtils {
     }
 
     public static VcsVersionDigest revParse(Path dir, String arg) {
-        return new VcsVersionDigest(sha1(ph(dir, "git", "rev-parse", arg).inheritError()));
+        return new VcsVersionDigest(sha1(ph(dir, "git", "rev-parse", arg)));
     }
 
     public static Multimap<String, String> getAllConfig(Path dir) {
         ImmutableMultimap.Builder<String, String> b = ImmutableMultimap.builder();
-        for(String line : ph(dir, "git", "config", "-l").inheritError().run().requireSuccess().stdout) {
+        for(String line : ph(dir, "git", "config", "-l").run().requireSuccess().stdout) {
             int i = line.indexOf('=');
             if(i == -1) {
                 throw new IllegalStateException("Bogus git config -l line: " + line);
@@ -348,11 +317,11 @@ public class GitUtils {
     }
 
     public static Iterable<String> getChangedPaths(Path dir, VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        return ph(dir, "git", "diff", "--name-only", lhs.getRawDigest().toString(), rhs.getRawDigest().toString()).inheritError().run().requireSuccess().stdout;
+        return ph(dir, "git", "diff", "--name-only", lhs.getRawDigest().toString(), rhs.getRawDigest().toString()).run().requireSuccess().stdout;
     }
 
     public static VcsVersionDigest getFirstParent(Path repoDir, VcsVersionDigest after) {
-        return new VcsVersionDigest(sha1(ph(repoDir, "git", "rev-parse", after.getRawDigest() + "^").inheritError()));
+        return new VcsVersionDigest(sha1(ph(repoDir, "git", "rev-parse", after.getRawDigest() + "^")));
     }
 
     public static List<VcsVersionDigest> mergeBaseIndependent(Path repo, Collection<VcsVersionDigest> subCommitParents) {
@@ -362,20 +331,20 @@ public class GitUtils {
         ImmutableList.Builder<String> commandBuilder = ImmutableList.builder();
         commandBuilder.add("git", "merge-base", "--independent");
         commandBuilder.addAll(Iterables.transform(subCommitParents, VcsVersionDigest.DEPARSE_FUNCTION));
-        return ImmutableList.copyOf(Iterables.transform(ph(repo, commandBuilder.build().toArray(new String[0])).inheritError().run().requireSuccess().stdout, VcsVersionDigest.PARSE_FUNCTION));
+        return ImmutableList.copyOf(Iterables.transform(ph(repo, commandBuilder.build().toArray(new String[0])).run().requireSuccess().stdout, VcsVersionDigest.PARSE_FUNCTION));
     }
 
     public static String getCommitterEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cE", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cE", commit.getRawDigest().toString()).run().requireSuccess().stdout);
     }
     public static String getCommitterName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cN", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cN", commit.getRawDigest().toString()).run().requireSuccess().stdout);
     }
     public static String getAuthorEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aE", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aE", commit.getRawDigest().toString()).run().requireSuccess().stdout);
     }
     public static String getAuthorName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aN", commit.getRawDigest().toString()).inheritError().run().requireSuccess().stdout);
+        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aN", commit.getRawDigest().toString()).run().requireSuccess().stdout);
     }
 
     public static void createBranch(Path dir, String name, VcsVersionDigest commit) {
@@ -519,7 +488,6 @@ public class GitUtils {
         }
         Parser pp = new Parser();
         ProcessHelper p = ph(dir, args);
-        p = p.inheritError();
         for(String line : p.run().requireSuccess().stdout) {
             pp.parseLine(line);
         }
@@ -540,7 +508,7 @@ public class GitUtils {
         p = p.putEnv("GIT_COMMITTER_NAME", commitData.get(CommitData.COMMITTER_NAME));
         p = p.putEnv("GIT_COMMITTER_EMAIL", commitData.get(CommitData.COMMITTER_EMAIL));
         p = p.putEnv("GIT_COMMITTER_DATE", commitData.get(CommitData.COMMITTER_DATE));
-        HashCode object = sha1(p.inheritError());
+        HashCode object = sha1(p);
         return new VcsVersionDigest(object);
     }
 
@@ -553,14 +521,14 @@ public class GitUtils {
             catch(IOException e) {
                 throw ExceptionUtils.commute(e);
             }
-            return sha1(ph(dir, "git", "hash-object", "-w", tempFile.toString()).inheritError());
+            return sha1(ph(dir, "git", "hash-object", "-w", tempFile.toString()));
         }
     }
 
     public static byte[] readObject(Path dir, HashCode object) {
         try(QbtTempDir tempDir = new QbtTempDir()) {
             Path tempFile = tempDir.resolve("object");
-            ph(dir, "git", "show", object.toString()).fileOutput(tempFile).inheritError().run().requireSuccess();
+            ph(dir, "git", "show", object.toString()).fileOutput(tempFile).run().requireSuccess();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
                 Files.copy(tempFile.toFile(), baos);
@@ -573,8 +541,6 @@ public class GitUtils {
     }
 
     public static List<String> getUserVisibleStatus(Path dir) {
-        ProcessHelper p = ph(dir, "git", "status", "--short");
-        p = p.inheritError();
-        return p.run().requireSuccess().stdout;
+        return ph(dir, "git", "status", "--short").run().requireSuccess().stdout;
     }
 }

@@ -95,7 +95,7 @@ public class IntegrationTests {
         String p2c12Random = h.checkRandom2(null);
         Assert.assertNotEquals(p2c11Random, p2c12Random);
 
-        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "add", "-A").inheritError().ignoreOutput().run().requireSuccess();
+        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "add", "-A").run().requireSuccess();
         for(int i = 0; i < 2; ++i) {
             h.build();
             h.checkContent("1", "2");
@@ -103,7 +103,7 @@ public class IntegrationTests {
             h.checkRandom2(p2c12Random);
         }
 
-        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "commit", "-a", "-m.").inheritError().ignoreOutput().run().requireSuccess();
+        ProcessHelper.of(workspace.resolve("local/HEAD/r1"), "git", "commit", "-a", "-m.").run().requireSuccess();
         for(int i = 0; i < 2; ++i) {
             h.build();
             h.checkContent("1", "2");
@@ -169,8 +169,8 @@ public class IntegrationTests {
         // changed file immediately, presumably due to mtime checking
         // shennanigans.  We force the index to drop anything it thinks it
         // knows.
-        if(ProcessHelper.of(file.getParent(), "git", "rev-parse", "--git-dir").ignoreError().ignoreOutput().run().exitCode == 0) {
-            ProcessHelper.of(file.getParent(), "git", "update-index", "--no-assume-unchanged", file.getFileName().toString()).inheritError().ignoreOutput().run().requireSuccess();
+        if(ProcessHelper.of(file.getParent(), "git", "rev-parse", "--git-dir").run().exitCode == 0) {
+            ProcessHelper.of(file.getParent(), "git", "update-index", "--no-assume-unchanged", file.getFileName().toString()).run().requireSuccess();
         }
     }
 
