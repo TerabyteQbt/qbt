@@ -52,5 +52,5 @@ public class CompoundArtifactCacher implements ArtifactCacher {
         for(ArtifactCacher delegate : delegates) {
             delegate.cleanup();
         }
-    };
+    }
 }
