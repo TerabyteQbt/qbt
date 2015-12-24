@@ -56,11 +56,6 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Iterable<VcsVersionDigest> mergeBases(VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        return GitUtils.mergeBases(repositoryPath, lhs, rhs);
-    }
-
-    @Override
     public boolean commitExists(VcsVersionDigest version) {
         return GitUtils.objectExists(repositoryPath, version);
     }
@@ -86,11 +81,6 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Iterable<String> getChangedPaths(VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        return GitUtils.getChangedPaths(repositoryPath, lhs, rhs);
-    }
-
-    @Override
     public VcsTreeDigest getSubtree(VcsVersionDigest version, String subpath) {
         return GitUtils.getSubtree(repositoryPath, version, subpath);
     }
@@ -106,16 +96,6 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void checkout(String localBranchName) {
-        GitUtils.checkout(repositoryPath, localBranchName);
-    }
-
-    @Override
-    public void addConfigItem(String key, String value) {
-        GitUtils.addConfigItem(repositoryPath, key, value);
-    }
-
-    @Override
     public String toString() {
         return "[Git repository at " + repositoryPath + "]";
     }
@@ -127,11 +107,6 @@ public class GitRepository implements Repository {
             return getSubtree(getCurrentCommit(), subpath);
         }
         return GitUtils.getWorkingTree(repositoryPath.resolve(subpath), CommitLevel.UNTRACKED);
-    }
-
-    @Override
-    public void createBranch(String name, VcsVersionDigest commit) {
-        GitUtils.createBranch(repositoryPath, name, commit);
     }
 
     @Override

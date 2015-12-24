@@ -1,12 +1,9 @@
 package qbt.vcs.git;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
@@ -19,7 +16,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import misc1.commons.ExceptionUtils;
@@ -104,10 +100,6 @@ public class GitUtils {
         return ph(repo, "git", "merge-base", "--is-ancestor", String.valueOf(ancestor.getRawDigest()), String.valueOf(descendent.getRawDigest())).run().exitCode == 0;
     }
 
-    public static void fetchRemote(Path repo, String name) {
-        runQuiet(repo, "git", "fetch", "-q", name);
-    }
-
     public static Iterable<String> showFile(Path repo, VcsVersionDigest commit, String path) {
         return ph(repo, "git", "show", commit.getRawDigest() + ":" + path).run().requireSuccess().stdout;
     }
@@ -136,10 +128,6 @@ public class GitUtils {
         runQuiet(repo, "git", "init", "-q", "--bare");
     }
 
-    public static void addRemote(Path repo, String name, String spec) {
-        runQuiet(repo, "git", "remote", "add", name, spec);
-    }
-
     private static void archiveTree(Path repo, VcsTreeDigest tree, Path tar) {
         runQuiet(repo, "git", "archive", "-o", tar.toAbsolutePath().toString(), String.valueOf(tree.getRawDigest()));
     }
@@ -164,10 +152,6 @@ public class GitUtils {
         runQuiet(dir, "git", "checkout", "-q", String.valueOf(commit.getRawDigest()));
     }
 
-    public static void checkout(Path dir, String branchName) {
-        runQuiet(dir, "git", "checkout", "-q", branchName);
-    }
-
     public static void merge(Path dir, VcsVersionDigest commit) {
         runQuiet(dir, "git", "merge", "-q", String.valueOf(commit.getRawDigest()));
     }
@@ -182,78 +166,6 @@ public class GitUtils {
 
     public static void addPinToRemote(Path dir, String remote, VcsVersionDigest commit) {
         runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-pins/" + commit.getRawDigest());
-    }
-
-    public static void addLocalPinToRemote(Path dir, String remote, VcsVersionDigest commit) {
-        runQuiet(dir, "git", "push", "-q", remote, commit.getRawDigest() + ":refs/qbt-local-pins/" + commit.getRawDigest());
-    }
-
-    private static int manageLocalPins(Path dir) {
-        ImmutableList.Builder<VcsVersionDigest> localPinsBuilder = ImmutableList.builder();
-        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-local-pins/*").run().requireSuccess().stdout) {
-            localPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
-        }
-        List<VcsVersionDigest> localPins = localPinsBuilder.build();
-        ImmutableList.Builder<VcsVersionDigest> cachedPinsBuilder = ImmutableList.builder();
-        for(String line : ph(dir, "git", "rev-parse", "--glob=refs/qbt-pins/*").run().requireSuccess().stdout) {
-            cachedPinsBuilder.add(new VcsVersionDigest(QbtHashUtils.parse(line)));
-        }
-        List<VcsVersionDigest> cachedPins = cachedPinsBuilder.build();
-
-        Set<VcsVersionDigest> pinsKeep = Sets.newHashSet();
-        pinsKeep.addAll(localPins);
-        pinsKeep.addAll(cachedPins);
-        pinsKeep = Sets.newHashSet(mergeBaseIndependent(dir, pinsKeep));
-        pinsKeep.removeAll(cachedPins);
-
-        int kept = 0;
-        for(VcsVersionDigest localPin : localPins) {
-            if(!pinsKeep.contains(localPin)) {
-                runQuiet(dir, "git", "update-ref", "-d", "refs/qbt-local-pins/" + localPin.getRawDigest());
-            }
-            else {
-                ++kept;
-            }
-        }
-
-        return kept;
-    }
-
-    public static int flushLocalPinsToRemote(Path dir, String remote) {
-        int kept = manageLocalPins(dir);
-        if(kept == 0) {
-            // the cached pins alone mean we're clean, bounce
-            return 0;
-        }
-        // we think we have outstanding local pins, let's try a fetch and check again
-        fetchPins(dir, remote);
-        kept = manageLocalPins(dir);
-        if(kept == 0) {
-            // that covered it, great
-            return 0;
-        }
-        // nope, we gotta push
-        runQuiet(dir, "git", "push", "-q", remote, "refs/qbt-local-pins/*:refs/qbt-pins/*");
-        // count is not strictly correct on races but so be it
-        return kept;
-    }
-
-    public static void publishBranch(Path dir, String remote, VcsVersionDigest commit, String name) {
-        runQuiet(dir, "git", "push", "-q", remote, "+" + commit.getRawDigest() + ":refs/heads/" + name);
-    }
-
-    public static void forcePush(Path dir, String remote, VcsVersionDigest from, String to) {
-        runQuiet(dir, "git", "push", "-q", remote, "+" + from.getRawDigest() + ":" + to);
-    }
-
-    public static Iterable<VcsVersionDigest> mergeBases(Path repo, VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        ProcessHelper p = ph(repo, "git", "merge-base", "-a", lhs.getRawDigest().toString(), rhs.getRawDigest().toString());
-        return Iterables.transform(p.run().requireSuccess().stdout, new Function<String, VcsVersionDigest>() {
-            @Override
-            public VcsVersionDigest apply(String line) {
-                return new VcsVersionDigest(QbtHashUtils.parse(line));
-            }
-        });
     }
 
     private static String[] commitLevelAdd(CommitLevel level) {
@@ -310,49 +222,6 @@ public class GitUtils {
             b.put(line.substring(0, i), line.substring(i + 1));
         }
         return b.build();
-    }
-
-    public static void addConfigItem(Path dir, String key, String value) {
-        runQuiet(dir, "git", "config", "--add", key, value);
-    }
-
-    public static Iterable<String> getChangedPaths(Path dir, VcsVersionDigest lhs, VcsVersionDigest rhs) {
-        return ph(dir, "git", "diff", "--name-only", lhs.getRawDigest().toString(), rhs.getRawDigest().toString()).run().requireSuccess().stdout;
-    }
-
-    public static VcsVersionDigest getFirstParent(Path repoDir, VcsVersionDigest after) {
-        return new VcsVersionDigest(sha1(ph(repoDir, "git", "rev-parse", after.getRawDigest() + "^")));
-    }
-
-    public static List<VcsVersionDigest> mergeBaseIndependent(Path repo, Collection<VcsVersionDigest> subCommitParents) {
-        if(subCommitParents.isEmpty()) {
-            return ImmutableList.of();
-        }
-        ImmutableList.Builder<String> commandBuilder = ImmutableList.builder();
-        commandBuilder.add("git", "merge-base", "--independent");
-        commandBuilder.addAll(Iterables.transform(subCommitParents, VcsVersionDigest.DEPARSE_FUNCTION));
-        return ImmutableList.copyOf(Iterables.transform(ph(repo, commandBuilder.build().toArray(new String[0])).run().requireSuccess().stdout, VcsVersionDigest.PARSE_FUNCTION));
-    }
-
-    public static String getCommitterEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cE", commit.getRawDigest().toString()).run().requireSuccess().stdout);
-    }
-    public static String getCommitterName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%cN", commit.getRawDigest().toString()).run().requireSuccess().stdout);
-    }
-    public static String getAuthorEmail(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aE", commit.getRawDigest().toString()).run().requireSuccess().stdout);
-    }
-    public static String getAuthorName(Path repo, VcsVersionDigest commit) {
-        return Iterables.getOnlyElement(ph(repo, "git", "log", "-1", "--format=%aN", commit.getRawDigest().toString()).run().requireSuccess().stdout);
-    }
-
-    public static void createBranch(Path dir, String name, VcsVersionDigest commit) {
-        runQuiet(dir, "git", "branch", name, commit.getRawDigest().toString());
-    }
-
-    public static void rsyncBranches(Path dir, String localPrefix, String remote, String remotePrefix) {
-        runQuiet(dir, "git", "push", "--prune", "--force", remote, "refs/heads/" + localPrefix + "*:refs/heads/" + remotePrefix + "*");
     }
 
     public static VcsVersionDigest commit(Path dir, boolean amend, String message, CommitLevel level) {
