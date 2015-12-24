@@ -134,6 +134,10 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
     }
 
     @Override
+    public void touch(CumulativeVersionDigest key, Architecture arch) {
+    }
+
+    @Override
     public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
         simplePut(p.getLeft(), key, p.getRight());
         return p;

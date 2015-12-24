@@ -25,6 +25,7 @@ public class CompoundArtifactCacher implements ArtifactCacher {
         ArtifactCacher delegate = delegates.get(depth);
         Pair<Architecture, ArtifactReference> delegateHit = delegate.get(scope, key, arch);
         if(delegateHit != null) {
+            touch(depth + 1, key, arch);
             return delegateHit;
         }
         Pair<Architecture, ArtifactReference> tailHit = get(depth + 1, scope, key, arch);
@@ -32,6 +33,20 @@ public class CompoundArtifactCacher implements ArtifactCacher {
             return null;
         }
         return delegate.intercept(scope, key, tailHit);
+    }
+
+    @Override
+    public void touch(CumulativeVersionDigest key, Architecture arch) {
+        touch(0, key, arch);
+    }
+
+    private void touch(int depth, CumulativeVersionDigest key, Architecture arch) {
+        if(depth >= delegates.size()) {
+            return;
+        }
+        ArtifactCacher delegate = delegates.get(depth);
+        delegate.touch(key, arch);
+        touch(depth + 1, key, arch);
     }
 
     @Override

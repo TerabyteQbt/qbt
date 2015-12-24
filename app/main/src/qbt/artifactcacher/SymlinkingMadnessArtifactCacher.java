@@ -37,6 +37,10 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
     }
 
     @Override
+    public void touch(CumulativeVersionDigest key, Architecture arch) {
+    }
+
+    @Override
     public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, final Pair<Architecture, ArtifactReference> p) {
         final Path writeDir = writeRoot.resolve(key.getRawDigest().toString());
         final Path readDir = readRoot.resolve(key.getRawDigest().toString());

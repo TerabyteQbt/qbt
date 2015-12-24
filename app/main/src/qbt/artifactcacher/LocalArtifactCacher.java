@@ -33,8 +33,7 @@ public class LocalArtifactCacher implements ArtifactCacher {
         this.targetSize = targetSize;
     }
 
-    @Override
-    public Pair<Architecture, ArtifactReference> get(FreeScope scope, CumulativeVersionDigest key, Architecture arch) {
+    private Path formatAndTouch(CumulativeVersionDigest key) {
         Path tarball = root.resolve(key.getRawDigest().toString() + ".tar.gz");
         try {
             Files.setLastModifiedTime(tarball, FileTime.fromMillis(System.currentTimeMillis()));
@@ -43,9 +42,20 @@ public class LocalArtifactCacher implements ArtifactCacher {
             // yearggh, this is really best effort and we can't do this (check
             // and set) non-racily with the Files API
         }
+        return tarball;
+    }
+
+    @Override
+    public Pair<Architecture, ArtifactReference> get(FreeScope scope, CumulativeVersionDigest key, Architecture arch) {
+        Path tarball = formatAndTouch(key);
         ArtifactReference ret = ArtifactReferences.copyFile(scope, tarball, true);
         LOGGER.debug("Cache check for " + key + " at " + tarball + " " + (ret == null ? "missed" : "hit"));
         return ret == null ? null : Pair.of(Architecture.unknown(), ret);
+    }
+
+    @Override
+    public void touch(CumulativeVersionDigest key, Architecture arch) {
+        formatAndTouch(key);
     }
 
     @Override
