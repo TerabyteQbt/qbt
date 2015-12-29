@@ -3,6 +3,8 @@ package qbt.options;
 import com.google.common.collect.ImmutableList;
 import misc1.commons.Maybe;
 import misc1.commons.concurrent.WorkPool;
+import misc1.commons.concurrent.ctree.ComputationTree;
+import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.NamedIntegerSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsDelegate;
@@ -13,7 +15,16 @@ public class ParallelismOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, Integer> parallelism = new NamedIntegerSingletonArgumentOptionsFragment<O>(ImmutableList.of("--parallelism", "-j"), Maybe.<Integer>of(null), "Parallelize up to this width");
     public final OptionsFragment<O, ?, Boolean> infiniteParallelism = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--infinite-parallelism", "-J"), "Parallelize as widely as possible");
 
-    private static class ExplicitParallelismOptionsResult implements ParallelismOptionsResult {
+    private static abstract class BaseParallelismOptionsResult implements ParallelismOptionsResult {
+        @Override
+        public <T> T runComputationTree(ComputationTree<T> computationTree) {
+            try(WorkPool workPool = createWorkPool()) {
+                return new ComputationTreeComputer(workPool).await(computationTree).getCommute();
+            }
+        }
+    }
+
+    private static class ExplicitParallelismOptionsResult extends BaseParallelismOptionsResult {
         private final int parallelism;
 
         public ExplicitParallelismOptionsResult(int parallelism) {
@@ -26,14 +37,14 @@ public class ParallelismOptionsDelegate<O> implements OptionsDelegate<O> {
         }
     }
 
-    private static class InfiniteParallelismOptionsResult implements ParallelismOptionsResult {
+    private static class InfiniteParallelismOptionsResult extends BaseParallelismOptionsResult {
         @Override
         public WorkPool createWorkPool() {
             return WorkPool.infiniteParallelism();
         }
     }
 
-    private static class DefaultParallelismOptionsResult implements ParallelismOptionsResult {
+    private static class DefaultParallelismOptionsResult extends BaseParallelismOptionsResult {
         @Override
         public WorkPool createWorkPool() {
             return WorkPool.defaultParallelism();

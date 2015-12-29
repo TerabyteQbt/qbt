@@ -6,9 +6,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collection;
-import misc1.commons.concurrent.WorkPool;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
@@ -110,9 +108,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
             }
         });
 
-        try(WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool()) {
-            new ComputationTreeComputer(workPool).await(computationTree).getCommute();
-        }
+        Options.parallelism.getResult(options, false).runComputationTree(computationTree);
         return 0;
     }
 }

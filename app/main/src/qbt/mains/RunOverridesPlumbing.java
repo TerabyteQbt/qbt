@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
-import misc1.commons.concurrent.WorkPool;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
@@ -143,9 +141,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                 return ObjectUtils.NULL;
             }
         });
-        try(WorkPool workPool = RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).createWorkPool()) {
-            new ComputationTreeComputer(workPool).await(computationTree).getCommute();
-        }
+        RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).runComputationTree(computationTree);
         return 0;
     }
 }
