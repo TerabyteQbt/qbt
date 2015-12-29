@@ -93,17 +93,13 @@ public class PushPins extends QbtCommand<PushPins.Options> {
             }
         }));
 
-        final WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool();
-        try {
+        try(WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool()) {
             new ComputationTreeComputer() {
                 @Override
                 protected void submit(Runnable r) {
-                    workPool.submit(r);
+                    workPool.execute(r);
                 }
             }.await(computationTree).getCommute();
-        }
-        finally {
-            workPool.shutdown();
         }
         return 0;
     }

@@ -36,75 +36,73 @@ public final class PackageMapperHelper {
         artifactCacher.cleanup();
         final Architecture arch = Architecture.fromArg(options.get(packageMapperHelperOption.arch));
         final boolean noBuilds = options.get(packageMapperHelperOption.noBuilds);
-        final WorkPool workPool = packageMapperHelperOption.parallelism.getResult(options, false).createWorkPool();
-        try(FreeScope scope = new FreeScope()) {
-            ComputationTree<T> computationTree = cb.run(new PackageMapperHelperCallbackCallback() {
-                private void checkTree(BuildData bd, String suffix) {
-                    // This is sort of a crummy way to do this.
-                    // Additionally, this is only checking overrides
-                    // since non-overrides have a fixed effective tree.
-                    VcsTreeDigest currentTree = bd.commonRepoAccessor.getEffectiveTree(bd.metadata.get(PackageMetadataType.PREFIX));
-                    if(!bd.v.getEffectiveTree().equals(currentTree)) {
-                        throw new IllegalStateException("The effective tree for " + bd.v.getPackageName() + " has changed from " + bd.v.getEffectiveTree().getRawDigest() + " to " + currentTree.getRawDigest() + suffix + "!");
+        try(WorkPool workPool = packageMapperHelperOption.parallelism.getResult(options, false).createWorkPool()) {
+            try(FreeScope scope = new FreeScope()) {
+                ComputationTree<T> computationTree = cb.run(new PackageMapperHelperCallbackCallback() {
+                    private void checkTree(BuildData bd, String suffix) {
+                        // This is sort of a crummy way to do this.
+                        // Additionally, this is only checking overrides
+                        // since non-overrides have a fixed effective tree.
+                        VcsTreeDigest currentTree = bd.commonRepoAccessor.getEffectiveTree(bd.metadata.get(PackageMetadataType.PREFIX));
+                        if(!bd.v.getEffectiveTree().equals(currentTree)) {
+                            throw new IllegalStateException("The effective tree for " + bd.v.getPackageName() + " has changed from " + bd.v.getEffectiveTree().getRawDigest() + " to " + currentTree.getRawDigest() + suffix + "!");
+                        }
                     }
-                }
 
-                @Override
-                public ArtifactReference runBuild(BuildData bd) {
-                    return runBuildFailable(bd).getLeft().getCommute();
-                }
-
-                @Override
-                public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bd) {
-                    Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(scope, bd.v.getDigest(), Architecture.independent());
-                    String cacheDesc = "missed";
-                    if(artifactPair != null) {
-                        cacheDesc = "hit (INDEPENDENT)";
+                    @Override
+                    public ArtifactReference runBuild(BuildData bd) {
+                        return runBuildFailable(bd).getLeft().getCommute();
                     }
-                    else {
-                        artifactPair = artifactCacher.get(scope, bd.v.getDigest(), arch);
+
+                    @Override
+                    public Pair<Result<ArtifactReference>, ArtifactReference> runBuildFailable(final BuildData bd) {
+                        Pair<Architecture, ArtifactReference> artifactPair = artifactCacher.get(scope, bd.v.getDigest(), Architecture.independent());
+                        String cacheDesc = "missed";
                         if(artifactPair != null) {
-                            cacheDesc = "hit (" + arch + ")";
+                            cacheDesc = "hit (INDEPENDENT)";
                         }
-                    }
-                    LOGGER.debug("Cache check " + bd.v.getPackageName() + " at " + bd.v.prettyDigest() + ", " + cacheDesc);
-                    if(artifactPair != null) {
-                        return Pair.of(Result.newSuccess(artifactPair.getRight()), null);
-                    }
-                    else {
-                        String buildDesc = bd.v.prettyDigest();
-                        if(noBuilds) {
-                            return Pair.of(Result.<ArtifactReference>newFailure(new RuntimeException("Would have built " + buildDesc + " but builds were forbidden.")), null);
-                        }
-
-                        checkTree(bd, " before the build");
-
-                        LOGGER.info("Actually building " + buildDesc + "...");
-                        Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bd);
-                        Result<ArtifactReference> artifactResult = result.getLeft();
-                        artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
-                            @Override
-                            public ArtifactReference apply(ArtifactReference input) {
-                                return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
+                        else {
+                            artifactPair = artifactCacher.get(scope, bd.v.getDigest(), arch);
+                            if(artifactPair != null) {
+                                cacheDesc = "hit (" + arch + ")";
                             }
-                        });
+                        }
+                        LOGGER.debug("Cache check " + bd.v.getPackageName() + " at " + bd.v.prettyDigest() + ", " + cacheDesc);
+                        if(artifactPair != null) {
+                            return Pair.of(Result.newSuccess(artifactPair.getRight()), null);
+                        }
+                        else {
+                            String buildDesc = bd.v.prettyDigest();
+                            if(noBuilds) {
+                                return Pair.of(Result.<ArtifactReference>newFailure(new RuntimeException("Would have built " + buildDesc + " but builds were forbidden.")), null);
+                            }
 
-                        checkTree(bd, " after the build");
+                            checkTree(bd, " before the build");
 
-                        return result;
+                            LOGGER.info("Actually building " + buildDesc + "...");
+                            Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bd);
+                            Result<ArtifactReference> artifactResult = result.getLeft();
+                            artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
+                                @Override
+                                public ArtifactReference apply(ArtifactReference input) {
+                                    return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
+                                }
+                            });
+
+                            checkTree(bd, " after the build");
+
+                            return result;
+                        }
                     }
-                }
-            });
-            ComputationTreeComputer ctc = new ComputationTreeComputer() {
-                @Override
-                protected void submit(Runnable r) {
-                    workPool.submit(r);
-                }
-            };
-            return ctc.await(computationTree).getCommute();
-        }
-        finally {
-            workPool.shutdown();
+                });
+                ComputationTreeComputer ctc = new ComputationTreeComputer() {
+                    @Override
+                    protected void submit(Runnable r) {
+                        workPool.execute(r);
+                    }
+                };
+                return ctc.await(computationTree).getCommute();
+            }
         }
     }
 }

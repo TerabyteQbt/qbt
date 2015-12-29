@@ -143,17 +143,13 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
                 return ObjectUtils.NULL;
             }
         });
-        final WorkPool workPool = RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).createWorkPool();
-        try {
+        try(WorkPool workPool = RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).createWorkPool()) {
             new ComputationTreeComputer() {
                 @Override
                 protected void submit(Runnable r) {
-                    workPool.submit(r);
+                    workPool.execute(r);
                 }
             }.await(computationTree).getCommute();
-        }
-        finally {
-            workPool.shutdown();
         }
         return 0;
     }

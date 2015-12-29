@@ -109,18 +109,14 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 return true;
             }
         });
-        final WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool();
         ImmutableList<Boolean> oks;
-        try {
+        try(WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool()) {
             oks = new ComputationTreeComputer() {
                 @Override
                 protected void submit(Runnable r) {
-                    workPool.submit(r);
+                    workPool.execute(r);
                 }
             }.await(computationTree).getCommute();
-        }
-        finally {
-            workPool.shutdown();
         }
         for(Boolean ok : oks) {
             if(!ok) {
