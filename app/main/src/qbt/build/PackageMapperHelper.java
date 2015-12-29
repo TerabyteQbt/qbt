@@ -95,12 +95,7 @@ public final class PackageMapperHelper {
                         }
                     }
                 });
-                ComputationTreeComputer ctc = new ComputationTreeComputer() {
-                    @Override
-                    protected void submit(Runnable r) {
-                        workPool.execute(r);
-                    }
-                };
+                ComputationTreeComputer ctc = new ComputationTreeComputer(workPool);
                 return ctc.await(computationTree).getCommute();
             }
         }

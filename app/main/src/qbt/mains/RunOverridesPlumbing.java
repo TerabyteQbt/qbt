@@ -144,12 +144,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
             }
         });
         try(WorkPool workPool = RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).createWorkPool()) {
-            new ComputationTreeComputer() {
-                @Override
-                protected void submit(Runnable r) {
-                    workPool.execute(r);
-                }
-            }.await(computationTree).getCommute();
+            new ComputationTreeComputer(workPool).await(computationTree).getCommute();
         }
         return 0;
     }
