@@ -190,18 +190,12 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
     }
 
     public <T> T request(HttpUriRequest req, Function<HttpResponse, T> cb) {
-        try {
-            CloseableHttpClient httpClient = clientBuilder().build();
-            try {
-                HttpResponse res = httpClient.execute(req);
-                if(res.getStatusLine().getStatusCode() >= 300) {
-                    throw new RuntimeException(req.getRequestLine() + ": " + res.getStatusLine());
-                }
-                return cb.apply(res);
+        try(CloseableHttpClient httpClient = clientBuilder().build()) {
+            HttpResponse res = httpClient.execute(req);
+            if(res.getStatusLine().getStatusCode() >= 300) {
+                throw new RuntimeException(req.getRequestLine() + ": " + res.getStatusLine());
             }
-            finally {
-                httpClient.close();
-            }
+            return cb.apply(res);
         }
         catch(Exception e) {
             throw ExceptionUtils.commute(e);

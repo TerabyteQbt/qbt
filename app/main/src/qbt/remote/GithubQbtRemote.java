@@ -124,14 +124,8 @@ public final class GithubQbtRemote implements QbtRemote {
     }
 
     private HttpResponse request(HttpUriRequest req) {
-        try {
-            CloseableHttpClient httpClient = HttpClients.custom().build();
-            try {
-                return httpClient.execute(req);
-            }
-            finally {
-                httpClient.close();
-            }
+        try(CloseableHttpClient httpClient = HttpClients.custom().build()) {
+            return httpClient.execute(req);
         }
         catch(Exception e) {
             throw ExceptionUtils.commute(e);
