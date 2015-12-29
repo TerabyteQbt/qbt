@@ -12,6 +12,7 @@ import misc1.commons.concurrent.ctree.ComputationTreeComputer;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.options.UnparsedOptionsFragment;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
@@ -76,9 +77,9 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         final String qbtRemoteString = Iterables.getOnlyElement(options.get(Options.remote));
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
-        ComputationTree<ImmutableList<Boolean>> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, Boolean>() {
+        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
             @Override
-            public Boolean apply(RepoTip repo) {
+            public ObjectUtils.Null apply(RepoTip repo) {
                 RepoManifest repoManifest = manifest.repos.get(repo);
                 if(repoManifest == null) {
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);
@@ -87,7 +88,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
 
                 if(config.localPinsRepo.findPin(repo, version) != null) {
                     LOGGER.debug("[" + repo + "] Already have " + version);
-                    return true;
+                    return ObjectUtils.NULL;
                 }
 
                 RawRemote remote = qbtRemote.findRemote(repo, false);
@@ -102,21 +103,15 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
 
 
                 if(config.localPinsRepo.findPin(repo, version) == null) {
-                    LOGGER.error("[" + repo + "] Could not find " + version + "!");
-                    return false;
+                    throw new RuntimeException("[" + repo + "] Could not find " + version + "!");
                 }
 
-                return true;
+                return ObjectUtils.NULL;
             }
         });
-        ImmutableList<Boolean> oks;
+
         try(WorkPool workPool = Options.parallelism.getResult(options, false).createWorkPool()) {
-            oks = new ComputationTreeComputer(workPool).await(computationTree).getCommute();
-        }
-        for(Boolean ok : oks) {
-            if(!ok) {
-                return 1;
-            }
+            new ComputationTreeComputer(workPool).await(computationTree).getCommute();
         }
         return 0;
     }
