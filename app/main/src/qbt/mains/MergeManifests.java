@@ -102,7 +102,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                 public void invoke(final RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
                     repository.checkout(lhs);
                     ProcessHelper p = ProcessHelper.of(repository.getRoot(), shellActionOptionsResult.commandArray);
-                    p = ProcessHelperUtils.stripGitEnv(p);
+                    p = p.apply(ProcessHelperUtils.STRIP_GIT_ENV);
                     p = p.putEnv("LHS", lhs.getRawDigest().toString());
                     p = p.putEnv("MHS", mhs.getRawDigest().toString());
                     p = p.putEnv("RHS", rhs.getRawDigest().toString());
