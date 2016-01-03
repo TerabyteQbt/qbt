@@ -134,8 +134,6 @@ public final class DependencyComputer {
 
         ImmutableMap.Builder<PackageTip, String> replacementsNextBuilder = ImmutableMap.builder();
         replacementsNextBuilder.putAll(replacements);
-        packageManifest.toString();
-        packageManifest.replaceDeps.toString();
         for(Map.Entry<PackageTip, String> e : packageManifest.replaceDeps.entrySet()) {
             if(!replacements.containsKey(e.getKey())) {
                 replacementsNextBuilder.put(e);
