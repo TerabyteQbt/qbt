@@ -91,9 +91,9 @@ public final class QbtUtils {
         }
     }
 
-    public static List<String> readLines(Path p) {
+    public static ImmutableList<String> readLines(Path p) {
         try {
-            return com.google.common.io.Files.readLines(p.toFile(), Charsets.UTF_8);
+            return ImmutableList.copyOf(com.google.common.io.Files.readLines(p.toFile(), Charsets.UTF_8));
         }
         catch(IOException e) {
             throw ExceptionUtils.commute(e);
@@ -154,7 +154,7 @@ public final class QbtUtils {
 
     private static final String CONFLICT_MARKERS = "<|=>";
 
-    public static Triple<Iterable<String>, Iterable<String>, Iterable<String>> parseConflictLines(Iterable<String> lines) {
+    public static Triple<ImmutableList<String>, ImmutableList<String>, ImmutableList<String>> parseConflictLines(Iterable<String> lines) {
         int state = 0;
         ImmutableList.Builder<String> lhs = ImmutableList.builder();
         ImmutableList.Builder<String> mhs = ImmutableList.builder();
@@ -195,7 +195,7 @@ public final class QbtUtils {
         if(state != 0) {
             throw new IllegalArgumentException("Unexpected EOF");
         }
-        return Triple.<Iterable<String>, Iterable<String>, Iterable<String>>of(lhs.build(), mhs.build(), rhs.build());
+        return Triple.<ImmutableList<String>, ImmutableList<String>, ImmutableList<String>>of(lhs.build(), mhs.build(), rhs.build());
     }
 
     private static char parseConflictMarker(String s) {
