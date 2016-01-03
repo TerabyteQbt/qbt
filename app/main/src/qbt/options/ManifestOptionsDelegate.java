@@ -68,53 +68,52 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
         final Path path = QbtUtils.findInMeta("qbt-manifest", pair.getLeft());
         final Side side = pair.getRight();
         return new ManifestOptionsResult() {
-            @Override
-            public QbtManifest parse() throws IOException {
+            private ImmutableList<String> getLines() {
                 switch(side) {
                     case LHS:
-                        return QbtManifest.parse(path + "@{LHS}", QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getLeft());
+                        return QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getLeft();
 
                     case MHS:
-                        return QbtManifest.parse(path + "@{MHS}", QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getMiddle());
+                        return QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getMiddle();
 
                     case RHS:
-                        return QbtManifest.parse(path + "@{RHS}", QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getRight());
+                        return QbtUtils.parseConflictLines(QbtUtils.readLines(path)).getRight();
 
                     case NONE:
-                        return QbtManifest.parse(path);
+                        return QbtUtils.readLines(path);
                 }
                 throw new IllegalStateException(side.name());
+            }
+
+            private void setLines(ImmutableList<String> lines) {
+                switch(side) {
+                    case LHS:
+                    case MHS:
+                    case RHS:
+                        throw new IllegalArgumentException("Cannot update a side of an existing manifest conflict!");
+
+                    case NONE:
+                        QbtUtils.writeLines(path, lines);
+                        return;
+                }
+                throw new IllegalStateException(side.name());
+            }
+
+            @Override
+            public QbtManifest parse() throws IOException {
+                return QbtManifest.parse("?", getLines());
             }
 
             @Override
             public ImmutableList<Pair<String, String>> deparseConflict(String lhsName, QbtManifest lhs, String mhsName, QbtManifest mhs, String rhsName, QbtManifest rhs) {
-                switch(side) {
-                    case LHS:
-                    case MHS:
-                    case RHS:
-                        throw new IllegalArgumentException("Cannot update a side of an existing manifest conflict!");
-
-                    case NONE:
-                        Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = QbtManifest.deparseConflicts(lhsName, lhs, mhsName, mhs, rhsName, rhs);
-                        QbtUtils.writeLines(path, deparse.getRight());
-                        return deparse.getLeft();
-                }
-                throw new IllegalStateException(side.name());
+                Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = QbtManifest.deparseConflicts(lhsName, lhs, mhsName, mhs, rhsName, rhs);
+                setLines(deparse.getRight());
+                return deparse.getLeft();
             }
 
             @Override
             public void deparse(QbtManifest manifest) {
-                switch(side) {
-                    case LHS:
-                    case MHS:
-                    case RHS:
-                        throw new IllegalArgumentException("Cannot update a side of an existing manifest conflict!");
-
-                    case NONE:
-                        QbtUtils.writeLines(path, manifest.deparse());
-                        return;
-                }
-                throw new IllegalStateException(side.name());
+                setLines(manifest.deparse());
             }
         };
     }
