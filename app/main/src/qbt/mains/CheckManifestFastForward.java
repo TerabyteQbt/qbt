@@ -9,13 +9,13 @@ import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtTempDir;
 import qbt.config.QbtConfig;
-import qbt.diffmanifests.MapDiffer;
 import qbt.manifest.QbtManifest;
 import qbt.manifest.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.repo.PinnedRepoAccessor;
 import qbt.tip.RepoTip;
+import qbt.utils.MapDiffer;
 import qbt.vcs.LocalVcs;
 
 public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForward.Options> {

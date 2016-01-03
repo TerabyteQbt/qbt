@@ -1,4 +1,4 @@
-package qbt.diffmanifests;
+package qbt.utils;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Sets;
