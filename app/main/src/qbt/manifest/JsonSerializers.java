@@ -7,7 +7,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Map;
 import misc1.commons.Maybe;
-import misc1.commons.ds.WrapperType;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
@@ -101,16 +100,16 @@ public final class JsonSerializers {
         }
     };
 
-    public static <W, D> JsonSerializer<W> wrapper(final WrapperType<W, D> type, final JsonSerializer<D> delegate) {
+    public static <W, D> JsonSerializer<W> wrapper(Function<W, D> unwrap, JsonSerializer<D> delegate, Function<D, W> wrap) {
         return new JsonSerializer<W>() {
             @Override
             public JsonElement toJson(W w) {
-                return delegate.toJson(type.unwrap(w));
+                return delegate.toJson(unwrap.apply(w));
             }
 
             @Override
             public W fromJson(JsonElement e) {
-                return type.wrap(delegate.fromJson(e));
+                return wrap.apply(delegate.fromJson(e));
             }
         };
     }
