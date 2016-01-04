@@ -99,36 +99,33 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         ImmutableList.Builder<Strategy> b = ImmutableList.builder();
         final ShellActionOptionsResult shellActionOptionsResult = Options.shellAction.getResultsOptional(options);
         if(shellActionOptionsResult != null) {
-            b.add(new Strategy() {
-                @Override
-                public void invoke(final RepoTip repo, Repository repository, VcsVersionDigest lhs, VcsVersionDigest mhs, VcsVersionDigest rhs) {
-                    repository.checkout(lhs);
-                    ProcessHelper p = ProcessHelper.of(repository.getRoot(), shellActionOptionsResult.commandArray);
-                    p = p.apply(ProcessHelperUtils.STRIP_GIT_ENV);
-                    p = p.putEnv("LHS", lhs.getRawDigest().toString());
-                    p = p.putEnv("MHS", mhs.getRawDigest().toString());
-                    p = p.putEnv("RHS", rhs.getRawDigest().toString());
-                    if(shellActionOptionsResult.isInteractive) {
-                        LOGGER.info("Invoking custom merge for merge " + repo + "...");
-                        LOGGER.info("    LHS is " + lhs.getRawDigest() + " (in $LHS and checked out)");
-                        LOGGER.info("    MHS is " + mhs.getRawDigest() + " (in $MHS)");
-                        LOGGER.info("    RHS is " + rhs.getRawDigest() + " (in $RHS)");
-                        LOGGER.info("    Exit with success to indicate HEAD is result");
-                        LOGGER.info("    Exit with failure to fail mergeManifests entirely");
-                        if(!repository.isAncestorOf(mhs, lhs)) {
-                            LOGGER.warn("Careful, LHS (" + lhs.getRawDigest() + ") is not a descendent of MHS (" + mhs.getRawDigest() + ")");
-                        }
-                        if(!repository.isAncestorOf(mhs, rhs)) {
-                            LOGGER.warn("Careful, RHS (" + rhs.getRawDigest() + ") is not a descendent of MHS (" + mhs.getRawDigest() + ")");
-                        }
-                        p = p.inheritInput();
-                        p = p.inheritOutput();
-                        p = p.inheritError();
-                        p.run().requireSuccess();
+            b.add((repo, repository, lhs, mhs, rhs) -> {
+                repository.checkout(lhs);
+                ProcessHelper p = ProcessHelper.of(repository.getRoot(), shellActionOptionsResult.commandArray);
+                p = p.apply(ProcessHelperUtils.STRIP_GIT_ENV);
+                p = p.putEnv("LHS", lhs.getRawDigest().toString());
+                p = p.putEnv("MHS", mhs.getRawDigest().toString());
+                p = p.putEnv("RHS", rhs.getRawDigest().toString());
+                if(shellActionOptionsResult.isInteractive) {
+                    LOGGER.info("Invoking custom merge for merge " + repo + "...");
+                    LOGGER.info("    LHS is " + lhs.getRawDigest() + " (in $LHS and checked out)");
+                    LOGGER.info("    MHS is " + mhs.getRawDigest() + " (in $MHS)");
+                    LOGGER.info("    RHS is " + rhs.getRawDigest() + " (in $RHS)");
+                    LOGGER.info("    Exit with success to indicate HEAD is result");
+                    LOGGER.info("    Exit with failure to fail mergeManifests entirely");
+                    if(!repository.isAncestorOf(mhs, lhs)) {
+                        LOGGER.warn("Careful, LHS (" + lhs.getRawDigest() + ") is not a descendent of MHS (" + mhs.getRawDigest() + ")");
                     }
-                    else {
-                        p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
+                    if(!repository.isAncestorOf(mhs, rhs)) {
+                        LOGGER.warn("Careful, RHS (" + rhs.getRawDigest() + ") is not a descendent of MHS (" + mhs.getRawDigest() + ")");
                     }
+                    p = p.inheritInput();
+                    p = p.inheritOutput();
+                    p = p.inheritError();
+                    p.run().requireSuccess();
+                }
+                else {
+                    p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
                 }
             });
         }
