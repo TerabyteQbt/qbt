@@ -1,6 +1,5 @@
 package qbt.utils;
 
-import com.google.common.base.Function;
 import misc1.commons.ph.ProcessHelper;
 
 public final class ProcessHelperUtils {
@@ -17,8 +16,6 @@ public final class ProcessHelperUtils {
         p = p.removeEnv("GIT_WORK_TREE");
         return p;
     }
-
-    public static final Function<ProcessHelper, ProcessHelper> STRIP_GIT_ENV = (p) -> stripGitEnv(p);
 
     public static ProcessHelper.Callback<?> simplePrefixCallback(final String prefix) {
         return new ProcessHelper.Callback<Void>() {

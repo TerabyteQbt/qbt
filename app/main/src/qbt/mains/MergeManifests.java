@@ -102,7 +102,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
             b.add((repo, repository, lhs, mhs, rhs) -> {
                 repository.checkout(lhs);
                 ProcessHelper p = ProcessHelper.of(repository.getRoot(), shellActionOptionsResult.commandArray);
-                p = p.apply(ProcessHelperUtils.STRIP_GIT_ENV);
+                p = p.apply(ProcessHelperUtils::stripGitEnv);
                 p = p.putEnv("LHS", lhs.getRawDigest().toString());
                 p = p.putEnv("MHS", mhs.getRawDigest().toString());
                 p = p.putEnv("RHS", rhs.getRawDigest().toString());

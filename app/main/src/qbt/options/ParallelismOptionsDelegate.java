@@ -18,12 +18,12 @@ public class ParallelismOptionsDelegate<O> implements OptionsDelegate<O> {
             return () -> WorkPool.explicitParallelism(1);
         }
         if(options.get(infiniteParallelism)) {
-            return () -> WorkPool.infiniteParallelism();
+            return WorkPool::infiniteParallelism;
         }
         Integer explicitParallelism = options.get(parallelism);
         if(explicitParallelism != null) {
             return () -> WorkPool.explicitParallelism(explicitParallelism);
         }
-        return () -> WorkPool.defaultParallelism();
+        return WorkPool::defaultParallelism;
     }
 }

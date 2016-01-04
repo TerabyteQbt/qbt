@@ -34,7 +34,7 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
 
         public static final NoArgsBehaviour EMPTY = (b, config, manifest) -> {
         };
-        public static final NoArgsBehaviour OVERRIDES = (b, config, manifest) -> addOverrides(b, config, manifest);
+        public static final NoArgsBehaviour OVERRIDES = RepoActionOptionsDelegate::addOverrides;
         public static final NoArgsBehaviour THROW = (b, config, manifest) -> {
             throw new OptionsException("Some form of repo selection is required.");
         };

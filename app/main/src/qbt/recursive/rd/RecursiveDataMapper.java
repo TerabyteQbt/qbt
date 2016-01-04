@@ -1,6 +1,5 @@
 package qbt.recursive.rd;
 
-import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -17,8 +16,6 @@ public abstract class RecursiveDataMapper<EDGE_KEY, EDGE_VALUE, NODE_VALUE, R ex
     public OUTPUT transform(R r) {
         return cache.getUnchecked(Pointer.of(r));
     }
-
-    public final Function<R, OUTPUT> transformFunction = (input) -> transform(input);
 
     protected abstract OUTPUT map(R r);
 }

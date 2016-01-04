@@ -101,7 +101,7 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
                         }
                     };
 
-                    return RecursiveDataUtils.computationTreeMap(RecursiveDataUtils.transformMap(r.children, computationMapper.transformFunction), (input) -> RecursiveDataUtils.transformMap(input, scopeReferenceTransformer.transformFunction));
+                    return RecursiveDataUtils.computationTreeMap(RecursiveDataUtils.transformMap(r.children, computationMapper::transform), (input) -> RecursiveDataUtils.transformMap(input, scopeReferenceTransformer::transform));
                 }
             });
             BuildData bd = new BuildData(r, dependencyResults);

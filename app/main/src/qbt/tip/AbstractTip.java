@@ -1,6 +1,5 @@
 package qbt.tip;
 
-import com.google.common.base.Function;
 import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,8 +100,6 @@ public abstract class AbstractTip<T extends AbstractTip<T>> {
 
             return 0;
         };
-
-        public final Function<String, T> FROM_STRING = (input) -> parseRequire(input);
 
         public final StringSerializer<T> STRING_SERIALIZER = new StringSerializer<T>() {
             @Override

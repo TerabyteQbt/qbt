@@ -38,7 +38,7 @@ public class GitUtils {
     public static final VcsTreeDigest EMPTY_TREE = new VcsTreeDigest(QbtHashUtils.parse("4b825dc642cb6eb9a060e54bf8d69288fbee4904"));
 
     static ProcessHelper ph(Path dir, String... cmd) {
-        return ProcessHelper.of(dir, cmd).apply(ProcessHelperUtils.STRIP_GIT_ENV);
+        return ProcessHelper.of(dir, cmd).apply(ProcessHelperUtils::stripGitEnv);
     }
 
     static HashCode sha1(ProcessHelper ph) {
