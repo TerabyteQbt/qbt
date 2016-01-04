@@ -177,7 +177,15 @@ public final class BuildUtils {
             return;
         }
 
-        int exitCode = runPackageCommand(new String[] {"./qbt-make"}, bd, new Function<ProcessHelper, Integer>() {
+        String buildWrapper = System.getenv("QBT_BUILD_WRAPPER");
+        String[] command;
+        if(buildWrapper == null) {
+            command = new String[] {"./qbt-make"};
+        }
+        else {
+            command = new String[] {"sh", "-c", buildWrapper};
+        }
+        int exitCode = runPackageCommand(command, bd, new Function<ProcessHelper, Integer>() {
             @Override
             public Integer apply(ProcessHelper p) {
                 p = p.putEnv("OUTPUT_ARTIFACTS_DIR", artifactsDir.toString());
