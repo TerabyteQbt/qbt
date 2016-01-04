@@ -1,13 +1,15 @@
 #!/bin/bash
 
+eval export JAVA_HOME=\$JAVA_${QBT_ENV_JDK:-1_7}_HOME
+
 set -e
 
 mkdir -p $OUTPUT_ARTIFACTS_DIR/docs/markdown
 cp -rp markdown $OUTPUT_ARTIFACTS_DIR/docs/
 
 # build our markdown processor
-javac -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g') src/org/cmyers/qbt/docs/MarkdownGenerator.java
+$JAVA_HOME/bin/javac -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g') src/org/cmyers/qbt/docs/MarkdownGenerator.java
 
 # build our HTML
 mkdir -p $OUTPUT_ARTIFACTS_DIR/docs/html
-cd markdown && java -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g'):../src org.cmyers.qbt.docs.MarkdownGenerator $OUTPUT_ARTIFACTS_DIR/docs/html *
+cd markdown && $JAVA_HOME/bin/java -cp $(echo $INPUT_ARTIFACTS_DIR/strong/*/jars/*.jar | sed -e 's/ /:/g'):../src org.cmyers.qbt.docs.MarkdownGenerator $OUTPUT_ARTIFACTS_DIR/docs/html *
