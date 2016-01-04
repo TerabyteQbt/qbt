@@ -5,12 +5,13 @@ import java.nio.file.Path;
 import org.apache.commons.lang3.ObjectUtils;
 import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
+import qbt.config.LocalPinsRepo;
 import qbt.repo.PinnedRepoAccessor;
 import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
 
-public final class SimpleLocalPinsRepo extends AbstractLocalPinsRepo {
+public final class SimpleLocalPinsRepo implements LocalPinsRepo {
     private final RawRemoteVcs vcs;
     private final Path root;
 

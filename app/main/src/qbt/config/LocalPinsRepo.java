@@ -6,7 +6,13 @@ import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 
 public interface LocalPinsRepo {
-    public PinnedRepoAccessor findPin(RepoTip repo, VcsVersionDigest version);
-    public PinnedRepoAccessor requirePin(RepoTip repo, VcsVersionDigest version);
-    public void fetchPins(RepoTip repo, RawRemote remote);
+    PinnedRepoAccessor findPin(RepoTip repo, VcsVersionDigest version);
+    void fetchPins(RepoTip repo, RawRemote remote);
+    default PinnedRepoAccessor requirePin(RepoTip repo, VcsVersionDigest version) {
+        PinnedRepoAccessor r = findPin(repo, version);
+        if(r == null) {
+            throw new IllegalArgumentException("Could not find local pin for " + repo + " at " + version);
+        }
+        return r;
+    }
 }
