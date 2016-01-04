@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -95,12 +94,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
                             return cumulativeVersionComputerOptionsResult.qbtEnv;
                         }
                     };
-                    return computationMapper.transform(cumulativeVersionComputer.compute(packageTip)).transform(new Function<CvRecursivePackageData<ArtifactReference>, ArtifactReference>() {
-                        @Override
-                        public ArtifactReference apply(CvRecursivePackageData<ArtifactReference> result) {
-                            return result.result.getRight().copyInto(scope);
-                        }
-                    });
+                    return computationMapper.transform(cumulativeVersionComputer.compute(packageTip)).transform((result) -> result.result.getRight().copyInto(scope));
                 }
             });
 

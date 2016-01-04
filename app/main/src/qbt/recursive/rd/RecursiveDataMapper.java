@@ -18,12 +18,7 @@ public abstract class RecursiveDataMapper<EDGE_KEY, EDGE_VALUE, NODE_VALUE, R ex
         return cache.getUnchecked(Pointer.of(r));
     }
 
-    public final Function<R, OUTPUT> transformFunction = new Function<R, OUTPUT>() {
-        @Override
-        public OUTPUT apply(R input) {
-            return transform(input);
-        }
-    };
+    public final Function<R, OUTPUT> transformFunction = (input) -> transform(input);
 
     protected abstract OUTPUT map(R r);
 }

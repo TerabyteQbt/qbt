@@ -10,7 +10,6 @@ import com.google.common.hash.Hasher;
 import com.google.gson.JsonElement;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,12 +55,7 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
             b = b.putString("\n", Charsets.UTF_8);
         }
         List<Map.Entry<String, Pair<NormalDependencyType, CumulativeVersion>>> normalDependenciesEntriesSorted = Lists.newArrayList(normalDependencies.entrySet());
-        Collections.sort(normalDependenciesEntriesSorted, new Comparator<Map.Entry<String, Pair<NormalDependencyType, CumulativeVersion>>>() {
-            @Override
-            public int compare(Map.Entry<String, Pair<NormalDependencyType, CumulativeVersion>> o1, Map.Entry<String, Pair<NormalDependencyType, CumulativeVersion>> o2) {
-                return o1.getKey().compareTo(o2.getKey());
-            }
-        });
+        Collections.sort(normalDependenciesEntriesSorted, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
         ImmutableMap.Builder<String, Pair<NormalDependencyType, CumulativeVersion>> normalDependenciesSortedBuilder = ImmutableMap.builder();
         for(Map.Entry<String, Pair<NormalDependencyType, CumulativeVersion>> e : normalDependenciesEntriesSorted) {
             normalDependenciesSortedBuilder.put(e);

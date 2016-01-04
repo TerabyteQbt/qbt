@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
@@ -30,7 +29,6 @@ import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -215,16 +213,13 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                                         if(reports != null) {
                                             reports.materializeDirectory(Maybe.<FreeScope>not(), reportsDir);
                                         }
-                                        BuildUtils.runPackageCommand(new String[] {System.getenv("SHELL")}, bd, new Function<ProcessHelper, Void>() {
-                                            @Override
-                                            public Void apply(ProcessHelper p) {
-                                                p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toAbsolutePath().toString());
-                                                p = p.inheritInput();
-                                                p = p.inheritOutput();
-                                                p = p.inheritError();
-                                                p.run().requireSuccess();
-                                                return null;
-                                            }
+                                        BuildUtils.runPackageCommand(new String[] {System.getenv("SHELL")}, bd, (p) -> {
+                                            p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toAbsolutePath().toString());
+                                            p = p.inheritInput();
+                                            p = p.inheritOutput();
+                                            p = p.inheritError();
+                                            p.run().requireSuccess();
+                                            return null;
                                         });
                                     }
                                 }
@@ -297,24 +292,18 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                     LOGGER.debug("Verify component: " + key + " -> " + verifyComponent.vertices);
 
                     ComputationTree<CvRecursivePackageData<ArtifactReference>> mainBuildTree = mainBuildTrees.getUnchecked(key);
-                    mainBuildTree = mainBuildTree.transform(new Function<CvRecursivePackageData<ArtifactReference>, CvRecursivePackageData<ArtifactReference>>() {
-                        @Override
-                        public CvRecursivePackageData<ArtifactReference> apply(CvRecursivePackageData<ArtifactReference> result) {
-                            LOGGER.info("Built requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
-                            return result;
-                        }
+                    mainBuildTree = mainBuildTree.transform((result) -> {
+                        LOGGER.info("Built requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
+                        return result;
                     });
 
                     ComputationTree<ObjectUtils.Null> verifyTree = verifyTrees.get(verifyComponent);
 
                     ComputationTree<CvRecursivePackageData<ArtifactReference>> verifiedTree = mainBuildTree.combineLeft(verifyTree);
-                    verifiedTree = verifiedTree.transform(new Function<CvRecursivePackageData<ArtifactReference>, CvRecursivePackageData<ArtifactReference>>() {
-                        @Override
-                        public CvRecursivePackageData<ArtifactReference> apply(CvRecursivePackageData<ArtifactReference> result) {
-                            LOGGER.info("Verified requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
-                            runPublish(PublishTime.requested, packageTip, result.v, result.result.getRight());
-                            return result;
-                        }
+                    verifiedTree = verifiedTree.transform((result) -> {
+                        LOGGER.info("Verified requested package " + packageTip + "@" + result.v.getDigest().getRawDigest());
+                        runPublish(PublishTime.requested, packageTip, result.v, result.result.getRight());
+                        return result;
                     });
 
                     computationTreesBuilder.add(verifiedTree.ignore());
@@ -366,33 +355,20 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
             }
             final Set<String> verifyTypes = verifyTypesBuilder.build();
             if(!verifyTypes.isEmpty()) {
-                b.add(new VerifyNotingPredicate("(verify type)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
-                    @Override
-                    public boolean apply(Triple<PackageTip, String, PackageTip> input) {
-                        return verifyTypes.contains(input.getMiddle());
-                    }
-                }));
+                b.add(new VerifyNotingPredicate("(verify type)", (input) -> verifyTypes.contains(input.getMiddle())));
             }
         }
         for(String verifyRegex : options.get(Options.verifyRegexes)) {
             final Pattern verifyPattern = Pattern.compile(verifyRegex);
-            b.add(new VerifyNotingPredicate("(verify regex /" + verifyRegex + "/)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
-                @Override
-                public boolean apply(Triple<PackageTip, String, PackageTip> input) {
-                    return verifyPattern.matcher(input.getLeft() + "/" + input.getMiddle() + "/" + input.getRight()).matches();
-                }
-            }));
+            b.add(new VerifyNotingPredicate("(verify regex /" + verifyRegex + "/)", (input) -> verifyPattern.matcher(input.getLeft() + "/" + input.getMiddle() + "/" + input.getRight()).matches()));
         }
         for(final String verifyGroovy : options.get(Options.verifyGroovies)) {
-            b.add(new VerifyNotingPredicate("(verify groovy `" + verifyGroovy + "`)", new Predicate<Triple<PackageTip, String, PackageTip>>() {
-                @Override
-                public boolean apply(Triple<PackageTip, String, PackageTip> input) {
-                    GroovyShell shell = new GroovyShell();
-                    shell.setVariable("from", input.getLeft());
-                    shell.setVariable("type", input.getMiddle());
-                    shell.setVariable("to", input.getRight());
-                    return (Boolean)shell.evaluate(verifyGroovy);
-                }
+            b.add(new VerifyNotingPredicate("(verify groovy `" + verifyGroovy + "`)", (input) -> {
+                GroovyShell shell = new GroovyShell();
+                shell.setVariable("from", input.getLeft());
+                shell.setVariable("type", input.getMiddle());
+                shell.setVariable("to", input.getRight());
+                return (Boolean)shell.evaluate(verifyGroovy);
             }));
         }
         return Predicates.or(b.build());

@@ -1,6 +1,5 @@
 package qbt.build;
 
-import com.google.common.base.Function;
 import misc1.commons.Result;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.OptionsResults;
@@ -79,11 +78,8 @@ public final class PackageMapperHelper {
                         LOGGER.info("Actually building " + buildDesc + "...");
                         Pair<Result<ArtifactReference>, ArtifactReference> result = BuildUtils.runBuild(scope, bd);
                         Result<ArtifactReference> artifactResult = result.getLeft();
-                        artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
-                            @Override
-                            public ArtifactReference apply(ArtifactReference input) {
-                                return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadata.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
-                            }
+                        artifactResult = artifactResult.transform((input) -> {
+                            return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadata.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
                         });
 
                         checkTree(bd, " after the build");

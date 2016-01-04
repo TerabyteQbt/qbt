@@ -4,7 +4,6 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import misc1.commons.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -46,12 +45,7 @@ public abstract class RecursiveDataCanonicalizer<NODE_VALUE, EDGE_KEY, EDGE_VALU
     protected R transformResult(final R r, final Map<EDGE_KEY, Pair<EDGE_VALUE, R>> children) {
         CacheKey<EDGE_KEY, EDGE_VALUE, R, K> key = new CacheKey<EDGE_KEY, EDGE_VALUE, R, K>(key(r), children);
         try {
-            return cache.get(key, new Callable<R>() {
-                @Override
-                public R call() throws Exception {
-                    return newR(r.result, children);
-                }
-            });
+            return cache.get(key, () -> newR(r.result, children));
         }
         catch(ExecutionException e) {
             throw ExceptionUtils.commute(e.getCause());

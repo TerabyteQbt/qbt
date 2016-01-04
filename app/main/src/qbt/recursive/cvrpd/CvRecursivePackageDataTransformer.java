@@ -15,12 +15,7 @@ public abstract class CvRecursivePackageDataTransformer<V1, V2> extends Recursiv
         return keepLink(result.getLeft(), result.getRight(), dependencyName, dependencyType, dependencyResult);
     }
 
-    private final Function<Pair<NormalDependencyType, CvRecursivePackageData<V2>>, Pair<NormalDependencyType, CumulativeVersion>> getDependencyVersion = new Function<Pair<NormalDependencyType, CvRecursivePackageData<V2>>, Pair<NormalDependencyType, CumulativeVersion>>() {
-        @Override
-        public Pair<NormalDependencyType, CumulativeVersion> apply(Pair<NormalDependencyType, CvRecursivePackageData<V2>> input) {
-            return Pair.of(input.getLeft(), input.getRight().v);
-        }
-    };
+    private final Function<Pair<NormalDependencyType, CvRecursivePackageData<V2>>, Pair<NormalDependencyType, CumulativeVersion>> getDependencyVersion = (input) -> Pair.of(input.getLeft(), input.getRight().v);
     @Override
     protected CvRecursivePackageData<V2> transformResult(CvRecursivePackageData<V1> r, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<V2>>> dependencyResults) {
         CumulativeVersion v = CumulativeVersion.of(transformNodeData(r.v.result), Maps.transformValues(dependencyResults, getDependencyVersion));

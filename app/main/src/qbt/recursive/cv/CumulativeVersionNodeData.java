@@ -4,7 +4,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,15 +21,12 @@ public final class CumulativeVersionNodeData {
     private static ImmutableMap<String, String> copyEnv(Set<String> keep, Map<String, String> qbtEnv) {
         ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
         List<Map.Entry<String, String>> entries = Lists.newArrayList(qbtEnv.entrySet());
-        Collections.sort(entries, new Comparator<Map.Entry<String, String>>() {
-            @Override
-            public int compare(Map.Entry<String, String> o1, Map.Entry<String, String> o2) {
-                int r1 = o1.getKey().compareTo(o2.getKey());
-                if(r1 != 0) {
-                    return r1;
-                }
-                return o1.getValue().compareTo(o2.getValue());
+        Collections.sort(entries, (o1, o2) -> {
+            int r1 = o1.getKey().compareTo(o2.getKey());
+            if(r1 != 0) {
+                return r1;
             }
+            return o1.getValue().compareTo(o2.getValue());
         });
         for(Map.Entry<String, String> e : entries) {
             if(!keep.contains(e.getKey())) {

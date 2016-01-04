@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -123,17 +122,14 @@ public class LocalArtifactCacher implements ArtifactCacher {
                 }
                 pairs.add(Pair.of(child, Files.getLastModifiedTime(child).toMillis()));
             }
-            Collections.sort(pairs, new Comparator<Pair<Path, Long>>() {
-                @Override
-                public int compare(Pair<Path, Long> a, Pair<Path, Long> b) {
-                    if(a.getRight() > b.getRight()) {
-                        return -1;
-                    }
-                    if(a.getRight() < b.getRight()) {
-                        return 1;
-                    }
-                    return a.getLeft().compareTo(b.getLeft());
+            Collections.sort(pairs, (a, b) -> {
+                if(a.getRight() > b.getRight()) {
+                    return -1;
                 }
+                if(a.getRight() < b.getRight()) {
+                    return 1;
+                }
+                return a.getLeft().compareTo(b.getLeft());
             });
             long totalSize = 0;
             for(Pair<Path, Long> pair : pairs) {

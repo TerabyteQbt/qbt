@@ -20,11 +20,6 @@ public class CvRecursivePackageData<V> extends RecursivePackageData<Pair<Cumulat
     }
 
     public static <V> Function<CvRecursivePackageData<V>, V> innerValueFunction() {
-        return new Function<CvRecursivePackageData<V>, V>() {
-            @Override
-            public V apply(CvRecursivePackageData<V> input) {
-                return input.result.getRight();
-            }
-        };
+        return (input) -> input.result.getRight();
     }
 }

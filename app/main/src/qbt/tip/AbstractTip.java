@@ -86,31 +86,23 @@ public abstract class AbstractTip<T extends AbstractTip<T>> {
             return t;
         }
 
-        public final Comparator<T> COMPARATOR = new Comparator<T>() {
-            @Override
-            public int compare(T a, T b) {
-                int r;
+        public final Comparator<T> COMPARATOR = (a, b) -> {
+            int r;
 
-                r = a.name.compareTo(b.name);
-                if(r != 0) {
-                    return r;
-                }
-
-                r = a.tip.compareTo(b.tip);
-                if(r != 0) {
-                    return r;
-                }
-
-                return 0;
+            r = a.name.compareTo(b.name);
+            if(r != 0) {
+                return r;
             }
+
+            r = a.tip.compareTo(b.tip);
+            if(r != 0) {
+                return r;
+            }
+
+            return 0;
         };
 
-        public final Function<String, T> FROM_STRING = new Function<String, T>() {
-            @Override
-            public T apply(String input) {
-                return parseRequire(input);
-            }
-        };
+        public final Function<String, T> FROM_STRING = (input) -> parseRequire(input);
 
         public final StringSerializer<T> STRING_SERIALIZER = new StringSerializer<T>() {
             @Override

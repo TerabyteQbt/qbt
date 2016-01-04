@@ -185,38 +185,35 @@ public final class BuildUtils {
         else {
             command = new String[] {"sh", "-c", buildWrapper};
         }
-        int exitCode = runPackageCommand(command, bd, new Function<ProcessHelper, Integer>() {
-            @Override
-            public Integer apply(ProcessHelper p) {
-                p = p.putEnv("OUTPUT_ARTIFACTS_DIR", artifactsDir.toString());
-                p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toString());
-                try(Writer out = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.out").toFile()))) {
-                    try(Writer err = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.err").toFile()))) {
-                        return p.run(new ProcessHelper.Callback<Integer>() {
-                            @Override
-                            public void line(boolean isError, String line) {
-                                Writer w = isError ? err : out;
-                                try {
-                                    w.write(line);
-                                    w.write('\n');
-                                }
-                                catch(IOException e) {
-                                    throw ExceptionUtils.commute(e);
-                                }
-
-                                LOGGER.info("[" + bd.v.prettyDigest() + "] " + line);
+        int exitCode = runPackageCommand(command, bd, (p) -> {
+            p = p.putEnv("OUTPUT_ARTIFACTS_DIR", artifactsDir.toString());
+            p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toString());
+            try(Writer out = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.out").toFile()))) {
+                try(Writer err = new BufferedWriter(new FileWriter(reportsDir.resolve("qbt.err").toFile()))) {
+                    return p.run(new ProcessHelper.Callback<Integer>() {
+                        @Override
+                        public void line(boolean isError, String line) {
+                            Writer w = isError ? err : out;
+                            try {
+                                w.write(line);
+                                w.write('\n');
+                            }
+                            catch(IOException e) {
+                                throw ExceptionUtils.commute(e);
                             }
 
-                            @Override
-                            public Integer complete(int exitCode) {
-                                return exitCode;
-                            }
-                        });
-                    }
+                            LOGGER.info("[" + bd.v.prettyDigest() + "] " + line);
+                        }
+
+                        @Override
+                        public Integer complete(int exitCode) {
+                            return exitCode;
+                        }
+                    });
                 }
-                catch(IOException e) {
-                    throw ExceptionUtils.commute(e);
-                }
+            }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
             }
         });
         if(exitCode != 0) {

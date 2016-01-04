@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Map;
@@ -9,7 +8,6 @@ import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.HelpTier;
@@ -103,24 +101,16 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
                         }
                     };
 
-                    return RecursiveDataUtils.computationTreeMap(RecursiveDataUtils.transformMap(r.children, computationMapper.transformFunction), new Function<Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>, Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>>>() {
-                        @Override
-                        public Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> apply(Map<String, Pair<NormalDependencyType, CvRecursivePackageData<ArtifactReference>>> input) {
-                            return RecursiveDataUtils.transformMap(input, scopeReferenceTransformer.transformFunction);
-                        }
-                    });
+                    return RecursiveDataUtils.computationTreeMap(RecursiveDataUtils.transformMap(r.children, computationMapper.transformFunction), (input) -> RecursiveDataUtils.transformMap(input, scopeReferenceTransformer.transformFunction));
                 }
             });
             BuildData bd = new BuildData(r, dependencyResults);
-            BuildUtils.runPackageCommand(shellActionOptionsResult.commandArray, bd, new Function<ProcessHelper, Void>() {
-                @Override
-                public Void apply(ProcessHelper p) {
-                    p = p.inheritInput();
-                    p = p.inheritOutput();
-                    p = p.inheritError();
-                    p.run().requireSuccess();
-                    return null;
-                }
+            BuildUtils.runPackageCommand(shellActionOptionsResult.commandArray, bd, (p) -> {
+                p = p.inheritInput();
+                p = p.inheritOutput();
+                p = p.inheritError();
+                p.run().requireSuccess();
+                return null;
             });
             return 0;
         }

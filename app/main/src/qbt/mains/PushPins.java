@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -62,33 +61,24 @@ public class PushPins extends QbtCommand<PushPins.Options> {
         final QbtManifest manifest = Options.manifest.getResult(options).parse();
         final Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
 
-        ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), new Function<String, ComputationTree<ObjectUtils.Null>>() {
-            @Override
-            public ComputationTree<ObjectUtils.Null> apply(final String qbtRemoteString) {
-                final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
-                return ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
-                    @Override
-                    public ObjectUtils.Null apply(RepoTip repo) {
-                        RepoManifest repoManifest = manifest.repos.get(repo);
-                        if(repoManifest == null) {
-                            throw new IllegalArgumentException("No such repo [tip]: " + repo);
-                        }
-                        VcsVersionDigest version = repoManifest.version;
-                        PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
-                        RawRemote remote = qbtRemote.findRemote(repo, true);
+        ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), (qbtRemoteString) -> {
+            final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
+            return ComputationTree.transformIterable(repos, (repo) -> {
+                RepoManifest repoManifest = manifest.repos.get(repo);
+                if(repoManifest == null) {
+                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
+                }
+                VcsVersionDigest version = repoManifest.version;
+                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
+                RawRemote remote = qbtRemote.findRemote(repo, true);
 
-                        pinnedAccessor.pushToRemote(remote);
+                pinnedAccessor.pushToRemote(remote);
 
-                        return ObjectUtils.NULL;
-                    }
-                }).ignore().transform(new Function<ObjectUtils.Null, ObjectUtils.Null>() {
-                    @Override
-                    public ObjectUtils.Null apply(ObjectUtils.Null input) {
-                        LOGGER.info("Completed pushing to remote " + qbtRemoteString);
-                        return input;
-                    }
-                });
-            }
+                return ObjectUtils.NULL;
+            }).ignore().transform((input) -> {
+                LOGGER.info("Completed pushing to remote " + qbtRemoteString);
+                return input;
+            });
         }));
 
         Options.parallelism.getResult(options, false).runComputationTree(computationTree);

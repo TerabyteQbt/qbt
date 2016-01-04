@@ -1,6 +1,5 @@
 package qbt.artifactcacher;
 
-import com.google.common.base.Function;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,18 +44,15 @@ public class SymlinkingMadnessArtifactCacher implements ArtifactCacher {
         final Path writeDir = writeRoot.resolve(key.getRawDigest().toString());
         final Path readDir = readRoot.resolve(key.getRawDigest().toString());
 
-        boolean copied = QbtUtils.semiAtomicDirCache(writeDir, "", new Function<Path, ObjectUtils.Null>() {
-            @Override
-            public ObjectUtils.Null apply(Path tempDir) {
-                try {
-                    Files.delete(tempDir);
-                }
-                catch(IOException e) {
-                    throw ExceptionUtils.commute(e);
-                }
-                p.getRight().materializeDirectory(Maybe.<FreeScope>not(), tempDir);
-                return ObjectUtils.NULL;
+        boolean copied = QbtUtils.semiAtomicDirCache(writeDir, "", (tempDir) -> {
+            try {
+                Files.delete(tempDir);
             }
+            catch(IOException e) {
+                throw ExceptionUtils.commute(e);
+            }
+            p.getRight().materializeDirectory(Maybe.<FreeScope>not(), tempDir);
+            return ObjectUtils.NULL;
         });
 
         Architecture arch;

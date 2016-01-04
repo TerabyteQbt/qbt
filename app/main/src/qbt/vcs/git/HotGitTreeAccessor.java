@@ -1,13 +1,11 @@
 package qbt.vcs.git;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -128,12 +126,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
             if(e == null) {
                 return null;
             }
-            return e.transformRight(new Function<Pair<String, HashCode>, byte[]>() {
-                @Override
-                public byte[] apply(Pair<String, HashCode> input) {
-                    return GitUtils.readObject(dir, input.getRight());
-                }
-            });
+            return e.transformRight((input) -> GitUtils.readObject(dir, input.getRight()));
         }
     }
 
@@ -169,12 +162,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
         if(digestLocal == null) {
             ImmutableList.Builder<String> lines = ImmutableList.builder();
             List<Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>>> entries = Lists.newArrayList(map.entries());
-            Collections.sort(entries, new Comparator<Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>>>() {
-                @Override
-                public int compare(Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> o1, Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> o2) {
-                    return o1.getKey().compareTo(o2.getKey());
-                }
-            });
+            Collections.sort(entries, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
             for(final Map.Entry<String, Either<TreeAccessor, Pair<String, HashCode>>> e : entries) {
                 lines.add(e.getValue().visit(new Either.Visitor<TreeAccessor, Pair<String, HashCode>, String>() {
                     @Override

@@ -36,15 +36,12 @@ public final class RecursiveDataUtils {
         }
         final ImmutableList<EDGE_KEY> edgeKeys = edgeKeysBuilder.build();
         final ImmutableList<EDGE_VALUE> edgeValues = edgeValuesBuilder.build();
-        return ComputationTree.list(childComputationTreesBuilder.build()).transform(new Function<ImmutableList<V>, W>() {
-            @Override
-            public W apply(ImmutableList<V> childResultsList) {
-                ImmutableMap.Builder<EDGE_KEY, Pair<EDGE_VALUE, V>> childResultsBuilder = ImmutableMap.builder();
-                for(int i = 0; i < childResultsList.size(); ++i) {
-                    childResultsBuilder.put(edgeKeys.get(i), Pair.of(edgeValues.get(i), childResultsList.get(i)));
-                }
-                return fn.apply(childResultsBuilder.build());
+        return ComputationTree.list(childComputationTreesBuilder.build()).transform((childResultsList) -> {
+            ImmutableMap.Builder<EDGE_KEY, Pair<EDGE_VALUE, V>> childResultsBuilder = ImmutableMap.builder();
+            for(int i = 0; i < childResultsList.size(); ++i) {
+                childResultsBuilder.put(edgeKeys.get(i), Pair.of(edgeValues.get(i), childResultsList.get(i)));
             }
+            return fn.apply(childResultsBuilder.build());
         });
     }
 }

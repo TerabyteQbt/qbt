@@ -108,21 +108,18 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
             return null;
         }
         try {
-            return request(new HttpGet(url), new Function<HttpResponse, Pair<Architecture, ArtifactReference>>() {
-                @Override
-                public Pair<Architecture, ArtifactReference> apply(HttpResponse httpResponse) {
-                    try(QbtTempDir tempDir = new QbtTempDir()) {
-                        Path tempFile = tempDir.resolve(key + ".tar.gz");
-                        try(InputStream is = httpResponse.getEntity().getContent(); OutputStream os = QbtUtils.openWrite(tempFile)) {
-                            ByteStreams.copy(is, os);
-                        }
-                        ArtifactReference ret = ArtifactReferences.copyFile(scope, tempFile, false);
-                        LOGGER.debug("Cache check for " + key + " at " + url + " " + (ret == null ? "missed" : "hit"));
-                        return ret == null ? null : Pair.of(arch, ret);
+            return request(new HttpGet(url), (httpResponse) -> {
+                try(QbtTempDir tempDir = new QbtTempDir()) {
+                    Path tempFile = tempDir.resolve(key + ".tar.gz");
+                    try(InputStream is = httpResponse.getEntity().getContent(); OutputStream os = QbtUtils.openWrite(tempFile)) {
+                        ByteStreams.copy(is, os);
                     }
-                    catch(IOException e) {
-                        throw ExceptionUtils.commute(e);
-                    }
+                    ArtifactReference ret = ArtifactReferences.copyFile(scope, tempFile, false);
+                    LOGGER.debug("Cache check for " + key + " at " + url + " " + (ret == null ? "missed" : "hit"));
+                    return ret == null ? null : Pair.of(arch, ret);
+                }
+                catch(IOException e) {
+                    throw ExceptionUtils.commute(e);
                 }
             });
         }
@@ -162,12 +159,9 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
                 httpPut.addHeader(putConfiguration.sha1sumHeader, QbtHashUtils.hash(tarball, Hashing.sha1()).toString());
             }
             httpPut.setEntity(new FileEntity(tarball.toFile()));
-            request(httpPut, new Function<HttpResponse, Void>() {
-                @Override
-                public Void apply(HttpResponse httpResponse) {
-                    LOGGER.debug("Cache put for " + key + " at " + url + " succeeded.");
-                    return null;
-                }
+            request(httpPut, (httpResponse) -> {
+                LOGGER.debug("Cache put for " + key + " at " + url + " succeeded.");
+                return null;
             });
         }
         catch(Exception e) {

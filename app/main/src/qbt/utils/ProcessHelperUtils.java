@@ -18,12 +18,7 @@ public final class ProcessHelperUtils {
         return p;
     }
 
-    public static final Function<ProcessHelper, ProcessHelper> STRIP_GIT_ENV = new Function<ProcessHelper, ProcessHelper>() {
-        @Override
-        public ProcessHelper apply(ProcessHelper p) {
-            return stripGitEnv(p);
-        }
-    };
+    public static final Function<ProcessHelper, ProcessHelper> STRIP_GIT_ENV = (p) -> stripGitEnv(p);
 
     public static ProcessHelper.Callback<?> simplePrefixCallback(final String prefix) {
         return new ProcessHelper.Callback<Void>() {

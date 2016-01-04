@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -91,57 +90,54 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
         }
         final Map<String, QbtManifest> extraManifests = extraManifestsBuilder.build();
 
-        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, new Function<RepoTip, ObjectUtils.Null>() {
-            @Override
-            public ObjectUtils.Null apply(final RepoTip repo) {
-                RepoManifest repoManifest = manifest.repos.get(repo);
-                if(repoManifest == null) {
-                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
-                }
-                VcsVersionDigest version = repoManifest.version;
-                final LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
-                if(localRepoAccessor == null) {
-                    return ObjectUtils.NULL;
-                }
-                ProcessHelper p = ProcessHelper.of(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
-                class VersionAdder {
-                    public ProcessHelper addVersion(ProcessHelper p, String name, VcsVersionDigest version) {
-                        String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
-                        if(version != null) {
-                            if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
-                                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
-                                pinnedAccessor.findCommit(localRepoAccessor.dir);
-                            }
-                        }
-                        p = p.putEnv(envName, version == null ? "" : version.getRawDigest().toString());
-                        return p;
-                    }
-                }
-                VersionAdder va = new VersionAdder(); // exists only as a dirty trick to avoid a static addVersion() with a thousand arguments
-                p = p.putEnv("REPO_NAME", repo.name);
-                p = p.putEnv("REPO_TIP", repo.tip);
-                p = va.addVersion(p, null, version);
-                for(Map.Entry<String, QbtManifest> e : extraManifests.entrySet()) {
-                    String manifestName = e.getKey();
-                    RepoManifest extraRepoManifest = e.getValue().repos.get(repo);
-                    p = va.addVersion(p, manifestName, extraRepoManifest == null ? null : extraRepoManifest.version);
-                }
-                if(shellActionOptionsResult.isInteractive) {
-                    p = p.inheritInput();
-                    p = p.inheritOutput();
-                    p = p.inheritError();
-                    p.run().requireSuccess();
-                }
-                else if(options.get(Options.noPrefix)) {
-                    p = p.inheritOutput();
-                    p = p.inheritError();
-                    p.run().requireSuccess();
-                }
-                else {
-                    p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
-                }
+        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, (repo) -> {
+            RepoManifest repoManifest = manifest.repos.get(repo);
+            if(repoManifest == null) {
+                throw new IllegalArgumentException("No such repo [tip]: " + repo);
+            }
+            VcsVersionDigest version = repoManifest.version;
+            final LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
+            if(localRepoAccessor == null) {
                 return ObjectUtils.NULL;
             }
+            ProcessHelper p = ProcessHelper.of(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
+            class VersionAdder {
+                public ProcessHelper addVersion(ProcessHelper p, String name, VcsVersionDigest version) {
+                    String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
+                    if(version != null) {
+                        if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
+                            PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
+                            pinnedAccessor.findCommit(localRepoAccessor.dir);
+                        }
+                    }
+                    p = p.putEnv(envName, version == null ? "" : version.getRawDigest().toString());
+                    return p;
+                }
+            }
+            VersionAdder va = new VersionAdder(); // exists only as a dirty trick to avoid a static addVersion() with a thousand arguments
+            p = p.putEnv("REPO_NAME", repo.name);
+            p = p.putEnv("REPO_TIP", repo.tip);
+            p = va.addVersion(p, null, version);
+            for(Map.Entry<String, QbtManifest> e : extraManifests.entrySet()) {
+                String manifestName = e.getKey();
+                RepoManifest extraRepoManifest = e.getValue().repos.get(repo);
+                p = va.addVersion(p, manifestName, extraRepoManifest == null ? null : extraRepoManifest.version);
+            }
+            if(shellActionOptionsResult.isInteractive) {
+                p = p.inheritInput();
+                p = p.inheritOutput();
+                p = p.inheritError();
+                p.run().requireSuccess();
+            }
+            else if(options.get(Options.noPrefix)) {
+                p = p.inheritOutput();
+                p = p.inheritError();
+                p.run().requireSuccess();
+            }
+            else {
+                p.run(ProcessHelperUtils.simplePrefixCallback(String.valueOf(repo)));
+            }
+            return ObjectUtils.NULL;
         });
         RunOverridesCommonOptions.parallelism.getResult(options, shellActionOptionsResult.isInteractive).runComputationTree(computationTree);
         return 0;

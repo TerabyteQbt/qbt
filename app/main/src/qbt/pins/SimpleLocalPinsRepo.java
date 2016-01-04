@@ -1,6 +1,5 @@
 package qbt.pins;
 
-import com.google.common.base.Function;
 import java.nio.file.Path;
 import org.apache.commons.lang3.ObjectUtils;
 import qbt.QbtUtils;
@@ -23,12 +22,9 @@ public final class SimpleLocalPinsRepo implements LocalPinsRepo {
     private Path materializeCache(RepoTip repo) {
         Path cache = root.resolve(repo.name);
 
-        QbtUtils.semiAtomicDirCache(cache, "", new Function<Path, ObjectUtils.Null>() {
-            @Override
-            public ObjectUtils.Null apply(Path cacheTemp) {
-                vcs.getLocalVcs().createCacheRepo(cacheTemp);
-                return ObjectUtils.NULL;
-            }
+        QbtUtils.semiAtomicDirCache(cache, "", (cacheTemp) -> {
+            vcs.getLocalVcs().createCacheRepo(cacheTemp);
+            return ObjectUtils.NULL;
         });
 
         return cache;
