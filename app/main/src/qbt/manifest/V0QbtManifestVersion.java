@@ -48,7 +48,7 @@ class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, Qb
 
     @Override
     public QbtManifest.Builder withRepoVersion(QbtManifest.Builder builder, RepoTip repo, VcsVersionDigest commit) {
-        return builder.with(repo, builder.get(repo).set(RepoManifest.VERSION, commit));
+        return builder.transform(repo, (repoManifest) -> repoManifest.set(RepoManifest.VERSION, commit));
     }
 
     @Override
@@ -157,7 +157,7 @@ class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, Qb
             }
 
             packageBuilder = packageBuilder.set(PackageManifest.METADATA, PackageMetadata.SERIALIZER.fromJson(packageMetadataBuilder));
-            repoBuilder = repoBuilder.set(RepoManifest.PACKAGES, repoBuilder.get(RepoManifest.PACKAGES).with(currentPackage, packageBuilder));
+            repoBuilder = repoBuilder.transform(RepoManifest.PACKAGES, (packages) -> packages.with(currentPackage, packageBuilder));
             currentPackage = null;
             packageBuilder = null;
             packageMetadataBuilder = null;
@@ -214,19 +214,19 @@ class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, Qb
 
             Matcher normalDepMatcher = NORMAL_DEP_PATTERN.matcher(line);
             if(normalDepMatcher.matches()) {
-                packageBuilder = packageBuilder.set(PackageManifest.NORMAL_DEPS, packageBuilder.get(PackageManifest.NORMAL_DEPS).with(normalDepMatcher.group(2), Pair.of(NormalDependencyType.fromTag(normalDepMatcher.group(1)), normalDepMatcher.group(3))));
+                packageBuilder = packageBuilder.transform(PackageManifest.NORMAL_DEPS, (normalDeps) -> normalDeps.with(normalDepMatcher.group(2), Pair.of(NormalDependencyType.fromTag(normalDepMatcher.group(1)), normalDepMatcher.group(3))));
                 return;
             }
 
             Matcher replaceDepMatcher = REPLACE_DEP_PATTERN.matcher(line);
             if(replaceDepMatcher.matches()) {
-                packageBuilder = packageBuilder.set(PackageManifest.REPLACE_DEPS, packageBuilder.get(PackageManifest.REPLACE_DEPS).with(PackageTip.TYPE.of(replaceDepMatcher.group(1), replaceDepMatcher.group(2)), replaceDepMatcher.group(3)));
+                packageBuilder = packageBuilder.transform(PackageManifest.REPLACE_DEPS, (replaceDeps) -> replaceDeps.with(PackageTip.TYPE.of(replaceDepMatcher.group(1), replaceDepMatcher.group(2)), replaceDepMatcher.group(3)));
                 return;
             }
 
             Matcher verifyDepMatcher = VERIFY_DEP_PATTERN.matcher(line);
             if(verifyDepMatcher.matches()) {
-                packageBuilder = packageBuilder.set(PackageManifest.VERIFY_DEPS, packageBuilder.get(PackageManifest.VERIFY_DEPS).with(Pair.of(PackageTip.TYPE.of(verifyDepMatcher.group(1), verifyDepMatcher.group(2)), verifyDepMatcher.group(3)), ObjectUtils.NULL));
+                packageBuilder = packageBuilder.transform(PackageManifest.VERIFY_DEPS, (verifyDeps) -> verifyDeps.with(Pair.of(PackageTip.TYPE.of(verifyDepMatcher.group(1), verifyDepMatcher.group(2)), verifyDepMatcher.group(3)), ObjectUtils.NULL));
                 return;
             }
 
