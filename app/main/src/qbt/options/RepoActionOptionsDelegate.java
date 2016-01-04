@@ -32,32 +32,13 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public interface NoArgsBehaviour {
         public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest);
 
-        public static final NoArgsBehaviour EMPTY = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
-            }
+        public static final NoArgsBehaviour EMPTY = (b, config, manifest) -> {
         };
-
-        public static final NoArgsBehaviour OVERRIDES = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
-                addOverrides(b, config, manifest);
-            }
+        public static final NoArgsBehaviour OVERRIDES = (b, config, manifest) -> addOverrides(b, config, manifest);
+        public static final NoArgsBehaviour THROW = (b, config, manifest) -> {
+            throw new OptionsException("Some form of repo selection is required.");
         };
-
-        public static final NoArgsBehaviour THROW = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
-                throw new OptionsException("Some form of repo selection is required.");
-            }
-        };
-
-        public static final NoArgsBehaviour ALL = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
-                b.addAll(manifest.repos.keySet());
-            }
-        };
+        public static final NoArgsBehaviour ALL = (b, config, manifest) -> b.addAll(manifest.repos.keySet());
     }
 
     public Collection<RepoTip> getRepos(QbtConfig config, QbtManifest manifest, OptionsResults<? extends O> options) {

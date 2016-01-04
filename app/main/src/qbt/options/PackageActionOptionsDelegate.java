@@ -33,24 +33,11 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public interface NoArgsBehaviour {
         public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest);
 
-        public static final NoArgsBehaviour EMPTY = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
-            }
+        public static final NoArgsBehaviour EMPTY = (b, config, manifest) -> {
         };
-
-        public static final NoArgsBehaviour OVERRIDES = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
-                addOverrides(b, config, manifest);
-            }
-        };
-
-        public static final NoArgsBehaviour THROW = new NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<PackageTip> b, QbtConfig config, QbtManifest manifest) {
-                throw new OptionsException("Some form of package selection is required.");
-            }
+        public static final NoArgsBehaviour OVERRIDES = (b, config, manifest) -> addOverrides(b, config, manifest);
+        public static final NoArgsBehaviour THROW = (b, config, manifest) -> {
+            throw new OptionsException("Some form of package selection is required.");
         };
     }
 

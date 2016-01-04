@@ -39,15 +39,12 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final ParallelismOptionsDelegate<Options> parallelism = new ParallelismOptionsDelegate<Options>();
-        public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(new RepoActionOptionsDelegate.NoArgsBehaviour() {
-            @Override
-            public void run(ImmutableSet.Builder<RepoTip> b, QbtConfig config, QbtManifest manifest) {
-                ImmutableSet<RepoTip> s0 = PackageRepoSelection.overrides(config, manifest);
-                ImmutableSet<PackageTip> s1 = PackageRepoSelection.reposToPackages(manifest, s0);
-                ImmutableSet<PackageTip> s2 = PackageRepoSelection.inwardsClosure(manifest, s1);
-                ImmutableSet<RepoTip> s3 = PackageRepoSelection.packagesToRepos(manifest, s2);
-                b.addAll(s3);
-            }
+        public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>((b, config, manifest) -> {
+            ImmutableSet<RepoTip> s0 = PackageRepoSelection.overrides(config, manifest);
+            ImmutableSet<PackageTip> s1 = PackageRepoSelection.reposToPackages(manifest, s0);
+            ImmutableSet<PackageTip> s2 = PackageRepoSelection.inwardsClosure(manifest, s1);
+            ImmutableSet<RepoTip> s3 = PackageRepoSelection.packagesToRepos(manifest, s2);
+            b.addAll(s3);
         });
         public static final OptionsFragment<Options, ?, ImmutableList<String>> remote = new UnparsedOptionsFragment<Options>("QBT remote from which to fetch", false, 1, 1);
     }
