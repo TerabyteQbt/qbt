@@ -45,16 +45,6 @@ public final class CommitData extends Struct<CommitData, CommitData.Builder> {
         b.add(COMMITTER_DATE = new SimpleStructKey<CommitData, String>("committerDate"));
         b.add(MESSAGE = new SimpleStructKey<CommitData, String>("message"));
 
-        TYPE = new StructType<CommitData, Builder>(b.build()) {
-            @Override
-            protected CommitData createUnchecked(ImmutableMap<StructKey<CommitData, ?, ?>, Object> map) {
-                return new CommitData(map);
-            }
-
-            @Override
-            protected Builder createBuilder(ImmutableSalvagingMap<StructKey<CommitData, ?, ?>, Object> map) {
-                return new Builder(map);
-            }
-        };
+        TYPE = new StructType<CommitData, Builder>(b.build(), CommitData::new, Builder::new);
     }
 }

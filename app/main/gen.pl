@@ -490,17 +490,7 @@ sub gen2 {
         print $fh "        });\n";
     }
     print $fh "\n";
-    print $fh "        TYPE = new StructType<$name, Builder>(b.build()) {\n";
-    print $fh "            \@Override\n";
-    print $fh "            protected $name createUnchecked(ImmutableMap<StructKey<$name, ?, ?>, Object> map) {\n";
-    print $fh "                return new $name(map);\n";
-    print $fh "            }\n";
-    print $fh "\n";
-    print $fh "            \@Override\n";
-    print $fh "            protected Builder createBuilder(ImmutableSalvagingMap<StructKey<$name, ?, ?>, Object> map) {\n";
-    print $fh "                return new Builder(map);\n";
-    print $fh "            }\n";
-    print $fh "        };\n";
+    print $fh "        TYPE = new StructType<$name, Builder>(b.build(), ${name}::new, Builder::new);\n";
     print $fh "    }\n";
     print $fh "\n";
     print $fh "    public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {\n";
