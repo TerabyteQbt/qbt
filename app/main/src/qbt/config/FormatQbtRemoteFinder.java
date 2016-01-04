@@ -4,7 +4,7 @@ import qbt.remote.FormatQbtRemote;
 import qbt.remote.QbtRemote;
 import qbt.vcs.RawRemoteVcs;
 
-public class FormatQbtRemoteFinder extends AbstractQbtRemoteFinder {
+public class FormatQbtRemoteFinder implements QbtRemoteFinder {
     private final RawRemoteVcs vcs;
 
     public FormatQbtRemoteFinder(RawRemoteVcs vcs) {

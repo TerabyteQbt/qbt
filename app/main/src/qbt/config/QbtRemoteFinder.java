@@ -3,6 +3,12 @@ package qbt.config;
 import qbt.remote.QbtRemote;
 
 public interface QbtRemoteFinder {
-    public QbtRemote findQbtRemote(String remote);
-    public QbtRemote requireQbtRemote(String remote);
+    QbtRemote findQbtRemote(String remote);
+    default QbtRemote requireQbtRemote(String remote) {
+        QbtRemote r = findQbtRemote(remote);
+        if(r == null) {
+            throw new IllegalArgumentException("Could not qbt remote for " + remote);
+        }
+        return r;
+    }
 }

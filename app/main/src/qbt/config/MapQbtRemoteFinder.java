@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import qbt.remote.QbtRemote;
 
-public final class MapQbtRemoteFinder extends AbstractQbtRemoteFinder {
+public final class MapQbtRemoteFinder implements QbtRemoteFinder {
     private final ImmutableMap<String, QbtRemote> map;
 
     public MapQbtRemoteFinder(Map<String, QbtRemote> map) {

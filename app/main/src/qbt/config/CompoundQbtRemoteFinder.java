@@ -3,7 +3,7 @@ package qbt.config;
 import com.google.common.collect.ImmutableList;
 import qbt.remote.QbtRemote;
 
-public final class CompoundQbtRemoteFinder extends AbstractQbtRemoteFinder {
+public final class CompoundQbtRemoteFinder implements QbtRemoteFinder {
     private final ImmutableList<QbtRemoteFinder> children;
 
     public CompoundQbtRemoteFinder(Iterable<QbtRemoteFinder> children) {
