@@ -31,9 +31,9 @@ import qbt.manifest.v0.Upgrades;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
-class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, QbtManifest.Builder, qbt.manifest.current.QbtManifest> {
+class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, QbtManifest.Builder, qbt.manifest.v1.QbtManifest> {
     public V0QbtManifestVersion(V1QbtManifestVersion nextVersion) {
-        super(0, nextVersion, QbtManifest.class, qbt.manifest.current.QbtManifest.class);
+        super(0, nextVersion, QbtManifest.class, qbt.manifest.v1.QbtManifest.class);
     }
 
     @Override
@@ -98,7 +98,7 @@ class V0QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, Qb
     }
 
     @Override
-    public qbt.manifest.current.QbtManifest upgrade(QbtManifest manifest) {
+    public qbt.manifest.v1.QbtManifest upgrade(QbtManifest manifest) {
         return Upgrades.upgrade_QbtManifest(manifest).build();
     }
 

@@ -107,6 +107,54 @@ my @DATA = (
         'upgrades' => ['QbtManifest'],
     },
     {
+        'prefix' => 'qbt.manifest.v1.',
+        'types' => {
+            'QbtManifest' => map_type(
+                'key' => external_key('RepoTip', 'RepoTip.TYPE.STRING_SERIALIZER'),
+                'value' => link_value('RepoManifest'),
+            ),
+            'RepoManifest' => struct_type(
+                'fields' => {
+                    'version' => external_value('VcsVersionDigest', 'JsonSerializers.VCS_VERSION_DIGEST'),
+                    'packages' => link_value('RepoManifestPackages'),
+                },
+            ),
+            'RepoManifestPackages' => map_type(
+                'key' => external_key('String', 'StringSerializer.STRING'),
+                'value' => link_value('PackageManifest'),
+            ),
+            'PackageManifest' => struct_type(
+                'fields' => {
+                    'metadata' => link_value('PackageMetadata'),
+                    'normalDeps' => link_value('PackageNormalDeps'),
+                    'replaceDeps' => link_value('PackageReplaceDeps'),
+                    'verifyDeps' => link_value('PackageVerifyDeps'),
+                },
+            ),
+            'PackageMetadata' => struct_type(
+                'fields' => {
+                    'prefix' => external_value('Maybe<String>', 'JsonSerializers.forStringSerializer(StringSerializer.V0_PREFIX)', 'Maybe.of("")'),
+                    'archIndependent' => external_value('Boolean', 'JsonSerializers.forStringSerializer(StringSerializer.BOOLEAN)', 'false'),
+                    'qbtEnv' => external_value('ImmutableSet<String>', 'JsonSerializers.forStringSerializer(StringSerializer.V0_QBT_ENV)', 'ImmutableSet.<String>of()'),
+                    'buildType' => external_value('PackageBuildType', 'JsonSerializers.forEnum(PackageBuildType.class)', 'PackageBuildType.NORMAL'),
+                },
+            ),
+            'PackageNormalDeps' => map_type(
+                'key' => external_key('String', 'StringSerializer.STRING'),
+                'value' => external_value('Pair<NormalDependencyType, String>', 'JsonSerializers.NORMAL_DEP_VALUE'),
+            ),
+            'PackageReplaceDeps' => map_type(
+                'key' => external_key('PackageTip', 'PackageTip.TYPE.STRING_SERIALIZER'),
+                'value' => external_value('String', 'JsonSerializers.STRING'),
+            ),
+            'PackageVerifyDeps' => map_type(
+                'key' => external_key('Pair<PackageTip, String>', 'StringSerializer.VERIFY_DEP_KEY'),
+                'value' => external_value('ObjectUtils.Null', 'JsonSerializers.OU_NULL'),
+            ),
+        },
+        'upgrades' => ['QbtManifest'],
+    },
+    {
         'prefix' => 'qbt.manifest.current.',
         'types' => {
             'QbtManifest' => map_type(
@@ -147,9 +195,9 @@ my @DATA = (
             ),
             'PackageMetadata' => struct_type(
                 'fields' => {
-                    'prefix' => external_value('Maybe<String>', 'JsonSerializers.forStringSerializer(StringSerializer.V0_PREFIX)', 'Maybe.of("")'),
-                    'archIndependent' => external_value('Boolean', 'JsonSerializers.forStringSerializer(StringSerializer.BOOLEAN)', 'false'),
-                    'qbtEnv' => external_value('ImmutableSet<String>', 'JsonSerializers.forStringSerializer(StringSerializer.V0_QBT_ENV)', 'ImmutableSet.<String>of()'),
+                    'prefix' => external_value('Maybe<String>', 'JsonSerializers.MAYBE_STRING', 'Maybe.of("")'),
+                    'archIndependent' => external_value('Boolean', 'JsonSerializers.BOOLEAN', 'false'),
+                    'qbtEnv' => external_value('ImmutableSet<String>', 'JsonSerializers.SET_STRING', 'ImmutableSet.<String>of()'),
                     'buildType' => external_value('PackageBuildType', 'JsonSerializers.forEnum(PackageBuildType.class)', 'PackageBuildType.NORMAL'),
                 },
             ),

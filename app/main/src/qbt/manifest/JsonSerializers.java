@@ -1,7 +1,12 @@
 package qbt.manifest;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.util.Map;
+import misc1.commons.Maybe;
 import misc1.commons.ds.WrapperType;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -109,4 +114,59 @@ public final class JsonSerializers {
             }
         };
     }
+
+    public static final JsonSerializer<Boolean> BOOLEAN = new JsonSerializer<Boolean>() {
+        @Override
+        public JsonElement toJson(Boolean b) {
+            return new JsonPrimitive(b);
+        }
+
+        @Override
+        public Boolean fromJson(JsonElement e) {
+            return e.getAsBoolean();
+        }
+    };
+
+    public static final JsonSerializer<Maybe<String>> MAYBE_STRING = new JsonSerializer<Maybe<String>>() {
+        @Override
+        public JsonElement toJson(Maybe<String> ms) {
+            return ms.transform(new Function<String, JsonElement>() {
+                @Override
+                public JsonElement apply(String s) {
+                    return new JsonPrimitive(s);
+                }
+            }).get(null);
+        }
+
+        @Override
+        public Maybe<String> fromJson(JsonElement e) {
+            if(e == null) {
+                return Maybe.not();
+            }
+            return Maybe.of(e.getAsString());
+        }
+    };
+
+    public static final JsonSerializer<ImmutableSet<String>> SET_STRING = new JsonSerializer<ImmutableSet<String>>() {
+        @Override
+        public JsonElement toJson(ImmutableSet<String> set) {
+            JsonObject r = new JsonObject();
+            for(String s : set) {
+                r.add(s, new JsonPrimitive(1));
+            }
+            return r;
+        }
+
+        @Override
+        public ImmutableSet<String> fromJson(JsonElement e) {
+            ImmutableSet.Builder<String> b = ImmutableSet.builder();
+            for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
+                b.add(e2.getKey());
+                if(e2.getValue().getAsInt() != 1) {
+                    throw new IllegalArgumentException();
+                }
+            }
+            return b.build();
+        }
+    };
 }

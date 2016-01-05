@@ -3,19 +3,23 @@ package qbt.manifest;
 import com.google.common.collect.ImmutableSet;
 import misc1.commons.merge.Merge;
 import qbt.VcsVersionDigest;
-import qbt.manifest.v1.QbtManifest;
-import qbt.manifest.v1.RepoManifest;
-import qbt.manifest.v1.Upgrades;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
 import qbt.tip.RepoTip;
 
-class V1QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, QbtManifest.Builder, qbt.manifest.current.QbtManifest> {
-    public V1QbtManifestVersion(V2QbtManifestVersion nextVersion) {
-        super(1, nextVersion, QbtManifest.class, qbt.manifest.current.QbtManifest.class);
+class V2QbtManifestVersion extends QbtManifestVersion<QbtManifest, QbtManifest.Builder> {
+    public V2QbtManifestVersion() {
+        super(2, QbtManifest.class);
     }
 
     @Override
     public ImmutableSet<RepoTip> getRepos(QbtManifest manifest) {
         return manifest.map.keySet();
+    }
+
+    @Override
+    public QbtManifest current(QbtManifest manifest) {
+        return manifest;
     }
 
     @Override
@@ -51,10 +55,5 @@ class V1QbtManifestVersion extends QbtManifestUpgradeableVersion<QbtManifest, Qb
                 return QbtManifest.SERIALIZER;
             }
         };
-    }
-
-    @Override
-    public qbt.manifest.current.QbtManifest upgrade(QbtManifest manifest) {
-        return Upgrades.upgrade_QbtManifest(manifest).build();
     }
 }
