@@ -1,8 +1,10 @@
 package qbt.tip;
 
+import com.google.common.base.Function;
 import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import qbt.manifest.StringSerializer;
 
 public abstract class AbstractTip<T extends AbstractTip<T>> {
     private static final Pattern PATTERN = Pattern.compile("^[0-9a-zA-Z._]*$");
@@ -100,6 +102,25 @@ public abstract class AbstractTip<T extends AbstractTip<T>> {
                 }
 
                 return 0;
+            }
+        };
+
+        public final Function<String, T> FROM_STRING = new Function<String, T>() {
+            @Override
+            public T apply(String input) {
+                return parseRequire(input);
+            }
+        };
+
+        public final StringSerializer<T> STRING_SERIALIZER = new StringSerializer<T>() {
+            @Override
+            public String toString(T t) {
+                return t.toString();
+            }
+
+            @Override
+            public T fromString(String s) {
+                return parseRequire(s);
             }
         };
 

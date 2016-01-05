@@ -8,15 +8,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import misc1.commons.ds.StructKey;
 import qbt.VcsTreeDigest;
-import qbt.metadata.Metadata;
-import qbt.metadata.PackageMetadataType;
+import qbt.manifest.current.PackageMetadata;
 
 public final class CumulativeVersionNodeData {
     public final String packageName;
     public final VcsTreeDigest effectiveTree;
     public final CumulativeVersionDigest qbtDependency;
-    public final Metadata<PackageMetadataType> metadata; // stripped!
+    public final PackageMetadata metadata; // stripped!
     public final ImmutableMap<String, String> qbtEnv;
 
     private static ImmutableMap<String, String> copyEnv(Set<String> keep, Map<String, String> qbtEnv) {
@@ -41,20 +41,50 @@ public final class CumulativeVersionNodeData {
         return b.build();
     }
 
-    public CumulativeVersionNodeData(String packageName, VcsTreeDigest effectiveTree, CumulativeVersionDigest qbtDependency, Metadata<PackageMetadataType> metadata, Map<String, String> qbtEnv) {
+    private static boolean includeInCumulativeVersion(StructKey<PackageMetadata, ?, ?> key) {
+        if(key == PackageMetadata.PREFIX) {
+            return false;
+        }
+        if(key == PackageMetadata.ARCH_INDEPENDENT) {
+            return false;
+        }
+        if(key == PackageMetadata.QBT_ENV) {
+            return false;
+        }
+        if(key == PackageMetadata.BUILD_TYPE) {
+            return true;
+        }
+        throw new IllegalArgumentException(key.name);
+    }
+
+    private static <VS, VB> PackageMetadata.Builder copy(PackageMetadata.Builder b, PackageMetadata metadata, StructKey<PackageMetadata, VS, VB> key) {
+        return b.set(key, key.toBuilder(metadata.get(key)));
+    }
+
+    private static PackageMetadata stripForCumulativeVersion(PackageMetadata metadata) {
+        PackageMetadata.Builder b = PackageMetadata.TYPE.builder();
+        for(StructKey<PackageMetadata, ?, ?> key : PackageMetadata.TYPE.keys) {
+            if(includeInCumulativeVersion(key)) {
+                b = copy(b, metadata, key);
+            }
+        }
+        return b.build();
+    }
+
+    public CumulativeVersionNodeData(String packageName, VcsTreeDigest effectiveTree, CumulativeVersionDigest qbtDependency, PackageMetadata metadata, Map<String, String> qbtEnv) {
         this.packageName = packageName;
         this.effectiveTree = effectiveTree;
         this.qbtDependency = qbtDependency;
-        this.metadata = PackageMetadataType.stripForCumulativeVersion(metadata);
-        this.qbtEnv = copyEnv(metadata.get(PackageMetadataType.QBT_ENV), qbtEnv);
+        this.metadata = stripForCumulativeVersion(metadata);
+        this.qbtEnv = copyEnv(metadata.get(PackageMetadata.QBT_ENV), qbtEnv);
     }
 
     private CumulativeVersionNodeData(Builder b) {
         this.packageName = b.packageName;
         this.effectiveTree = b.effectiveTree;
         this.qbtDependency = b.qbtDependency;
-        this.metadata = PackageMetadataType.stripForCumulativeVersion(b.metadata);
-        this.qbtEnv = copyEnv(b.metadata.get(PackageMetadataType.QBT_ENV), b.qbtEnv);
+        this.metadata = stripForCumulativeVersion(b.metadata);
+        this.qbtEnv = copyEnv(b.metadata.get(PackageMetadata.QBT_ENV), b.qbtEnv);
     }
 
     @Override
@@ -90,7 +120,7 @@ public final class CumulativeVersionNodeData {
         private String packageName;
         private VcsTreeDigest effectiveTree;
         private CumulativeVersionDigest qbtDependency;
-        private Metadata<PackageMetadataType> metadata;
+        private PackageMetadata metadata;
         private Map<String, String> qbtEnv;
 
         private Builder(CumulativeVersionNodeData nodeData) {

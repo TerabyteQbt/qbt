@@ -2,4 +2,5 @@
 /.ecbuild
 /.gradle
 /.project
+/.src.gen
 /build

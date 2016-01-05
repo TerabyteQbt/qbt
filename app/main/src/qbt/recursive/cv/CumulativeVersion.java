@@ -4,19 +4,22 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hasher;
+import com.google.gson.JsonElement;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.QbtHashUtils;
 import qbt.VcsTreeDigest;
-import qbt.metadata.Metadata;
-import qbt.metadata.PackageMetadataType;
+import qbt.manifest.current.PackageMetadata;
 import qbt.recursive.rpd.RecursivePackageData;
 import qbt.recursive.rpd.RecursivePackageDataCanonicalizer;
 
@@ -45,7 +48,7 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
             b = b.putString(QbtHashUtils.hashFunction().hashString(e.getValue(), Charsets.UTF_8).toString(), Charsets.UTF_8);
             b = b.putString("\n", Charsets.UTF_8);
         }
-        for(Map.Entry<String, String> e : nodeData.metadata.toStringMap().entrySet()) {
+        for(Map.Entry<String, String> e : toStringMap(nodeData.metadata)) {
             b = b.putString("METADATA\t", Charsets.UTF_8);
             b = b.putString(e.getKey(), Charsets.UTF_8);
             b = b.putString("\t", Charsets.UTF_8);
@@ -104,7 +107,7 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
         return result.qbtDependency;
     }
 
-    public Metadata<PackageMetadataType> getMetadata() {
+    public PackageMetadata getMetadata() {
         return result.metadata;
     }
 
@@ -149,10 +152,10 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
             }
         }
 
-        Map<String, String> metadataMap = getMetadata().toStringMap();
+        Collection<Map.Entry<String, String>> metadataMap = toStringMap(getMetadata());
         if(!metadataMap.isEmpty()) {
             b.add(prefix + INDENT + "Metadata:");
-            for(Map.Entry<String, String> e : metadataMap.entrySet()) {
+            for(Map.Entry<String, String> e : metadataMap) {
                 b.add(prefix + INDENT + INDENT + e.getKey() + ": " + e.getValue());
             }
         }
@@ -170,5 +173,14 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
                 e.getRight().prettyTree(prefix + INDENT + INDENT, b, seen);
             }
         }
+    }
+
+    private static Collection<Map.Entry<String, String>> toStringMap(PackageMetadata metadata) {
+        JsonElement e = PackageMetadata.SERIALIZER.toJson(metadata.builder());
+        TreeMap<String, String> m = Maps.newTreeMap();
+        for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
+            m.put(e2.getKey(), e2.getValue().getAsString());
+        }
+        return m.entrySet();
     }
 }

@@ -2,4 +2,7 @@
 
 set -e
 
+rm -rf .src.gen
+./gen.pl
+
 $INPUT_DEV_PROTO_DIR/extra/qbt_fringe.eclipse_gen.simple.release/strong/qbt_fringe.eclipse_gen.simple.release/bin/eclipse_gen.simple

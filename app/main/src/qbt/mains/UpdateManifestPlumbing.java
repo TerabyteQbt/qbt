@@ -14,8 +14,10 @@ import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifest;
-import qbt.manifest.RepoManifest;
+import qbt.manifest.LegacyQbtManifest;
+import qbt.manifest.QbtManifestVersions;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
@@ -31,6 +33,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
     public static interface UpdateManifestCommonOptions {
         public static final ConfigOptionsDelegate<UpdateManifestCommonOptions> config = new ConfigOptionsDelegate<UpdateManifestCommonOptions>();
         public static final ManifestOptionsDelegate<UpdateManifestCommonOptions> manifest = new ManifestOptionsDelegate<UpdateManifestCommonOptions>();
+        public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> upgrade = new NamedBooleanFlagOptionsFragment(ImmutableList.of("--upgrade"), "Upgrade the manifest");
         public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> allowNonFf = new NamedBooleanFlagOptionsFragment<UpdateManifestCommonOptions>(ImmutableList.of("--allow-non-ff"), "Update even if the update is not fast-forward.");
         public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> allowDirty = new NamedBooleanFlagOptionsFragment<UpdateManifestCommonOptions>(ImmutableList.of("--allow-dirty"), "Update even if a repo is dirty");
     }
@@ -63,12 +66,16 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
     public static <O extends UpdateManifestCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = UpdateManifestCommonOptions.config.getConfig(options);
         ManifestOptionsResult manifestResult = UpdateManifestCommonOptions.manifest.getResult(options);
-        QbtManifest manifest = manifestResult.parse();
-        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
-        QbtManifest.Builder newManifest = manifest.builder();
+        LegacyQbtManifest<?, ?> manifestLegacy = manifestResult.parseLegacy();
+        QbtManifest manifestCurrent = manifestLegacy.current();
+        if(options.get(Options.upgrade)) {
+            manifestLegacy = QbtManifestVersions.toLegacy(manifestLegacy.current());
+        }
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifestCurrent, options);
+        LegacyQbtManifest.Builder<?, ?> newManifest = manifestLegacy.builder();
         boolean fail = false;
         for(RepoTip repo : repos) {
-            RepoManifest repoManifest = manifest.repos.get(repo);
+            RepoManifest repoManifest = manifestCurrent.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
@@ -108,7 +115,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                     continue;
                 }
                 pinnedAccessor.addPin(localRepoAccessor.dir, newVersion);
-                newManifest = newManifest.with(repo, repoManifest.builder().set(RepoManifest.VERSION, newVersion));
+                newManifest = newManifest.withRepoVersion(repo, newVersion);
                 LOGGER.info(String.format("Updated repo %s from %s to %s...", repo, version.getRawDigest(), newVersion.getRawDigest()));
             }
         }

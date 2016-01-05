@@ -11,10 +11,10 @@ import qbt.NormalDependencyType;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.PackageManifest;
-import qbt.manifest.QbtManifest;
-import qbt.manifest.RepoManifest;
-import qbt.metadata.PackageMetadataType;
+import qbt.manifest.current.PackageManifest;
+import qbt.manifest.current.PackageMetadata;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
 import qbt.recursive.cv.CumulativeVersionDigest;
 import qbt.recursive.cv.CumulativeVersionNodeData;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
@@ -75,7 +75,7 @@ public abstract class CumulativeVersionComputer<K> {
             CommonRepoAccessor commonRepoAccessor = repoCacheResult.getLeft();
             VcsTreeDigest repoTree = repoCacheResult.getRight();
 
-            Maybe<String> prefix = packageManifest.metadata.get(PackageMetadataType.PREFIX);
+            Maybe<String> prefix = packageManifest.metadata.get(PackageMetadata.PREFIX);
             VcsTreeDigest packageTree;
             if(prefix.isPresent()) {
                 packageTree = commonRepoAccessor.getSubtree(repoTree, prefix.get(null));

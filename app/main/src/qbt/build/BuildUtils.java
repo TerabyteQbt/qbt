@@ -26,8 +26,8 @@ import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.artifactcacher.ArtifactReference;
 import qbt.artifactcacher.ArtifactReferences;
-import qbt.metadata.PackageBuildType;
-import qbt.metadata.PackageMetadataType;
+import qbt.manifest.PackageBuildType;
+import qbt.manifest.current.PackageMetadata;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataMapper;
 import qbt.utils.TarballUtils;
@@ -134,7 +134,7 @@ public final class BuildUtils {
             final Path reportsDir = tempDir.resolve("reports");
             QbtUtils.mkdirs(reportsDir);
 
-            PackageBuildType buildType = bd.metadata.get(PackageMetadataType.BUILD_TYPE);
+            PackageBuildType buildType = bd.metadata.get(PackageMetadata.BUILD_TYPE);
             RuntimeException failure = null;
             try {
                 switch(buildType) {
@@ -172,7 +172,7 @@ public final class BuildUtils {
     }
 
     private static void runNormalBuild(final Path artifactsDir, final Path reportsDir, final BuildData bd) {
-        Maybe<String> prefix = bd.metadata.get(PackageMetadataType.PREFIX);
+        Maybe<String> prefix = bd.metadata.get(PackageMetadata.PREFIX);
         if(!prefix.isPresent()) {
             return;
         }

@@ -9,7 +9,7 @@ import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifest;
+import qbt.manifest.current.QbtManifest;
 import qbt.map.BuildCumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputerOptionsDelegate;

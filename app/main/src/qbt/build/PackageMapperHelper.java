@@ -12,7 +12,7 @@ import qbt.VcsTreeDigest;
 import qbt.artifactcacher.Architecture;
 import qbt.artifactcacher.ArtifactCacher;
 import qbt.artifactcacher.ArtifactReference;
-import qbt.metadata.PackageMetadataType;
+import qbt.manifest.current.PackageMetadata;
 
 public final class PackageMapperHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(PackageMapperHelper.class);
@@ -40,7 +40,7 @@ public final class PackageMapperHelper {
                     // This is sort of a crummy way to do this.
                     // Additionally, this is only checking overrides
                     // since non-overrides have a fixed effective tree.
-                    VcsTreeDigest currentTree = bd.commonRepoAccessor.getEffectiveTree(bd.metadata.get(PackageMetadataType.PREFIX));
+                    VcsTreeDigest currentTree = bd.commonRepoAccessor.getEffectiveTree(bd.metadata.get(PackageMetadata.PREFIX));
                     if(!bd.v.getEffectiveTree().equals(currentTree)) {
                         throw new IllegalStateException("The effective tree for " + bd.v.getPackageName() + " has changed from " + bd.v.getEffectiveTree().getRawDigest() + " to " + currentTree.getRawDigest() + suffix + "!");
                     }
@@ -82,7 +82,7 @@ public final class PackageMapperHelper {
                         artifactResult = artifactResult.transform(new Function<ArtifactReference, ArtifactReference>() {
                             @Override
                             public ArtifactReference apply(ArtifactReference input) {
-                                return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadataType.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
+                                return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadata.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
                             }
                         });
 

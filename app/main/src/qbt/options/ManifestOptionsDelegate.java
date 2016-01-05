@@ -14,7 +14,10 @@ import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtUtils;
-import qbt.manifest.QbtManifest;
+import qbt.manifest.LegacyQbtManifest;
+import qbt.manifest.QbtManifestVersion;
+import qbt.manifest.QbtManifestVersions;
+import qbt.manifest.current.QbtManifest;
 
 public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ?, String> file;
@@ -100,20 +103,30 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
             }
 
             @Override
-            public QbtManifest parse() throws IOException {
-                return QbtManifest.parse("?", getLines());
+            public LegacyQbtManifest<?, ?> parseLegacy() throws IOException {
+                return QbtManifestVersions.parseLegacy(getLines());
             }
 
             @Override
-            public ImmutableList<Pair<String, String>> deparseConflict(String lhsName, QbtManifest lhs, String mhsName, QbtManifest mhs, String rhsName, QbtManifest rhs) {
-                Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = QbtManifest.deparseConflicts(lhsName, lhs, mhsName, mhs, rhsName, rhs);
-                setLines(deparse.getRight());
-                return deparse.getLeft();
+            public QbtManifest parse() throws IOException {
+                return QbtManifestVersions.parse(getLines());
             }
 
             @Override
             public void deparse(QbtManifest manifest) {
+                setLines(QbtManifestVersions.toLegacy(manifest).deparse());
+            }
+
+            @Override
+            public void deparse(LegacyQbtManifest<?, ?> manifest) {
                 setLines(manifest.deparse());
+            }
+
+            @Override
+            public <M, B> ImmutableList<Pair<String, String>> deparseConflict(QbtManifestVersion<M, B> version, String lhsName, M lhs, String mhsName, M mhs, String rhsName, M rhs) {
+                Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = version.parser().deparse(lhsName, lhs, mhsName, mhs, rhsName, rhs);
+                setLines(deparse.getRight());
+                return deparse.getLeft();
             }
         };
     }

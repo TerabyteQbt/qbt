@@ -18,10 +18,12 @@ import qbt.HelpTier;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
+import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifest;
-import qbt.manifest.RepoManifest;
+import qbt.manifest.QbtManifestVersions;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ParallelismOptionsDelegate;
@@ -85,7 +87,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
             if(idx == -1) {
                 throw new IllegalArgumentException("Invalid --extra-manifest: " + arg);
             }
-            extraManifestsBuilder.put(arg.substring(0, idx), QbtManifest.parse(Paths.get(arg.substring(idx + 1))));
+            extraManifestsBuilder.put(arg.substring(0, idx), QbtManifestVersions.parse(QbtUtils.readLines(Paths.get(arg.substring(idx + 1)))));
         }
         final Map<String, QbtManifest> extraManifests = extraManifestsBuilder.build();
 

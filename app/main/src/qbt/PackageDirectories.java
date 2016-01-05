@@ -3,9 +3,8 @@ package qbt;
 import java.nio.file.Path;
 import misc1.commons.Maybe;
 import qbt.build.BuildData;
+import qbt.manifest.current.PackageMetadata;
 import qbt.map.CumulativeVersionComputer;
-import qbt.metadata.Metadata;
-import qbt.metadata.PackageMetadataType;
 import qbt.repo.CommonRepoAccessor;
 
 public final class PackageDirectories {
@@ -21,8 +20,8 @@ public final class PackageDirectories {
         return forCommon(result.packageManifest.metadata, result.commonRepoAccessor);
     }
 
-    private static PackageDirectory forCommon(Metadata<PackageMetadataType> metadata, CommonRepoAccessor commonRepoAccessor) {
-        Maybe<String> prefix = metadata.get(PackageMetadataType.PREFIX);
+    private static PackageDirectory forCommon(PackageMetadata metadata, CommonRepoAccessor commonRepoAccessor) {
+        Maybe<String> prefix = metadata.get(PackageMetadata.PREFIX);
         if(prefix.isPresent()) {
             return commonRepoAccessor.makePackageDirectory(prefix.get(null));
         }

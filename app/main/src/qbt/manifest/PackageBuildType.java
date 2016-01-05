@@ -1,4 +1,4 @@
-package qbt.metadata;
+package qbt.manifest;
 
 public enum PackageBuildType {
     NORMAL,

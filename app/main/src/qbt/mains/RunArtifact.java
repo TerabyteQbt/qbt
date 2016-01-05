@@ -27,7 +27,7 @@ import qbt.build.BuildData;
 import qbt.build.PackageMapperHelper;
 import qbt.build.PackageMapperHelperOptionsDelegate;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifest;
+import qbt.manifest.current.QbtManifest;
 import qbt.map.BuildCumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputer;
 import qbt.map.CumulativeVersionComputerOptionsDelegate;

@@ -11,8 +11,8 @@ import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsResults;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifest;
-import qbt.manifest.RepoManifest;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
