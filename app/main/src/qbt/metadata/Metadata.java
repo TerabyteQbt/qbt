@@ -96,16 +96,17 @@ public class Metadata<MT extends MetadataType<MT>> {
     public Metadata<MT> pruneTo(EntryPredicate<MT> predicate) {
         Builder<MT> b = of(metadataType).builder();
         for(MetadataItem<MT, ?> item : values.keySet()) {
-            maybeCopyItem(b, item, predicate);
+            b = maybeCopyItem(b, item, predicate);
         }
         return b.build();
     }
 
-    private <T> void maybeCopyItem(Builder<MT> b, MetadataItem<MT, T> item, EntryPredicate<MT> predicate) {
+    private <T> Builder<MT> maybeCopyItem(Builder<MT> b, MetadataItem<MT, T> item, EntryPredicate<MT> predicate) {
         T value = get(item);
         if(predicate.apply(item, value)) {
-            b.put(item, value);
+            b = b.put(item, value);
         }
+        return b;
     }
 
     public static <MT extends MetadataType<MT>> Metadata<MT> fromStringMap(MT metadataType, Map<String, String> strings) {
