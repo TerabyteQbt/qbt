@@ -146,8 +146,8 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
     public static QbtManifestVersion<?, ?> chooseTargetVersion(LegacyQbtManifest<?, ?> lhs, LegacyQbtManifest<?, ?> mhs, LegacyQbtManifest<?, ?> rhs) {
         // These had both better be upgrades or you're doing something bad
         // (e.g.  CP of something in new format onto old format branch)
-        rhs.upgrade(lhs.version);
-        lhs.upgrade(rhs.version);
+        mhs.upgrade(lhs.version);
+        mhs.upgrade(rhs.version);
 
         return lhs.version.max(rhs.version);
     }
