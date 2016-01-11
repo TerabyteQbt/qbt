@@ -1,10 +1,9 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +30,12 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
     private static final Logger LOGGER = LoggerFactory.getLogger(UpdateManifestPlumbing.class);
 
     public static interface UpdateManifestCommonOptions {
+        public static final OptionsLibrary<UpdateManifestCommonOptions> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<UpdateManifestCommonOptions> config = new ConfigOptionsDelegate<UpdateManifestCommonOptions>();
         public static final ManifestOptionsDelegate<UpdateManifestCommonOptions> manifest = new ManifestOptionsDelegate<UpdateManifestCommonOptions>();
-        public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> upgrade = new NamedBooleanFlagOptionsFragment(ImmutableList.of("--upgrade"), "Upgrade the manifest");
-        public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> allowNonFf = new NamedBooleanFlagOptionsFragment<UpdateManifestCommonOptions>(ImmutableList.of("--allow-non-ff"), "Update even if the update is not fast-forward.");
-        public static final OptionsFragment<UpdateManifestCommonOptions, ?, Boolean> allowDirty = new NamedBooleanFlagOptionsFragment<UpdateManifestCommonOptions>(ImmutableList.of("--allow-dirty"), "Update even if a repo is dirty");
+        public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> upgrade = o.zeroArg("upgrade").transform(o.flag()).helpDesc("Upgrade the manifest");
+        public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> allowNonFf = o.zeroArg("allow-non-ff").transform(o.flag()).helpDesc("Update even if the update is not fast-forward.");
+        public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> allowDirty = o.zeroArg("allow-dirty").transform(o.flag()).helpDesc("Update even if a repo is dirty");
     }
 
     @QbtCommandName("updateManifestPlumbing")

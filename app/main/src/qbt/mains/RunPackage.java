@@ -1,12 +1,10 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Map;
-import misc1.commons.Maybe;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,11 +38,12 @@ import qbt.tip.PackageTip;
 public class RunPackage extends QbtCommand<RunPackage.Options> {
     @QbtCommandName("runPackage")
     public static interface Options extends QbtCommandOptions {
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final CumulativeVersionComputerOptionsDelegate<Options> cumulativeVersionComputerOptions = new CumulativeVersionComputerOptionsDelegate<Options>();
         public static final PackageMapperHelperOptionsDelegate<Options> packageMapperHelperOptions = new PackageMapperHelperOptionsDelegate<Options>();
-        public static final OptionsFragment<Options, ?, String> pkg = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--package"), Maybe.<String>not(), "Run a command in this package");
+        public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Run a command in this package");
         public static final ShellActionOptionsDelegate<Options> shellAction = new ShellActionOptionsDelegate<Options>();
     }
 

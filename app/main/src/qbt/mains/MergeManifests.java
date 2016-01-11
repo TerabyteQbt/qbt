@@ -4,11 +4,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
-import misc1.commons.Maybe;
-import misc1.commons.options.NamedEnumSingletonArgumentOptionsFragment;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.ph.ProcessHelper;
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,15 +39,16 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
 
     @QbtCommandName("mergeManifests")
     public static interface Options extends QbtCommandOptions {
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
-        public static final OptionsFragment<Options, ?, String> lhsName = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--lhsName"), Maybe.of("LHS"), "Name of \"left\" side (for conflict markers)");
-        public static final OptionsFragment<Options, ?, String> mhsName = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--mhsName"), Maybe.of("MHS"), "Name of \"middle\" side (for conflict markers)");
-        public static final OptionsFragment<Options, ?, String> rhsName = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--rhsName"), Maybe.of("RHS"), "Name of \"right\" side (for conflict markers)");
+        public static final OptionsFragment<Options, String> lhsName = o.oneArg("lhsName").transform(o.singleton("LHS")).helpDesc("Name of \"left\" side (for conflict markers)");
+        public static final OptionsFragment<Options, String> mhsName = o.oneArg("mhsName").transform(o.singleton("MHS")).helpDesc("Name of \"middle\" side (for conflict markers)");
+        public static final OptionsFragment<Options, String> rhsName = o.oneArg("rhsName").transform(o.singleton("RHS")).helpDesc("Name of \"right\" side (for conflict markers)");
         public static final ManifestOptionsDelegate<Options> lhs = new ManifestOptionsDelegate<Options>("lhs");
         public static final ManifestOptionsDelegate<Options> mhs = new ManifestOptionsDelegate<Options>("mhs");
         public static final ManifestOptionsDelegate<Options> rhs = new ManifestOptionsDelegate<Options>("rhs");
         public static final ManifestOptionsDelegate<Options> out = new ManifestOptionsDelegate<Options>("out");
-        public static final OptionsFragment<Options, ?, StrategyEnum> strategy = new NamedEnumSingletonArgumentOptionsFragment<Options, StrategyEnum>(StrategyEnum.class, ImmutableList.of("--strategy"), Maybe.<StrategyEnum>of(null), "\"Strategy\" for satellites");
+        public static final OptionsFragment<Options, StrategyEnum> strategy = o.oneArg("strategy").transform(o.singleton(null)).transform(o.parseEnum(StrategyEnum.class)).helpDesc("\"Strategy\" for satellites");
         public static final ShellActionOptionsDelegate<Options> shellAction = new ShellActionOptionsDelegate<Options>();
     }
 

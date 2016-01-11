@@ -3,19 +3,17 @@ package qbt.options;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
-import misc1.commons.Maybe;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.options.UnparsedOptionsFragment;
 
 public class ShellActionOptionsDelegate<O> implements OptionsDelegate<O> {
-    public final OptionsFragment<O, ?, Boolean> isInteractive = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--interactive"), "Treat the command as interactive");
-    public final OptionsFragment<O, ?, Boolean> interactiveShell = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--interactive-shell"), "Run an interactive $SHELL");
-    public final OptionsFragment<O, ?, String> shell = new NamedStringSingletonArgumentOptionsFragment<O>(ImmutableList.of("--shell"), Maybe.<String>of(null), "Command to be run with $SHELL -c");
-    public final OptionsFragment<O, ?, ImmutableList<String>> command = new UnparsedOptionsFragment<O>("Command to run", true, null, null);
+    private final OptionsLibrary<O> o = OptionsLibrary.of();
+    public final OptionsFragment<O, Boolean> isInteractive = o.zeroArg("interactive").transform(o.flag()).helpDesc("Treat the command as interactive");
+    public final OptionsFragment<O, Boolean> interactiveShell = o.zeroArg("interactive-shell").transform(o.flag()).helpDesc("Run an interactive $SHELL");
+    public final OptionsFragment<O, String> shell = o.oneArg("shell").transform(o.singleton(null)).helpDesc("Command to be run with $SHELL -c");
+    public final OptionsFragment<O, ImmutableList<String>> command = o.unparsed(true).helpDesc("Command to run");
 
     private List<ShellActionOptionsResult> choices(OptionsResults<? extends O> options) {
         boolean optionsIsInteractive = options.get(isInteractive);

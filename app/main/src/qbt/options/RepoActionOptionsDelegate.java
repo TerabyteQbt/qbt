@@ -4,11 +4,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Map;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
-import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
@@ -17,11 +16,12 @@ import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
 public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
-    public final OptionsFragment<O, ?, ImmutableList<String>> repos = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--repo"), "Act on this repo");
-    public final OptionsFragment<O, ?, ImmutableList<String>> packages = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--package"), "Act on the repo containing this package");
-    public final OptionsFragment<O, ?, Boolean> overrides = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--overrides"), "Act on all overridden repos");
-    public final OptionsFragment<O, ?, Boolean> all = new NamedBooleanFlagOptionsFragment<O>(ImmutableList.of("--all"), "Act on all repos");
-    public final OptionsFragment<O, ?, ImmutableList<String>> groovyRepos = new NamedStringListArgumentOptionsFragment<O>(ImmutableList.of("--groovyRepos"), "Evaluate this groovy to choose repos");
+    private final OptionsLibrary<O> o = OptionsLibrary.of();
+    public final OptionsFragment<O, ImmutableList<String>> repos = o.oneArg("repo").helpDesc("Act on this repo");
+    public final OptionsFragment<O, ImmutableList<String>> packages = o.oneArg("package").helpDesc("Act on the repo containing this package");
+    public final OptionsFragment<O, Boolean> overrides = o.zeroArg("overrides").transform(o.flag()).helpDesc("Act on all overridden repos");
+    public final OptionsFragment<O, Boolean> all = o.zeroArg("all").transform(o.flag()).helpDesc("Act on all repos");
+    public final OptionsFragment<O, ImmutableList<String>> groovyRepos = o.oneArg("groovyRepos").helpDesc("Evaluate this groovy to choose repos");
 
     private final NoArgsBehaviour noArgsBehaviour;
 

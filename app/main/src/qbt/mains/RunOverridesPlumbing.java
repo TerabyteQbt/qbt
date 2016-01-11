@@ -7,9 +7,8 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
-import misc1.commons.options.NamedStringListArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.ph.ProcessHelper;
 import org.apache.commons.lang3.ObjectUtils;
@@ -36,11 +35,12 @@ import qbt.utils.ProcessHelperUtils;
 
 public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.Options> {
     public static interface RunOverridesCommonOptions {
+        public static final OptionsLibrary<RunOverridesCommonOptions> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<RunOverridesCommonOptions> config = new ConfigOptionsDelegate<RunOverridesCommonOptions>();
         public static final ManifestOptionsDelegate<RunOverridesCommonOptions> manifest = new ManifestOptionsDelegate<RunOverridesCommonOptions>();
         public static final ParallelismOptionsDelegate<RunOverridesCommonOptions> parallelism = new ParallelismOptionsDelegate<RunOverridesCommonOptions>();
-        public static final OptionsFragment<RunOverridesCommonOptions, ?, Boolean> noPrefix = new NamedBooleanFlagOptionsFragment<RunOverridesCommonOptions>(ImmutableList.of("--no-prefix"), "Don't prefix each line of output with repo banner (the default is to prefix)");
-        public static final OptionsFragment<RunOverridesCommonOptions, ?, ImmutableList<String>> extraManifests = new NamedStringListArgumentOptionsFragment<RunOverridesCommonOptions>(ImmutableList.of("--extra-manifest"), "Extra QBT manifest file (<name>=<filename>)");
+        public static final OptionsFragment<RunOverridesCommonOptions, Boolean> noPrefix = o.zeroArg("no-prefix").transform(o.flag()).helpDesc("Don't prefix each line of output with repo banner (the default is to prefix)");
+        public static final OptionsFragment<RunOverridesCommonOptions, ImmutableList<String>> extraManifests = o.oneArg("extra-manifest").helpDesc("Extra QBT manifest file (<name>=<filename>)");
         public static final ShellActionOptionsDelegate<RunOverridesCommonOptions> shellAction = new ShellActionOptionsDelegate<RunOverridesCommonOptions>();
     }
 

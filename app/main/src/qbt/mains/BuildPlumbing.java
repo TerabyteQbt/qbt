@@ -24,10 +24,8 @@ import misc1.commons.Maybe;
 import misc1.commons.Result;
 import misc1.commons.algo.StronglyConnectedComponents;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
-import misc1.commons.options.NamedStringListArgumentOptionsFragment;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.ObjectUtils;
@@ -67,18 +65,19 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
     private static final Logger LOGGER = LoggerFactory.getLogger(BuildPlumbing.class);
 
     public static interface BuildCommonOptions {
+        public static final OptionsLibrary<BuildCommonOptions> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<BuildCommonOptions> config = new ConfigOptionsDelegate<BuildCommonOptions>();
         public static final ManifestOptionsDelegate<BuildCommonOptions> manifest = new ManifestOptionsDelegate<BuildCommonOptions>();
         public static final CumulativeVersionComputerOptionsDelegate<BuildCommonOptions> cumulativeVersionComputerOptions = new CumulativeVersionComputerOptionsDelegate<BuildCommonOptions>();
         public static final PackageMapperHelperOptionsDelegate<BuildCommonOptions> packageMapperHelperOptions = new PackageMapperHelperOptionsDelegate<BuildCommonOptions>();
-        public static final OptionsFragment<BuildCommonOptions, ?, Boolean> shellOnError = new NamedBooleanFlagOptionsFragment<BuildCommonOptions>(ImmutableList.of("--shellOnError"), "Run a shell on failed builds");
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> outputs = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--output"), "Output specifications");
-        public static final OptionsFragment<BuildCommonOptions, ?, String> reports = new NamedStringSingletonArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--reports"), Maybe.<String>of(null), "Directory into which to dump reports");
+        public static final OptionsFragment<BuildCommonOptions, Boolean> shellOnError = o.zeroArg("shellOnError").transform(o.flag()).helpDesc("Run a shell on failed builds");
+        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> outputs = o.oneArg("output").helpDesc("Output specifications");
+        public static final OptionsFragment<BuildCommonOptions, String> reports = o.oneArg("reports").transform(o.singleton(null)).helpDesc("Directory into which to dump reports");
 
-        public static final OptionsFragment<BuildCommonOptions, ?, Boolean> verify = new NamedBooleanFlagOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verify"), "Include all verify links");
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyTypes = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyType"), "Include all verify links of this type");
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyRegexes = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyRegex"), "Include all verify links for which \"from/type/to\" matches this regex");
-        public static final OptionsFragment<BuildCommonOptions, ?, ImmutableList<String>> verifyGroovies = new NamedStringListArgumentOptionsFragment<BuildCommonOptions>(ImmutableList.of("--verifyGroovy"), "Include all verify links for which this groovy evaluates to true");
+        public static final OptionsFragment<BuildCommonOptions, Boolean> verify = o.zeroArg("verify").transform(o.flag()).helpDesc("Include all verify links");
+        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyTypes = o.oneArg("verifyType").helpDesc("Include all verify links of this type");
+        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyRegexes = o.oneArg("verifyRegex").helpDesc("Include all verify links for which \"from/type/to\" matches this regex");
+        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyGroovies = o.oneArg("verifyGroovy").helpDesc("Include all verify links for which this groovy evaluates to true");
     }
 
     @QbtCommandName("buildPlumbing")

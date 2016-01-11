@@ -1,15 +1,13 @@
 package qbt;
 
 import com.google.common.collect.ImmutableList;
-import misc1.commons.Maybe;
-import misc1.commons.options.HelpOptionsFragment;
-import misc1.commons.options.NamedStringListArgumentOptionsFragment;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 
 public interface QbtCommandOptions {
-    public static final OptionsFragment<QbtCommandOptions, ?, ?> help = new HelpOptionsFragment<QbtCommandOptions>(ImmutableList.of("-h", "--help"), "Show help");
-    public static final OptionsFragment<QbtCommandOptions, ?, String> logProperties = new NamedStringSingletonArgumentOptionsFragment<QbtCommandOptions>(ImmutableList.of("--logProperties"), Maybe.<String>of(null), "Configuring logging from properties");
-    public static final OptionsFragment<QbtCommandOptions, ?, ImmutableList<String>> logLevels = new NamedStringListArgumentOptionsFragment<QbtCommandOptions>(ImmutableList.of("--logLevel"), "Set log level, e.g.  DEBUG (sets root), my.Class=INFO (sets specific category)");
-    public static final OptionsFragment<QbtCommandOptions, ?, String> logFormat = new NamedStringSingletonArgumentOptionsFragment<QbtCommandOptions>(ImmutableList.of("--logFormat"), Maybe.of("%m%n"), "Set log format");
+    public static final OptionsLibrary<QbtCommandOptions> o = OptionsLibrary.of();
+    public static final OptionsFragment<QbtCommandOptions, ?> help = o.zeroArg("h", "help").transform(o.help()).helpDesc("Show help");
+    public static final OptionsFragment<QbtCommandOptions, String> logProperties = o.oneArg("logProperties").transform(o.singleton(null)).helpDesc("Configuring logging from properties");
+    public static final OptionsFragment<QbtCommandOptions, ImmutableList<String>> logLevels = o.oneArg("logLevel").helpDesc("Set log level, e.g.  DEBUG (sets root), my.Class=INFO (sets specific category)");
+    public static final OptionsFragment<QbtCommandOptions, String> logFormat = o.oneArg("logFormat").transform(o.singleton("%m%n")).helpDesc("Set log format");
 }

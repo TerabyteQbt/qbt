@@ -6,10 +6,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import java.util.Locale;
 import java.util.Map;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.options.UnparsedOptionsFragment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qbt.HelpTier;
@@ -24,8 +23,9 @@ public class Help extends QbtCommand<Help.Options> {
 
     @QbtCommandName("help")
     public static interface Options extends QbtCommandOptions {
-        public static final OptionsFragment<Options, ?, ImmutableList<String>> command = new UnparsedOptionsFragment<Options>("Command to show help for", false, 0, 1);
-        public static final OptionsFragment<Options, ?, Boolean> allTiers = new NamedBooleanFlagOptionsFragment<Options>(ImmutableList.of("--all", "-a"), "Show all command tiers, not just the more common ones");
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
+        public static final OptionsFragment<Options, ImmutableList<String>> command = o.unparsed(false).transform(o.minMax(0, 1)).helpDesc("Command to show help for");
+        public static final OptionsFragment<Options, Boolean> allTiers = o.zeroArg("all", "a").transform(o.flag()).helpDesc("Show all command tiers, not just the more common ones");
     }
 
     @Override

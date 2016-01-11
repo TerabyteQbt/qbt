@@ -1,11 +1,10 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,9 +29,10 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
     private static final Logger LOGGER = LoggerFactory.getLogger(UpdateOverridesPlumbing.class);
 
     public static interface UpdateOverridesCommonOptions {
+        public static final OptionsLibrary<UpdateOverridesCommonOptions> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<UpdateOverridesCommonOptions> config = new ConfigOptionsDelegate<UpdateOverridesCommonOptions>();
         public static final ManifestOptionsDelegate<UpdateOverridesCommonOptions> manifest = new ManifestOptionsDelegate<UpdateOverridesCommonOptions>();
-        public static final OptionsFragment<UpdateOverridesCommonOptions, ?, Boolean> allowDirty = new NamedBooleanFlagOptionsFragment<UpdateOverridesCommonOptions>(ImmutableList.of("--allow-dirty"), "Attempt update even if a repo is dirty");
+        public static final OptionsFragment<UpdateOverridesCommonOptions, Boolean> allowDirty = o.zeroArg("allow-dirty").transform(o.flag()).helpDesc("Attempt update even if a repo is dirty");
     }
 
     @QbtCommandName("updateOverridesPlumbing")

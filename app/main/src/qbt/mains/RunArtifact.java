@@ -7,11 +7,9 @@ import java.nio.file.Paths;
 import java.util.Map;
 import misc1.commons.Maybe;
 import misc1.commons.concurrent.ctree.ComputationTree;
-import misc1.commons.options.NamedBooleanFlagOptionsFragment;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.options.UnparsedOptionsFragment;
 import misc1.commons.ph.ProcessHelper;
 import misc1.commons.resources.FreeScope;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,14 +38,15 @@ import qbt.tip.PackageTip;
 public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
     @QbtCommandName("runArtifact")
     public static interface Options extends QbtCommandOptions {
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final CumulativeVersionComputerOptionsDelegate<Options> cumulativeVersionComputerOptions = new CumulativeVersionComputerOptionsDelegate<Options>();
         public static final PackageMapperHelperOptionsDelegate<Options> packageMapperHelperOptions = new PackageMapperHelperOptionsDelegate<Options>();
-        public static final OptionsFragment<Options, ?, String> pkg = new NamedStringSingletonArgumentOptionsFragment<Options>(ImmutableList.of("--package"), Maybe.<String>not(), "Run an artifact from this");
-        public static final OptionsFragment<Options, ?, Boolean> absolute = new NamedBooleanFlagOptionsFragment<Options>(ImmutableList.of("--absolute"), "Do not prepend artifact path to command");
-        public static final OptionsFragment<Options, ?, Boolean> artifactsDir = new NamedBooleanFlagOptionsFragment<Options>(ImmutableList.of("--artifactsDir"), "Run the command in the package artifact directory rather than the current directory");
-        public static final OptionsFragment<Options, ?, ImmutableList<String>> command = new UnparsedOptionsFragment<Options>("Command to run (first argument is relative to artifact by default)", true, 1, null);
+        public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Run an artifact from this");
+        public static final OptionsFragment<Options, Boolean> absolute = o.zeroArg("absolute").transform(o.flag()).helpDesc("Do not prepend artifact path to command");
+        public static final OptionsFragment<Options, Boolean> artifactsDir = o.zeroArg("artifactsDir").transform(o.flag()).helpDesc("Run the command in the package artifact directory rather than the current directory");
+        public static final OptionsFragment<Options, ImmutableList<String>> command = o.unparsed(true).transform(o.min(1)).helpDesc("Command to run (first argument is relative to artifact by default)");
     }
 
     @Override

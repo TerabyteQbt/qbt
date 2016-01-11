@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.util.Collection;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
-import misc1.commons.options.UnparsedOptionsFragment;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +33,12 @@ public class PushPins extends QbtCommand<PushPins.Options> {
 
     @QbtCommandName("pushPins")
     public static interface Options extends QbtCommandOptions {
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final ParallelismOptionsDelegate<Options> parallelism = new ParallelismOptionsDelegate<Options>();
         public static final RepoActionOptionsDelegate<Options> repos = new RepoActionOptionsDelegate<Options>(RepoActionOptionsDelegate.NoArgsBehaviour.OVERRIDES);
-        public static final OptionsFragment<Options, ?, ImmutableList<String>> remotes = new UnparsedOptionsFragment<Options>("QBT remote to which to push", false, null, null);
+        public static final OptionsFragment<Options, ImmutableList<String>> remotes = o.unparsed(false).helpDesc("QBT remote to which to push");
     }
 
     @Override

@@ -7,10 +7,9 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import misc1.commons.Maybe;
-import misc1.commons.options.NamedStringSingletonArgumentOptionsFragment;
 import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtUtils;
@@ -20,7 +19,7 @@ import qbt.manifest.QbtManifestVersions;
 import qbt.manifest.current.QbtManifest;
 
 public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
-    public final OptionsFragment<O, ?, String> file;
+    public final OptionsFragment<O, String> file;
 
     public ManifestOptionsDelegate() {
         this("manifest");
@@ -31,7 +30,8 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
     }
 
     public ManifestOptionsDelegate(String name, String helpDesc) {
-        this.file = new NamedStringSingletonArgumentOptionsFragment<O>(ImmutableList.of("--" + name), Maybe.<String>of(null), helpDesc);
+        OptionsLibrary<O> o = OptionsLibrary.of();
+        this.file = o.oneArg(name).transform(o.singleton(null)).helpDesc(helpDesc);
     }
 
     private enum Side {
