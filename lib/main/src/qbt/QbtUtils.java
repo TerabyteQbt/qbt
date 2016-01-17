@@ -110,14 +110,8 @@ public final class QbtUtils {
     }
 
     public static List<Path> listChildren(Path p) {
-        try {
-            ImmutableList.Builder<Path> b = ImmutableList.builder();
-            try(DirectoryStream<Path> ds = Files.newDirectoryStream(p)) {
-                for(Path child : ds) {
-                    b.add(child);
-                }
-            }
-            return b.build();
+        try(DirectoryStream<Path> ds = Files.newDirectoryStream(p)) {
+            return ImmutableList.copyOf(ds);
         }
         catch(IOException e) {
             throw ExceptionUtils.commute(e);
