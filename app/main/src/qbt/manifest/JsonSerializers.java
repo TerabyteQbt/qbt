@@ -3,6 +3,7 @@ package qbt.manifest;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Map;
@@ -134,12 +135,12 @@ public final class JsonSerializers {
                 public JsonElement apply(String s) {
                     return new JsonPrimitive(s);
                 }
-            }).get(null);
+            }).get(JsonNull.INSTANCE);
         }
 
         @Override
         public Maybe<String> fromJson(JsonElement e) {
-            if(e == null) {
+            if(e.isJsonNull()) {
                 return Maybe.not();
             }
             return Maybe.of(e.getAsString());

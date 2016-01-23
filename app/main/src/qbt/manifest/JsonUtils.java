@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Iterator;
@@ -35,6 +36,10 @@ public final class JsonUtils {
             deparse(b, indent, isFinal, label, e.getAsJsonPrimitive());
             return;
         }
+        if(e.isJsonNull()) {
+            deparse(b, indent, isFinal, label, JsonNull.INSTANCE);
+            return;
+        }
         throw new IllegalArgumentException();
     }
 
@@ -53,6 +58,10 @@ public final class JsonUtils {
     }
 
     private static void deparse(ImmutableList.Builder<String> b, String indent, boolean isFinal, String label, JsonPrimitive e) {
+        b.add(indent + keyPrefix(label) + deparse(e) + commaSuffix(isFinal));
+    }
+
+    private static void deparse(ImmutableList.Builder<String> b, String indent, boolean isFinal, String label, JsonNull e) {
         b.add(indent + keyPrefix(label) + deparse(e) + commaSuffix(isFinal));
     }
 
@@ -88,11 +97,19 @@ public final class JsonUtils {
             deparse(b, indent, path, isFinal, label, lhsName, lhs.getAsJsonObject(), mhsName, mhs.getAsJsonObject(), rhsName, rhs.getAsJsonObject());
             return;
         }
-        if(lhs.isJsonPrimitive() && mhs.isJsonPrimitive() && rhs.isJsonPrimitive()) {
-            deparse(b, indent, path, isFinal, label, lhsName, lhs.getAsJsonPrimitive(), mhsName, mhs.getAsJsonPrimitive(), rhsName, rhs.getAsJsonPrimitive());
+
+        if(lhs.equals(mhs) && mhs.equals(rhs)) {
+            deparse(b.lines, indent, isFinal, label, mhs);
             return;
         }
-        throw new IllegalArgumentException();
+        b.add(path, "EDIT/EDIT");
+        b.add("<<<<<<< " + lhsName);
+        deparse(b.lines, indent, isFinal, label, lhs);
+        b.add("||||||| " + mhsName);
+        deparse(b.lines, indent, isFinal, label, mhs);
+        b.add("=======");
+        deparse(b.lines, indent, isFinal, label, rhs);
+        b.add(">>>>>>> " + rhsName);
     }
 
     private static void deparse(DeparseResultBuilder b, String indent, String path, boolean isFinal, String label, String lhsName, JsonObject lhs, String mhsName, JsonObject mhs, String rhsName, JsonObject rhs) {
@@ -144,27 +161,15 @@ public final class JsonUtils {
         b.add(indent + "}" + commaSuffix(isFinal));
     }
 
-    private static void deparse(DeparseResultBuilder b, String indent, String path, boolean isFinal, String label, String lhsName, JsonPrimitive lhs, String mhsName, JsonPrimitive mhs, String rhsName, JsonPrimitive rhs) {
-        String prefix = indent + keyPrefix(label);
-        if(lhs.equals(mhs) && mhs.equals(rhs)) {
-            b.add(prefix + deparse(mhs) + commaSuffix(isFinal));
-            return;
-        }
-        b.add(path, "EDIT/EDIT");
-        b.add("<<<<<<< " + lhsName);
-        b.add(prefix + deparse(lhs) + commaSuffix(isFinal));
-        b.add("||||||| " + mhsName);
-        b.add(prefix + deparse(mhs) + commaSuffix(isFinal));
-        b.add("=======");
-        b.add(prefix + deparse(rhs) + commaSuffix(isFinal));
-        b.add(">>>>>>> " + rhsName);
-    }
-
     private static String deparse(String s) {
         return deparse(new JsonPrimitive(s));
     }
 
     private static String deparse(JsonPrimitive e) {
+        return new Gson().toJson(e);
+    }
+
+    private static String deparse(JsonNull e) {
         return new Gson().toJson(e);
     }
 
