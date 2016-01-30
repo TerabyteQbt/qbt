@@ -6,7 +6,6 @@ import qbt.PackageDirectory;
 import qbt.QbtTempDir;
 import qbt.VcsTreeDigest;
 import qbt.VcsVersionDigest;
-import qbt.repo.CommonRepoAccessor;
 import qbt.vcs.LocalVcs;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
@@ -70,10 +69,6 @@ public final class PinnedRepoAccessor implements CommonRepoAccessor {
 
     public LocalVcs getLocalVcs() {
         return vcs.getLocalVcs();
-    }
-
-    public void addPin(Path dir, VcsVersionDigest version) {
-        vcs.addPinToRemote(dir, cache.toAbsolutePath().toString(), version);
     }
 
     public VcsTreeDigest getSubtree(String prefix) {

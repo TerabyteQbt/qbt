@@ -243,8 +243,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                             continue;
                         }
                         result = repository.getCurrentCommit();
-                        lhsResult.addPin(repoDir, result);
-                        rhsResult.addPin(repoDir, result);
+                        config.localPinsRepo.addPin(repo, repoDir, result);
                     }
 
                     lhsBuilder = targetVersion.withRepoVersion(lhsBuilder, repo, result);
