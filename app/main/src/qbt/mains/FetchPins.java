@@ -77,7 +77,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
             }
             VcsVersionDigest version = repoManifest.version;
 
-            if(config.localPinsRepo.findPin(repo, version) != null) {
+            if(config.localPinsRepo.findPin(repo, version).versionExists()) {
                 LOGGER.debug("[" + repo + "] Already have " + version);
                 return ObjectUtils.NULL;
             }
@@ -92,8 +92,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemoteString + "'");
             }
 
-
-            if(config.localPinsRepo.findPin(repo, version) == null) {
+            if(!config.localPinsRepo.findPin(repo, version).versionExists()) {
                 throw new RuntimeException("[" + repo + "] Could not find " + version + "!");
             }
 

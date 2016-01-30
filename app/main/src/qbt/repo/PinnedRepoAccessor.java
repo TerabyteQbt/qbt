@@ -87,4 +87,8 @@ public final class PinnedRepoAccessor implements CommonRepoAccessor {
         }
         vcs.addPinToRemote(cache, remote.getRemoteString(), version);
     }
+
+    public boolean versionExists() {
+        return vcs.getLocalVcs().getRepository(cache).commitExists(version);
+    }
 }

@@ -33,11 +33,6 @@ public final class SimpleLocalPinsRepo implements LocalPinsRepo {
     @Override
     public PinnedRepoAccessor findPin(RepoTip repo, VcsVersionDigest version) {
         Path cache = materializeCache(repo);
-
-        if(!vcs.getLocalVcs().getRepository(cache).commitExists(version)) {
-            return null;
-        }
-
         return new PinnedRepoAccessor(vcs, cache, version);
     }
 

@@ -10,7 +10,7 @@ public interface LocalPinsRepo {
     void fetchPins(RepoTip repo, RawRemote remote);
     default PinnedRepoAccessor requirePin(RepoTip repo, VcsVersionDigest version) {
         PinnedRepoAccessor r = findPin(repo, version);
-        if(r == null) {
+        if(!r.versionExists()) {
             throw new IllegalArgumentException("Could not find local pin for " + repo + " at " + version);
         }
         return r;

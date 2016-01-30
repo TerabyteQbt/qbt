@@ -40,7 +40,7 @@ public final class QbtConfig {
             return local;
         }
         PinnedRepoAccessor localPin = localPinsRepo.findPin(repo, version);
-        if(localPin != null) {
+        if(localPin.versionExists()) {
             return localPin;
         }
         throw new IllegalArgumentException("Could not find override or local pin for " + repo + " at " + version);
