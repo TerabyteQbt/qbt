@@ -1,3 +1,4 @@
+qbt.mains.AddPackage
 qbt.mains.AddRepository
 qbt.mains.BuildPlumbing
 qbt.mains.BuildPorcelain
