@@ -19,7 +19,7 @@ public class PackageManifestOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ImmutableList<String>> verifyDependencies = o.oneArg("verifyDependency").helpDesc("Verify Dependencies (pkg/type)");
     public final OptionsFragment<O, ImmutableList<String>> replaceDependencies = o.oneArg("replaceDependency").helpDesc("Replace Dependencies");
     public final OptionsFragment<O, Boolean> arch = o.zeroArg("archIndependent").transform(o.flag()).helpDesc("Package is architecture independent");
-    public final OptionsFragment<O, String> type = o.oneArg("buildType").transform(o.singleton("normal")).transform((String h, String s) -> s.toUpperCase()).helpDesc("Package type (normal, copy)");
+    public final OptionsFragment<O, String> type = o.oneArg("buildType").transform(o.singleton(null)).transform((String h, String s) -> (s != null ? s.toUpperCase() : null)).helpDesc("Package type (normal, copy)");
     public final OptionsFragment<O, ImmutableList<String>> qbtEnv = o.oneArg("qbtEnv").helpDesc("Qbt environment variables");
 
     public ImmutableSet<Pair<String, Pair<NormalDependencyType, String>>> getNormalDependencies(OptionsResults<? extends O> options) {

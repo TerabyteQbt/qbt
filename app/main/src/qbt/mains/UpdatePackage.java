@@ -1,6 +1,7 @@
 package qbt.mains;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import misc1.commons.Maybe;
 import misc1.commons.options.OptionsFragment;
@@ -29,16 +30,16 @@ import qbt.options.PackageManifestOptionsDelegate;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
 
-public final class AddPackage extends QbtCommand<AddPackage.Options> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AddPackage.class);
+public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UpdatePackage.class);
 
-    @QbtCommandName("addPackage")
+    @QbtCommandName("updatePackage")
     public static interface Options extends QbtCommandOptions {
         public static final OptionsLibrary<Options> o = OptionsLibrary.of();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final PackageManifestOptionsDelegate<Options> packageManifest = new PackageManifestOptionsDelegate<Options>();
-        public static final OptionsFragment<Options, String> repo = o.oneArg("repo").transform(o.singleton()).helpDesc("Repo to add package in");
-        public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Package to add");
+        public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Package to update");
+        public final OptionsFragment<Options, Boolean> removeFields = o.zeroArg("removeFields").transform(o.flag()).helpDesc("Remove fields instead of adding them");
     }
 
     @Override
@@ -53,7 +54,7 @@ public final class AddPackage extends QbtCommand<AddPackage.Options> {
 
     @Override
     public String getDescription() {
-        return "add a package to the manifest";
+        return "update a package's metadata in the manifest";
     }
 
     @Override
@@ -66,37 +67,59 @@ public final class AddPackage extends QbtCommand<AddPackage.Options> {
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
         QbtManifest manifest = manifestResult.parse();
 
-        String repoName = options.get(Options.repo);
+        Boolean removeFields = options.get(Options.removeFields);
         PackageTip pt = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
+        RepoTip rt = manifest.packageToRepo.get(pt);
 
-        // Build metadata
-        PackageMetadata.Builder pmd = PackageMetadata.TYPE.builder();
+        RepoManifest rm = manifest.repos.get(rt);
+        PackageManifest pm = rm.packages.get(pt.name);
+
+        // Update metadata
+        PackageMetadata.Builder pmd = pm.metadata.builder();
         if(options.get(Options.packageManifest.prefix) != null) {
             pmd = pmd.set(PackageMetadata.PREFIX, Maybe.of(options.get(Options.packageManifest.prefix)));
         }
-        if(options.get(Options.packageManifest.arch)) {
-            pmd = pmd.set(PackageMetadata.ARCH_INDEPENDENT, true);
-        }
+
+        // TODO: update ARCH? Ignoring that field for now, it is annoying to determine whether we should change the value or not since it is just a flag.
+
         if(options.get(Options.packageManifest.type) != null) {
             pmd = pmd.set(PackageMetadata.BUILD_TYPE, PackageBuildType.valueOf(options.get(Options.packageManifest.type)));
         }
-        pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(options.get(Options.packageManifest.qbtEnv)));
+        for(String qbtEnv : options.get(Options.packageManifest.qbtEnv)) {
+            if(removeFields) {
+                pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(Iterables.filter(pmd.get(PackageMetadata.QBT_ENV), (String s) -> !s.equals(qbtEnv))));
+                continue;
+            }
+            pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(Iterables.concat(pmd.get(PackageMetadata.QBT_ENV), ImmutableSet.of(qbtEnv))));
+        }
 
-        // build normal deps
-        PackageNormalDeps.Builder pnd = PackageNormalDeps.TYPE.builder();
+        // update normal deps
+        PackageNormalDeps.Builder pnd = pm.get(PackageManifest.NORMAL_DEPS).builder();
         for(Pair<String, Pair<NormalDependencyType, String>> d : Options.packageManifest.getNormalDependencies(options)) {
+            if(removeFields) {
+                pnd = pnd.without(d.getLeft());
+                continue;
+            }
             pnd = pnd.with(d.getLeft(), d.getRight());
         }
 
-        // build verify deps
-        PackageVerifyDeps.Builder pvd = PackageVerifyDeps.TYPE.builder();
+        // update verify deps
+        PackageVerifyDeps.Builder pvd = pm.get(PackageManifest.VERIFY_DEPS).builder();
         for(Pair<PackageTip, String> d : Options.packageManifest.getVerifyDependencies(options)) {
+            if(removeFields) {
+                pvd = pvd.without(d);
+                continue;
+            }
             pvd = pvd.with(d, ObjectUtils.NULL);
         }
 
-        // build replace deps
-        PackageReplaceDeps.Builder prd = PackageReplaceDeps.TYPE.builder();
+        // update replace deps
+        PackageReplaceDeps.Builder prd = pm.get(PackageManifest.REPLACE_DEPS).builder();
         for(Pair<PackageTip, String> d : Options.packageManifest.getReplaceDependencies(options)) {
+            if(removeFields) {
+                prd = prd.without(d.getLeft());
+                continue;
+            }
             prd = prd.with(d.getLeft(), d.getRight());
         }
 
@@ -106,11 +129,10 @@ public final class AddPackage extends QbtCommand<AddPackage.Options> {
         pmb = pmb.set(PackageManifest.VERIFY_DEPS, pvd);
         pmb = pmb.set(PackageManifest.REPLACE_DEPS, prd);
 
-        RepoTip repo = RepoTip.TYPE.of(repoName, pt.tip);
-        RepoManifest.Builder repoManifest = manifest.repos.get(repo).builder();
+        RepoManifest.Builder repoManifest = manifest.repos.get(rt).builder();
         repoManifest = repoManifest.set(RepoManifest.PACKAGES, repoManifest.get(RepoManifest.PACKAGES).with(pt.toString(), pmb));
 
-        manifest = manifest.builder().with(repo, repoManifest).build();
+        manifest = manifest.builder().with(rt, repoManifest).build();
         manifestResult.deparse(manifest);
         return 0;
     }
