@@ -6,6 +6,7 @@ import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
 import qbt.config.LocalPinsRepo;
 import qbt.repo.PinnedRepoAccessor;
+import qbt.repo.SimplePinnedRepoAccessor;
 import qbt.tip.RepoTip;
 import qbt.vcs.RawRemote;
 import qbt.vcs.RawRemoteVcs;
@@ -33,7 +34,7 @@ public final class SimpleLocalPinsRepo implements LocalPinsRepo {
     @Override
     public PinnedRepoAccessor findPin(RepoTip repo, VcsVersionDigest version) {
         Path cache = materializeCache(repo);
-        return new PinnedRepoAccessor(vcs, cache, version);
+        return new SimplePinnedRepoAccessor(vcs, cache, version);
     }
 
     @Override
