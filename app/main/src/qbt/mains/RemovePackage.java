@@ -56,6 +56,7 @@ public final class RemovePackage extends QbtCommand<RemovePackage.Options> {
             return rm.set(RepoManifest.PACKAGES, rm.get(RepoManifest.PACKAGES).without(pt.name));
         }).build();
         manifestResult.deparse(manifest);
+        LOGGER.info("Removed package " + pt + " and successfully wrote manifest");
         return 0;
     }
 }

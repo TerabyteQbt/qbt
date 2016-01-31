@@ -112,6 +112,7 @@ public final class AddPackage extends QbtCommand<AddPackage.Options> {
 
         manifest = manifest.builder().with(repo, repoManifest).build();
         manifestResult.deparse(manifest);
+        LOGGER.info("Added package " + pt + " and successfully wrote manifest");
         return 0;
     }
 }

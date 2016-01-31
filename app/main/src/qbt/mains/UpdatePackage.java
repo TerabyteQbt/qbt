@@ -134,6 +134,7 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
 
         manifest = manifest.builder().with(rt, repoManifest).build();
         manifestResult.deparse(manifest);
+        LOGGER.info("Updated package " + pt + " and successfully wrote manifest");
         return 0;
     }
 }

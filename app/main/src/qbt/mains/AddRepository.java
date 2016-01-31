@@ -31,7 +31,6 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public final OptionsFragment<Options, String> repo = o.oneArg("repo").transform(o.singleton()).helpDesc("Repo to add");
-        public final OptionsFragment<Options, String> tip = o.oneArg("tip").transform(o.singleton("HEAD")).helpDesc("Tip to add");
     }
 
     @Override
@@ -60,27 +59,24 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
         QbtManifest manifest = manifestResult.parse();
 
-        String repoName = options.get(Options.repo);
-        String tip = options.get(Options.tip);
-
-        RepoTip newRepoTip = RepoTip.TYPE.of(repoName, tip);
+        RepoTip rt = RepoTip.TYPE.parseRequire(options.get(Options.repo));
 
         // figure out the version of the new repo
-        LocalRepoAccessor lra = config.localRepoFinder.findLocalRepo(newRepoTip);
+        LocalRepoAccessor lra = config.localRepoFinder.findLocalRepo(rt);
         if(lra == null || !lra.isOverride()) {
-            throw new IllegalArgumentException("Repository " + repoName + " is not an override");
+            throw new IllegalArgumentException("Repository " + rt.name + " is not an override");
         }
         Repository repo = lra.vcs.getRepository(lra.dir);
         VcsVersionDigest currentCommit = repo.getCurrentCommit();
         RepoManifest.Builder rmb = RepoManifest.TYPE.builder().set(RepoManifest.VERSION, currentCommit);
 
         // create the pins
-        PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.findPin(newRepoTip, currentCommit);
+        PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.findPin(rt, currentCommit);
         pinnedAccessor.addPin(lra.dir, currentCommit);
-        manifest = manifest.builder().with(newRepoTip, rmb).build();
-        LOGGER.info("Added new repository " + newRepoTip + " (" + currentCommit.getRawDigest() + ") to manifest");
+        manifest = manifest.builder().with(rt, rmb).build();
         // write out updated manifest
         manifestResult.deparse(manifest);
+        LOGGER.info("Added repository " + rt + " and successfully wrote manifest");
         return 0;
     }
 }

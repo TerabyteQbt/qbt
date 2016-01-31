@@ -10,9 +10,7 @@ import qbt.HelpTier;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
-import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
-import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
 import qbt.tip.RepoTip;
@@ -23,10 +21,8 @@ public final class RemoveRepository extends QbtCommand<RemoveRepository.Options>
     @QbtCommandName("removeRepository")
     public static interface Options extends QbtCommandOptions {
         public static final OptionsLibrary<Options> o = OptionsLibrary.of();
-        public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
-        public final OptionsFragment<Options, String> repo = o.oneArg("repo").transform(o.singleton()).helpDesc("Repo to remove");
-        public final OptionsFragment<Options, String> tip = o.oneArg("tip").transform(o.singleton("HEAD")).helpDesc("Tip to remove");
+        public final OptionsFragment<Options, String> repo = o.oneArg("repo").transform(o.singleton()).helpDesc("Repository to remove");
     }
 
     @Override
@@ -51,23 +47,19 @@ public final class RemoveRepository extends QbtCommand<RemoveRepository.Options>
 
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
-        final QbtConfig config = Options.config.getConfig(options);
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
         QbtManifest manifest = manifestResult.parse();
 
-        String repoName = options.get(Options.repo);
-        String tip = options.get(Options.tip);
+        RepoTip rt = RepoTip.TYPE.parseRequire(options.get(Options.repo));
 
-        RepoTip removeRepoTip = RepoTip.TYPE.of(repoName, tip);
-
-        if(!manifest.repos.containsKey(removeRepoTip)) {
-            throw new IllegalArgumentException("Repository tip " + removeRepoTip + " does not exist in manfiest");
+        if(!manifest.repos.containsKey(rt)) {
+            throw new IllegalArgumentException("Repository tip " + rt + " does not exist in manfiest");
         }
 
-        manifest = manifest.builder().without(removeRepoTip).build();
-        LOGGER.info("Removed repository " + removeRepoTip + " from manifest");
+        manifest = manifest.builder().without(rt).build();
         // write out updated manifest
         manifestResult.deparse(manifest);
+        LOGGER.info("Removed repository " + rt + " and successfully wrote manifest");
         return 0;
     }
 }
