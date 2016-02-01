@@ -1,8 +1,9 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.io.IOException;
+import java.util.Map;
 import misc1.commons.Maybe;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
@@ -85,12 +86,12 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
         if(options.get(Options.packageManifest.type) != null) {
             pmd = pmd.set(PackageMetadata.BUILD_TYPE, PackageBuildType.valueOf(options.get(Options.packageManifest.type)));
         }
-        for(String qbtEnv : options.get(Options.packageManifest.qbtEnv)) {
+        for(Map.Entry<String, Maybe<String>> qbtEnv : Options.packageManifest.getQbtEnvs(options).entrySet()) {
             if(removeFields) {
-                pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(Iterables.filter(pmd.get(PackageMetadata.QBT_ENV), (String s) -> !s.equals(qbtEnv))));
+                pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableMap.copyOf(Maps.filterKeys(pmd.get(PackageMetadata.QBT_ENV), (String s) -> !s.equals(qbtEnv.getKey()))));
                 continue;
             }
-            pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(Iterables.concat(pmd.get(PackageMetadata.QBT_ENV), ImmutableSet.of(qbtEnv))));
+            pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableMap.<String, Maybe<String>> builder().putAll(pmd.get(PackageMetadata.QBT_ENV)).put(qbtEnv).build());
         }
 
         // update normal deps

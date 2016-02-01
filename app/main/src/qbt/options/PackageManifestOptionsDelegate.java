@@ -1,8 +1,10 @@
 package qbt.options;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import misc1.commons.Maybe;
 import misc1.commons.options.OptionsDelegate;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
@@ -20,7 +22,7 @@ public class PackageManifestOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ImmutableList<String>> replaceDependencies = o.oneArg("replaceDependency").helpDesc("Replace Dependencies (pkg:tip");
     public final OptionsFragment<O, Boolean> arch = o.zeroArg("archIndependent").transform(o.flag()).helpDesc("Package is architecture independent");
     public final OptionsFragment<O, String> type = o.oneArg("buildType").transform(o.singleton(null)).transform((String h, String s) -> (s != null ? s.toUpperCase() : null)).helpDesc("Package type (normal, copy)");
-    public final OptionsFragment<O, ImmutableList<String>> qbtEnv = o.oneArg("qbtEnv").helpDesc("Qbt environment variables");
+    public final OptionsFragment<O, ImmutableList<String>> qbtEnv = o.oneArg("qbtEnv").helpDesc("Qbt environment variables (name=default_value)");
 
     public ImmutableSet<Pair<String, Pair<NormalDependencyType, String>>> getNormalDependencies(OptionsResults<? extends O> options) {
         return ImmutableSet.copyOf(Iterables.transform(options.get(normalDependencies), (String s) -> {
@@ -58,5 +60,23 @@ public class PackageManifestOptionsDelegate<O> implements OptionsDelegate<O> {
             }
             throw new OptionsException("Replace dependencies must be of the form pkg^{tip}:replacetip - could not parse " + s);
         }));
+    }
+
+    // immutable map <string, maybe<string>>
+    public ImmutableMap<String, Maybe<String>> getQbtEnvs(OptionsResults<? extends O> options) {
+        ImmutableMap.Builder<String, Maybe<String>> map = ImmutableMap.builder();
+        for(String e : options.get(qbtEnv)) {
+            String[] parts = e.split("=");
+            if(parts.length == 1) {
+                map.put(parts[0], Maybe.not());
+                continue;
+            }
+            if(parts.length == 2) {
+                map.put(parts[0], Maybe.of(parts[1]));
+                continue;
+            }
+            throw new OptionsException("QbtEnv entries must be of the form name[=default] - could not parse " + e);
+        }
+        return map.build();
     }
 }
