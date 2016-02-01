@@ -54,6 +54,7 @@ my @IMPORTS = (
     'qbt.manifest.PackageBuildType',
     'qbt.manifest.QbtManifestUtils',
     'qbt.manifest.StringSerializer',
+    'qbt.manifest.ExternalUpgrades',
     'qbt.tip.PackageTip',
     'qbt.tip.RepoTip',
 );
@@ -155,6 +156,54 @@ my @DATA = (
         'upgrades' => ['QbtManifest'],
     },
     {
+        'prefix' => 'qbt.manifest.v2.',
+        'types' => {
+            'QbtManifest' => map_type(
+                'key' => external_key('RepoTip', 'RepoTip.TYPE.STRING_SERIALIZER'),
+                'value' => link_value('RepoManifest'),
+            ),
+            'RepoManifest' => struct_type(
+                'fields' => {
+                    'version' => external_value('VcsVersionDigest', 'JsonSerializers.VCS_VERSION_DIGEST'),
+                    'packages' => link_value('RepoManifestPackages'),
+                },
+            ),
+            'RepoManifestPackages' => map_type(
+                'key' => external_key('String', 'StringSerializer.STRING'),
+                'value' => link_value('PackageManifest'),
+            ),
+            'PackageManifest' => struct_type(
+                'fields' => {
+                    'metadata' => link_value('PackageMetadata'),
+                    'normalDeps' => link_value('PackageNormalDeps'),
+                    'replaceDeps' => link_value('PackageReplaceDeps'),
+                    'verifyDeps' => link_value('PackageVerifyDeps'),
+                },
+            ),
+            'PackageMetadata' => struct_type(
+                'fields' => {
+                    'prefix' => external_value('Maybe<String>', 'JsonSerializers.MAYBE_STRING', 'Maybe.of("")'),
+                    'archIndependent' => external_value('Boolean', 'JsonSerializers.BOOLEAN', 'false'),
+                    'qbtEnv' => external_value('ImmutableSet<String>', 'JsonSerializers.SET_STRING', 'ImmutableSet.<String>of()', 'ExternalUpgrades.qbtEnv'),
+                    'buildType' => external_value('PackageBuildType', 'JsonSerializers.forEnum(PackageBuildType.class)', 'PackageBuildType.NORMAL'),
+                },
+            ),
+            'PackageNormalDeps' => map_type(
+                'key' => external_key('String', 'StringSerializer.STRING'),
+                'value' => external_value('Pair<NormalDependencyType, String>', 'JsonSerializers.NORMAL_DEP_VALUE'),
+            ),
+            'PackageReplaceDeps' => map_type(
+                'key' => external_key('PackageTip', 'PackageTip.TYPE.STRING_SERIALIZER'),
+                'value' => external_value('String', 'JsonSerializers.STRING'),
+            ),
+            'PackageVerifyDeps' => map_type(
+                'key' => external_key('Pair<PackageTip, String>', 'StringSerializer.VERIFY_DEP_KEY'),
+                'value' => external_value('ObjectUtils.Null', 'JsonSerializers.OU_NULL'),
+            ),
+        },
+        'upgrades' => ['QbtManifest'],
+    },
+    {
         'prefix' => 'qbt.manifest.current.',
         'types' => {
             'QbtManifest' => map_type(
@@ -197,7 +246,7 @@ my @DATA = (
                 'fields' => {
                     'prefix' => external_value('Maybe<String>', 'JsonSerializers.MAYBE_STRING', 'Maybe.of("")'),
                     'archIndependent' => external_value('Boolean', 'JsonSerializers.BOOLEAN', 'false'),
-                    'qbtEnv' => external_value('ImmutableSet<String>', 'JsonSerializers.SET_STRING', 'ImmutableSet.<String>of()'),
+                    'qbtEnv' => external_value('ImmutableMap<String, Maybe<String>>', 'JsonSerializers.QBT_ENV', 'ImmutableMap.<String, Maybe<String>>of()'),
                     'buildType' => external_value('PackageBuildType', 'JsonSerializers.forEnum(PackageBuildType.class)', 'PackageBuildType.NORMAL'),
                 },
             ),
@@ -592,11 +641,13 @@ sub new {
     my $type = shift;
     my $serializer = shift;
     my $default = shift;
+    my $upgrade = shift;
 
     my $this = {
         'type' => $type,
         'serializer' => $serializer,
         'default' => $default,
+        'upgrade' => $upgrade,
     };
 
     bless $this, $class;
@@ -646,6 +697,10 @@ sub gen_upgrade {
     my $this = shift;
     my $qr = shift;
     my $e = shift;
+    my $upgrade = $this->{'upgrade'};
+    if(defined($upgrade)) {
+        return "$upgrade($e)";
+    }
     return $e;
 }
 

@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import misc1.commons.Maybe;
 import misc1.commons.ds.StructKey;
 import qbt.VcsTreeDigest;
 import qbt.manifest.current.PackageMetadata;
@@ -18,21 +18,19 @@ public final class CumulativeVersionNodeData {
     public final PackageMetadata metadata; // stripped!
     public final ImmutableMap<String, String> qbtEnv;
 
-    private static ImmutableMap<String, String> copyEnv(Set<String> keep, Map<String, String> qbtEnv) {
+    private static ImmutableMap<String, String> copyEnv(ImmutableMap<String, Maybe<String>> packageQbtEnv, Map<String, String> qbtEnv) {
         ImmutableMap.Builder<String, String> b = ImmutableMap.builder();
-        List<Map.Entry<String, String>> entries = Lists.newArrayList(qbtEnv.entrySet());
-        Collections.sort(entries, (o1, o2) -> {
-            int r1 = o1.getKey().compareTo(o2.getKey());
-            if(r1 != 0) {
-                return r1;
+        List<Map.Entry<String, Maybe<String>>> entries = Lists.newArrayList(packageQbtEnv.entrySet());
+        Collections.sort(entries, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
+        for(Map.Entry<String, Maybe<String>> e : entries) {
+            String value = qbtEnv.get(e.getKey());
+            if(value == null) {
+                value = e.getValue().get(null);
             }
-            return o1.getValue().compareTo(o2.getValue());
-        });
-        for(Map.Entry<String, String> e : entries) {
-            if(!keep.contains(e.getKey())) {
+            if(value == null) {
                 continue;
             }
-            b.put(e);
+            b.put(e.getKey(), value);
         }
         return b.build();
     }

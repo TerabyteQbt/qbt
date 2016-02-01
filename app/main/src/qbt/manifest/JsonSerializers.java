@@ -1,8 +1,10 @@
 package qbt.manifest;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Map;
@@ -134,12 +136,12 @@ public final class JsonSerializers {
                 public JsonElement apply(String s) {
                     return new JsonPrimitive(s);
                 }
-            }).get(null);
+            }).get(JsonNull.INSTANCE);
         }
 
         @Override
         public Maybe<String> fromJson(JsonElement e) {
-            if(e == null) {
+            if(e.isJsonNull()) {
                 return Maybe.not();
             }
             return Maybe.of(e.getAsString());
@@ -168,4 +170,32 @@ public final class JsonSerializers {
             return b.build();
         }
     };
+
+    private static final class MapSerializer<V> implements JsonSerializer<ImmutableMap<String, V>> {
+        private final JsonSerializer<V> valueSerializer;
+
+        public MapSerializer(JsonSerializer<V> valueSerializer) {
+            this.valueSerializer = valueSerializer;
+        }
+
+        @Override
+        public JsonElement toJson(ImmutableMap<String, V> map) {
+            JsonObject r = new JsonObject();
+            for(Map.Entry<String, V> e : map.entrySet()) {
+                r.add(e.getKey(), valueSerializer.toJson(e.getValue()));
+            }
+            return r;
+        }
+
+        @Override
+        public ImmutableMap<String, V> fromJson(JsonElement e) {
+            ImmutableMap.Builder<String, V> b = ImmutableMap.builder();
+            for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
+                b.put(e2.getKey(), valueSerializer.fromJson(e2.getValue()));
+            }
+            return b.build();
+        }
+    }
+
+    public static final JsonSerializer<ImmutableMap<String, Maybe<String>>> QBT_ENV = new MapSerializer<Maybe<String>>(MAYBE_STRING);
 }
