@@ -1,6 +1,5 @@
 package qbt.mains;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import misc1.commons.Maybe;
 import misc1.commons.options.OptionsFragment;
@@ -80,7 +79,7 @@ public final class AddPackage extends QbtCommand<AddPackage.Options> {
         if(options.get(Options.packageManifest.type) != null) {
             pmd = pmd.set(PackageMetadata.BUILD_TYPE, PackageBuildType.valueOf(options.get(Options.packageManifest.type)));
         }
-        pmd = pmd.set(PackageMetadata.QBT_ENV, ImmutableSet.copyOf(options.get(Options.packageManifest.qbtEnv)));
+        pmd = pmd.set(PackageMetadata.QBT_ENV, Options.packageManifest.getQbtEnvs(options));
 
         // build normal deps
         PackageNormalDeps.Builder pnd = PackageNormalDeps.TYPE.builder();

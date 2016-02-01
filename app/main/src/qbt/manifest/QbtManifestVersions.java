@@ -32,11 +32,13 @@ public class QbtManifestVersions {
     static final V0QbtManifestVersion V0;
     static final V1QbtManifestVersion V1;
     static final V2QbtManifestVersion V2;
+    static final V3QbtManifestVersion V3;
     private static final Internals INTERNALS;
     static {
         ImmutableList.Builder<QbtManifestVersion<?, ?>> b = ImmutableList.builder();
 
-        b.add(V2 = new V2QbtManifestVersion());
+        b.add(V3 = new V3QbtManifestVersion());
+        b.add(V2 = new V2QbtManifestVersion(V3));
         b.add(V1 = new V1QbtManifestVersion(V2));
         b.add(V0 = new V0QbtManifestVersion(V1));
 
@@ -71,6 +73,6 @@ public class QbtManifestVersions {
     }
 
     public static LegacyQbtManifest<?, ?> toLegacy(QbtManifest manifest) {
-        return new LegacyQbtManifest<QbtManifest, QbtManifest.Builder>(V2, manifest);
+        return new LegacyQbtManifest<QbtManifest, QbtManifest.Builder>(V3, manifest);
     }
 }
