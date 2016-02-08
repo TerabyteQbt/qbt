@@ -1,0 +1,216 @@
+package qbt.mains;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import java.io.IOException;
+import misc1.commons.Maybe;
+import misc1.commons.options.OptionsFragment;
+import misc1.commons.options.OptionsLibrary;
+import misc1.commons.options.OptionsResults;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import qbt.HelpTier;
+import qbt.NormalDependencyType;
+import qbt.QbtCommand;
+import qbt.QbtCommandName;
+import qbt.QbtCommandOptions;
+import qbt.manifest.PackageBuildType;
+import qbt.manifest.current.PackageManifest;
+import qbt.manifest.current.PackageMetadata;
+import qbt.manifest.current.PackageNormalDeps;
+import qbt.manifest.current.PackageVerifyDeps;
+import qbt.manifest.current.QbtManifest;
+import qbt.manifest.current.RepoManifest;
+import qbt.options.ManifestOptionsDelegate;
+import qbt.options.ManifestOptionsResult;
+import qbt.tip.PackageTip;
+import qbt.tip.RepoTip;
+
+public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UpdatePackage.class);
+
+    @QbtCommandName("updatePackage")
+    public static interface Options extends QbtCommandOptions {
+        public static final OptionsLibrary<Options> o = OptionsLibrary.of();
+        public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
+        public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Package to update");
+
+        public final OptionsFragment<Options, String> prefix = o.oneArg("prefix").transform(o.singleton(null)).helpDesc("Prefix of package in the repository ('null' to make it empty)");
+
+        public final OptionsFragment<Options, String> type = o.oneArg("buildType").transform(o.singleton(null)).helpDesc("Package type (normal, copy)");
+        public final OptionsFragment<Options, Maybe<Boolean>> archIndependent = o.trinary("archIndependent").helpDesc("Package is architecture independent");
+
+        public final OptionsFragment<Options, ImmutableList<Pair<String, String>>> addNormalDeps = o.twoArg("addNormalDependency").helpDesc("Add Normal Dependencies (e.g. --addNormalDependency TYPE PKG)");
+        public final OptionsFragment<Options, ImmutableList<Pair<String, String>>> removeNormalDeps = o.twoArg("removeNormalDependency").helpDesc("Remove Normal Dependencies (e.g. --removeNormalDependency TYPE PKG)");
+
+        public final OptionsFragment<Options, ImmutableList<Pair<String, String>>> addVerifyDeps = o.twoArg("addVerifyDependency").helpDesc("Add Verify Dependencies (e.g. --addVerifyDependency TYPE PKG)");
+        public final OptionsFragment<Options, ImmutableList<Pair<String, String>>> removeVerifyDeps = o.twoArg("removeVerifyDependency").helpDesc("Remove Verify Dependencies (e.g. --removeVerifyDependency TYPE PKG)");
+
+        public final OptionsFragment<Options, ImmutableList<String>> addQbtEnv = o.oneArg("addQbtEnv").helpDesc("Add QBT environment variables (VAR=DEF_VALUE or just VAR for no default");
+        public final OptionsFragment<Options, ImmutableList<String>> removeQbtEnv = o.oneArg("removeQbtEnv").helpDesc("Remove QBT environment variables");
+    }
+
+    @Override
+    public Class<Options> getOptionsClass() {
+        return Options.class;
+    }
+
+    @Override
+    public HelpTier getHelpTier() {
+        return HelpTier.UNCOMMON;
+    }
+
+    @Override
+    public String getDescription() {
+        return "update a package's metadata in the manifest";
+    }
+
+    @Override
+    public boolean isProgrammaticOutput() {
+        return false;
+    }
+
+    @Override
+    public int run(final OptionsResults<? extends Options> options) throws IOException {
+        final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
+        QbtManifest manifest = manifestResult.parse();
+
+        PackageTip pt = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
+        if(!manifest.packageToRepo.containsKey(pt)) {
+            throw new IllegalArgumentException(("Package " + pt + " does not exist"));
+        }
+        RepoTip rt = manifest.packageToRepo.get(pt);
+
+        RepoManifest rm = manifest.repos.get(rt);
+        PackageManifest pm = rm.packages.get(pt.name);
+
+        // Update metadata
+        PackageMetadata.Builder pmd = pm.metadata.builder();
+
+        String prefix = options.get(Options.prefix);
+        if(prefix != null) {
+            pmd = pmd.transform(PackageMetadata.PREFIX, (oldprefix) -> Maybe.of(prefix));
+        }
+
+        Maybe<Boolean> arch = options.get(Options.archIndependent);
+        if(arch.isPresent()) {
+            pmd = pmd.transform(PackageMetadata.ARCH_INDEPENDENT, (oldarch) -> arch.get(null));
+        }
+
+        String strType = options.get(Options.type);
+        if(strType != null) {
+            PackageBuildType type = PackageBuildType.valueOf(strType.toUpperCase());
+            pmd = pmd.transform(PackageMetadata.BUILD_TYPE, (oldtype) -> type);
+        }
+
+        for(String qbtEnv : options.get(Options.addQbtEnv)) {
+            String[] parts = qbtEnv.split("=", 2);
+            String key = parts[0];
+            Maybe<String> val;
+            if(parts.length > 1) {
+                val = Maybe.of(parts[1]);
+            }
+            else {
+                val = Maybe.not();
+            }
+            pmd = pmd.transform(PackageMetadata.QBT_ENV, (envMap) -> ImmutableMap.<String, Maybe<String>>builder().putAll(envMap).put(key, val).build());
+        }
+
+        ImmutableSet<String> qbtEnvToRemove = ImmutableSet.copyOf(options.get(Options.removeQbtEnv));
+        if(!qbtEnvToRemove.isEmpty()) {
+            pmd = pmd.transform(PackageMetadata.QBT_ENV, (envMap) -> ImmutableMap.copyOf(Maps.filterEntries(envMap, (input) -> !qbtEnvToRemove.contains(input.getKey()))));
+        }
+
+        // update normal deps
+        ImmutableMap.Builder<Pair<NormalDependencyType, PackageTip>, DepAction> normalDepsToProcess = ImmutableMap.builder();
+
+        normalDepsToProcess.putAll(buildDepMap(Iterables.transform(options.get(Options.addNormalDeps), (Pair<String, String> input) -> {
+            NormalDependencyType ndt = NormalDependencyType.BUILDTIME_WEAK.fromTag(input.getLeft());
+            PackageTip dt = PackageTip.TYPE.parseRequire(input.getRight());
+            return Pair.of(ndt, dt);
+        }), DepAction.ADD));
+
+        normalDepsToProcess.putAll(buildDepMap(Iterables.transform(options.get(Options.removeNormalDeps), (Pair<String, String> input) -> {
+            NormalDependencyType ndt = NormalDependencyType.BUILDTIME_WEAK.fromTag(input.getLeft());
+            PackageTip dt = PackageTip.TYPE.parseRequire(input.getRight());
+            return Pair.of(ndt, dt);
+        }), DepAction.REMOVE));
+
+        PackageNormalDeps.Builder pnd = pm.get(PackageManifest.NORMAL_DEPS).builder();
+        // remove first, so --remove WEAK X --add STRONG X works
+        for(Pair<NormalDependencyType, PackageTip> dep : Maps.filterEntries(normalDepsToProcess.build(), (e) -> e.getValue().equals(DepAction.REMOVE)).keySet()) {
+            Pair<NormalDependencyType, String> val = pnd.map.get(dep.getRight().name);
+            if(val == null) {
+                throw new IllegalArgumentException("Cannot remove normal dependency " + dep + " because it doesn't exist");
+            }
+            pnd = pnd.without(dep.getRight().name);
+        }
+        for(Pair<NormalDependencyType, PackageTip> dep : Maps.filterEntries(normalDepsToProcess.build(), (e) -> e.getValue().equals(DepAction.ADD)).keySet()) {
+            Pair<NormalDependencyType, String> val = pnd.map.get(dep.getRight().name);
+            if(val != null && val.getRight().equals(dep.getRight().tip)) {
+                throw new IllegalArgumentException("Cannot add normal dependency " + dep + " because it already exists");
+            }
+            PackageTip dt = dep.getRight();
+            pnd = pnd.with(dt.name, Pair.of(dep.getLeft(), dt.tip));
+        }
+
+        // update verify deps
+        ImmutableMap.Builder<Pair<PackageTip, String>, DepAction> verifyDepsToProcess = ImmutableMap.builder();
+
+        verifyDepsToProcess.putAll(buildDepMap(Iterables.transform(options.get(Options.addVerifyDeps), (Pair<String, String> input) -> {
+            String type = input.getLeft();
+            PackageTip dt = PackageTip.TYPE.parseRequire(input.getRight());
+            return Pair.of(dt, type);
+        }), DepAction.ADD));
+
+        verifyDepsToProcess.putAll(buildDepMap(Iterables.transform(options.get(Options.removeVerifyDeps), (Pair<String, String> input) -> {
+            String type = input.getLeft();
+            PackageTip dt = PackageTip.TYPE.parseRequire(input.getRight());
+            return Pair.of(dt, type);
+        }), DepAction.REMOVE));
+
+        PackageVerifyDeps.Builder pvd = pm.get(PackageManifest.VERIFY_DEPS).builder();
+
+        for(Pair<PackageTip, String> dep : Maps.filterEntries(verifyDepsToProcess.build(), (e) -> e.getValue().equals(DepAction.REMOVE)).keySet()) {
+            if(!pvd.map.containsKey(dep)) {
+                throw new IllegalArgumentException("Cannot remove verify dependency, already doesn't exist: " + dep);
+            }
+            pvd = pvd.without(dep);
+        }
+
+        for(Pair<PackageTip, String> dep : Maps.filterEntries(verifyDepsToProcess.build(), (e) -> e.getValue().equals(DepAction.ADD)).keySet()) {
+            if(pvd.map.containsKey(dep)) {
+                throw new IllegalArgumentException("Cannot add verify dependency, already exists: " + dep);
+            }
+            pvd = pvd.with(dep, ObjectUtils.NULL);
+        }
+
+        PackageManifest.Builder pmb = pm.builder().set(PackageManifest.METADATA, pmd).set(PackageManifest.NORMAL_DEPS, pnd).set(PackageManifest.VERIFY_DEPS, pvd);
+
+        RepoManifest.Builder repoManifest = manifest.repos.get(rt).builder();
+        repoManifest = repoManifest.transform(RepoManifest.PACKAGES, (pkgs) -> pkgs.with(pt.name, pmb));
+
+        manifest = manifest.builder().with(rt, repoManifest).build();
+        manifestResult.deparse(manifest);
+        LOGGER.info("Package " + pt + " successfully updated and manifest written successfully");
+        return 0;
+    }
+
+    private <A, B, C> ImmutableMap<Pair<A, B>, C> buildDepMap(Iterable<Pair<A, B>> input, C value) {
+        ImmutableMap.Builder<Pair<A, B>, C> b = ImmutableMap.builder();
+        for(Pair<A, B> key : input) {
+            b.put(key, value);
+        }
+        return b.build();
+    }
+
+    private enum DepAction {
+        ADD,
+        REMOVE;
+    }
+}
