@@ -19,3 +19,4 @@ qbt.mains.UpdateManifestPlumbing
 qbt.mains.UpdateManifestPorcelain
 qbt.mains.UpdateOverridesPlumbing
 qbt.mains.UpdateOverridesPorcelain
+qbt.mains.UpdatePackage
