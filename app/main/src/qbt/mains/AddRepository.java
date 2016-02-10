@@ -30,7 +30,6 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public final OptionsFragment<Options, String> repo = o.oneArg("repo").transform(o.singleton()).helpDesc("Repo to add");
-        public final OptionsFragment<Options, String> tip = o.oneArg("tip").transform(o.singleton("HEAD")).helpDesc("Tip to add");
     }
 
     @Override
@@ -59,15 +58,12 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
         QbtManifest manifest = manifestResult.parse();
 
-        String repoName = options.get(Options.repo);
-        String tip = options.get(Options.tip);
-
-        RepoTip newRepoTip = RepoTip.TYPE.of(repoName, tip);
+        RepoTip newRepoTip = RepoTip.TYPE.parseRequire(options.get(Options.repo));
 
         // figure out the version of the new repo
         LocalRepoAccessor lra = config.localRepoFinder.findLocalRepo(newRepoTip);
         if(lra == null || !lra.isOverride()) {
-            throw new IllegalArgumentException("Repository " + repoName + " is not an override");
+            throw new IllegalArgumentException("Repository " + newRepoTip + " is not an override");
         }
         Repository repo = lra.vcs.getRepository(lra.dir);
         VcsVersionDigest currentCommit = repo.getCurrentCommit();
