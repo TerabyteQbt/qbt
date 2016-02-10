@@ -7,7 +7,6 @@ import qbt.VcsVersionDigest;
 import qbt.artifactcacher.ArtifactCacher;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
-import qbt.repo.PinnedRepoAccessor;
 import qbt.tip.RepoTip;
 
 public final class QbtConfig {
@@ -39,10 +38,6 @@ public final class QbtConfig {
         if(local != null) {
             return local;
         }
-        PinnedRepoAccessor localPin = localPinsRepo.findPin(repo, version);
-        if(localPin != null) {
-            return localPin;
-        }
-        throw new IllegalArgumentException("Could not find override or local pin for " + repo + " at " + version);
+        return localPinsRepo.requirePin(repo, version, "Could not find override or local pin for " + repo + " at " + version);
     }
 }

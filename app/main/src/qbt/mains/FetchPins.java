@@ -92,11 +92,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemoteString + "'");
             }
 
-
-            if(config.localPinsRepo.findPin(repo, version) == null) {
-                throw new RuntimeException("[" + repo + "] Could not find " + version + "!");
-            }
-
+            config.localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
             return ObjectUtils.NULL;
         });
 

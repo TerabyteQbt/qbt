@@ -42,6 +42,12 @@ public final class SimpleLocalPinsRepo implements LocalPinsRepo {
     }
 
     @Override
+    public void addPin(RepoTip repo, Path dir, VcsVersionDigest version) {
+        Path cache = materializeCache(repo);
+        vcs.addPinToRemote(dir, cache.toAbsolutePath().toString(), version);
+    }
+
+    @Override
     public void fetchPins(RepoTip repo, RawRemote remote) {
         Path cache = materializeCache(repo);
 
