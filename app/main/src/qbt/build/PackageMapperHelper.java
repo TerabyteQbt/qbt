@@ -81,6 +81,7 @@ public final class PackageMapperHelper {
                         artifactResult = artifactResult.transform((input) -> {
                             return artifactCacher.intercept(scope, bd.v.getDigest(), Pair.of(bd.metadata.get(PackageMetadata.ARCH_INDEPENDENT) ? Architecture.independent() : arch, input)).getRight();
                         });
+                        result = Pair.of(artifactResult, result.getRight());
 
                         checkTree(bd, " after the build");
 
