@@ -1,0 +1,1 @@
+./qbt/app/main/src/qbt/vcs/simple/SimpleLocalVcs.java mv ./qbt/app/main/src/qbt/vcs/simple/SimpleLocalVcs.java.new ./qbt/app/main/src/qbt/vcs/simple/SimpleLocalVcs.java

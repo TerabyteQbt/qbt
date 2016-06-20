@@ -1,0 +1,1 @@
+./qbt/app/main/src/qbt/vcs/simple/SimpleRawRemoteVcs.java mv ./qbt/app/main/src/qbt/vcs/simple/SimpleRawRemoteVcs.java.new ./qbt/app/main/src/qbt/vcs/simple/SimpleRawRemoteVcs.java
