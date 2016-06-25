@@ -6,6 +6,7 @@ qbt.mains.CheckManifestFastForward
 qbt.mains.FetchPins
 qbt.mains.GetOverridePlumbing
 qbt.mains.GetOverridePorcelain
+qbt.mains.ListArtifact
 qbt.mains.MergeManifests
 qbt.mains.PushPins
 qbt.mains.RemovePackage
