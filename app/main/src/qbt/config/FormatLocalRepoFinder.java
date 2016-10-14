@@ -5,7 +5,7 @@ import java.nio.file.Paths;
 import qbt.tip.RepoTip;
 import qbt.vcs.LocalVcs;
 
-public class FormatLocalRepoFinder extends LocalRepoFinder {
+public class FormatLocalRepoFinder extends SimpleLocalRepoFinder {
     private final String format;
 
     public FormatLocalRepoFinder(LocalVcs vcs, String format) {
@@ -13,6 +13,7 @@ public class FormatLocalRepoFinder extends LocalRepoFinder {
         this.format = format;
     }
 
+    @Override
     protected Path directory(RepoTip repo) {
         return Paths.get(format.replace("%r", repo.name).replace("%t", repo.tip));
     }
