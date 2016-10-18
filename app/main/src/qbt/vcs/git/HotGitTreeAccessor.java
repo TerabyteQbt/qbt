@@ -86,7 +86,7 @@ public class HotGitTreeAccessor implements TreeAccessor {
     }
 
     @Override
-    public TreeAccessor replace(String path, byte[] contents) {
+    public TreeAccessor replace(String path, Either<TreeAccessor, byte[]> contents) {
         int i = path.indexOf('/');
         if(i != -1) {
             String path0 = path.substring(0, i);
@@ -100,8 +100,18 @@ public class HotGitTreeAccessor implements TreeAccessor {
             return with(path0, Either.<TreeAccessor, Pair<String, HashCode>>left(subtreeAccessor));
         }
         else {
-            HashCode object = GitUtils.writeObject(dir, contents);
-            return with(path, Either.<TreeAccessor, Pair<String, HashCode>>right(Pair.of("100644", object)));
+            return contents.visit(new Either.Visitor<TreeAccessor, byte[], TreeAccessor>() {
+                @Override
+                public TreeAccessor left(TreeAccessor contents) {
+                    return with(path, Either.left(contents));
+                }
+
+                @Override
+                public TreeAccessor right(byte[] contents) {
+                    HashCode object = GitUtils.writeObject(dir, contents);
+                    return with(path, Either.<TreeAccessor, Pair<String, HashCode>>right(Pair.of("100644", object)));
+                }
+            });
         }
     }
 

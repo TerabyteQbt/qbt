@@ -26,7 +26,7 @@ public class ColdGitTreeAccessor implements TreeAccessor {
     }
 
     @Override
-    public TreeAccessor replace(String path, byte[] contents) {
+    public TreeAccessor replace(String path, Either<TreeAccessor, byte[]> contents) {
         return getDelegate().replace(path, contents);
     }
 
