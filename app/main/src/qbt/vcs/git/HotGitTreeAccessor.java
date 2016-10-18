@@ -56,6 +56,8 @@ public class HotGitTreeAccessor implements TreeAccessor {
             throw new IllegalStateException();
         }
         this.map = b;
+
+        this.digest = tree;
     }
 
     private static final Either.Visitor<TreeAccessor, Pair<String, HashCode>, Boolean> IS_EITHER_EMPTY_TREE = new Either.Visitor<TreeAccessor, Pair<String, HashCode>, Boolean>() {
