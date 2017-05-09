@@ -2,6 +2,7 @@ package qbt.config;
 
 import groovy.lang.GroovyShell;
 import java.nio.file.Path;
+import java.util.Optional;
 import misc1.commons.ExceptionUtils;
 import qbt.VcsVersionDigest;
 import qbt.artifactcacher.ArtifactCacher;
@@ -33,11 +34,14 @@ public final class QbtConfig {
         }
     }
 
-    public CommonRepoAccessor requireCommonRepo(RepoTip repo, VcsVersionDigest version) {
+    public CommonRepoAccessor requireCommonRepo(RepoTip repo, Optional<VcsVersionDigest> version) {
         LocalRepoAccessor local = localRepoFinder.findLocalRepo(repo);
         if(local != null) {
             return local;
         }
-        return localPinsRepo.requirePin(repo, version, "Could not find override or local pin for " + repo + " at " + version);
+        if(!version.isPresent()) {
+            throw new IllegalArgumentException("Could not find override " + repo);
+        }
+        return localPinsRepo.requirePin(repo, version.get(), "Could not find override or local pin for " + repo + " at " + version.get());
     }
 }

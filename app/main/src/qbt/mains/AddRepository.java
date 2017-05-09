@@ -1,6 +1,7 @@
 package qbt.mains;
 
 import java.io.IOException;
+import java.util.Optional;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
@@ -67,7 +68,7 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         }
         Repository repo = lra.vcs.getRepository(lra.dir);
         VcsVersionDigest currentCommit = repo.getCurrentCommit();
-        RepoManifest.Builder rmb = RepoManifest.TYPE.builder().set(RepoManifest.VERSION, currentCommit);
+        RepoManifest.Builder rmb = RepoManifest.TYPE.builder().set(RepoManifest.VERSION, Optional.of(currentCommit));
 
         // create the pins
         config.localPinsRepo.addPin(newRepoTip, lra.dir, currentCommit);

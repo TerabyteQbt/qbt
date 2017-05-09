@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
@@ -95,14 +96,15 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
-            VcsVersionDigest version = repoManifest.version;
+            Optional<VcsVersionDigest> version = repoManifest.___version;
             final LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
             if(localRepoAccessor == null) {
                 return ObjectUtils.NULL;
             }
             ProcessHelper p = ProcessHelper.of(localRepoAccessor.dir, shellActionOptionsResult.commandArray);
             class VersionAdder {
-                public ProcessHelper addVersion(ProcessHelper p, String name, VcsVersionDigest version) {
+                public ProcessHelper addVersion(ProcessHelper p, String name, Optional<VcsVersionDigest> maybeVersion) {
+                    VcsVersionDigest version = maybeVersion == null ? null : maybeVersion.orElse(null);
                     String envName = "REPO_VERSION" + (name == null ? "" : ("_" + name));
                     if(version != null) {
                         if(!localRepoAccessor.vcs.getRepository(localRepoAccessor.dir).commitExists(version)) {
@@ -121,7 +123,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
             for(Map.Entry<String, QbtManifest> e : extraManifests.entrySet()) {
                 String manifestName = e.getKey();
                 RepoManifest extraRepoManifest = e.getValue().repos.get(repo);
-                p = va.addVersion(p, manifestName, extraRepoManifest == null ? null : extraRepoManifest.version);
+                p = va.addVersion(p, manifestName, extraRepoManifest == null ? null : extraRepoManifest.___version);
             }
             if(shellActionOptionsResult.isInteractive) {
                 p = p.inheritInput();
