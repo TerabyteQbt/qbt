@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
@@ -69,7 +70,11 @@ public class PushPins extends QbtCommand<PushPins.Options> {
                 if(repoManifest == null) {
                     throw new IllegalArgumentException("No such repo [tip]: " + repo);
                 }
-                VcsVersionDigest version = repoManifest.version;
+                Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
+                if(!maybeVersion.isPresent()) {
+                    return ObjectUtils.NULL;
+                }
+                VcsVersionDigest version = maybeVersion.get();
                 PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
                 RawRemote remote = qbtRemote.findRemote(repo, true);
 

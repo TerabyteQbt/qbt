@@ -3,6 +3,7 @@ package qbt.mains;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Optional;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
@@ -70,7 +71,11 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
-            VcsVersionDigest version = repoManifest.version;
+            Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
+            if(!maybeVersion.isPresent()) {
+                continue;
+            }
+            VcsVersionDigest version = maybeVersion.get();
             LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
             if(localRepoAccessor == null) {
                 continue;

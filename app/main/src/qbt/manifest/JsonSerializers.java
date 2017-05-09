@@ -8,6 +8,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Map;
+import java.util.Optional;
 import misc1.commons.Maybe;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,6 +41,24 @@ public final class JsonSerializers {
         @Override
         public VcsVersionDigest fromJson(JsonElement e) {
             return VcsVersionDigest.PARSE_FUNCTION.apply(e.getAsString());
+        }
+    };
+
+    public static final JsonSerializer<Optional<VcsVersionDigest>> OPTIONAL_VCS_VERSION_DIGEST = new JsonSerializer<Optional<VcsVersionDigest>>() {
+        @Override
+        public JsonElement toJson(Optional<VcsVersionDigest> commit) {
+            if(commit.isPresent()) {
+                return new JsonPrimitive(VcsVersionDigest.DEPARSE_FUNCTION.apply(commit.get()));
+            }
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public Optional<VcsVersionDigest> fromJson(JsonElement e) {
+            if(e.isJsonNull()) {
+                return Optional.empty();
+            }
+            return Optional.of(VcsVersionDigest.PARSE_FUNCTION.apply(e.getAsString()));
         }
     };
 

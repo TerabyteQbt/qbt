@@ -79,7 +79,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
-            VcsVersionDigest version = repoManifest.version;
+            VcsVersionDigest version = repoManifest.version.get();
             LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);
             if(localRepoAccessor == null) {
                 continue;

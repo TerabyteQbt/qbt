@@ -68,7 +68,7 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip] " + repo);
             }
-            VcsVersionDigest version = repoManifest.version;
+            VcsVersionDigest version = repoManifest.version.get();
             PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
             LocalRepoAccessor newLocal = config.localRepoFinder.createLocalRepo(repo);
             if(newLocal == null) {

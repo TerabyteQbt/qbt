@@ -8,6 +8,7 @@ import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.QbtTempDir;
+import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
@@ -56,8 +57,11 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
         new MapDiffer<RepoTip, RepoManifest>(lhs.repos, rhs.repos, RepoTip.TYPE.COMPARATOR) {
             @Override
             protected void edit(RepoTip repo, RepoManifest lhs, RepoManifest rhs) {
-                PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhs.version);
-                PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhs.version);
+                VcsVersionDigest lhsVersion = lhs.version.get();
+                VcsVersionDigest rhsVersion = rhs.version.get();
+
+                PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion);
+                PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion);
 
                 LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
                 LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
@@ -72,8 +76,8 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
                     lhsResult.findCommit(dir);
                     rhsResult.findCommit(dir);
 
-                    if(!localVcs.getRepository(dir).isAncestorOf(lhs.version, rhs.version)) {
-                        throw new RuntimeException("Not fast forward: " + repo + ": " + lhs.version.getRawDigest() + " -> " + rhs.version.getRawDigest());
+                    if(!localVcs.getRepository(dir).isAncestorOf(lhsVersion, rhsVersion)) {
+                        throw new RuntimeException("Not fast forward: " + repo + ": " + lhsVersion.getRawDigest() + " -> " + rhsVersion.getRawDigest());
                     }
                 }
             }

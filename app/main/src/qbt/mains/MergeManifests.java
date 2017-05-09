@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
 import misc1.commons.options.OptionsException;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
@@ -204,21 +205,31 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                         continue;
                     }
 
-                    VcsVersionDigest lhsVersion = lhsRepoManifest.version;
-                    VcsVersionDigest mhsVersion = mhsRepoManifest.version;
-                    VcsVersionDigest rhsVersion = rhsRepoManifest.version;
+                    Optional<VcsVersionDigest> lhsVersion = lhsRepoManifest.version;
+                    Optional<VcsVersionDigest> mhsVersion = mhsRepoManifest.version;
+                    Optional<VcsVersionDigest> rhsVersion = rhsRepoManifest.version;
 
                     if(lhsVersion.equals(mhsVersion) && mhsVersion.equals(rhsVersion)) {
                         continue;
                     }
 
-                    PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion);
+                    if(!lhsVersion.isPresent()) {
+                        continue;
+                    }
+                    if(!mhsVersion.isPresent()) {
+                        continue;
+                    }
+                    if(!rhsVersion.isPresent()) {
+                        continue;
+                    }
+
+                    PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion.get());
                     LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
 
-                    PinnedRepoAccessor mhsResult = config.localPinsRepo.requirePin(repo, mhsVersion);
+                    PinnedRepoAccessor mhsResult = config.localPinsRepo.requirePin(repo, mhsVersion.get());
                     LocalVcs mhsLocalVcs = mhsResult.getLocalVcs();
 
-                    PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion);
+                    PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion.get());
                     LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
 
                     if(!lhsLocalVcs.equals(mhsLocalVcs) || !rhsLocalVcs.equals(mhsLocalVcs)) {
@@ -236,7 +247,7 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
                         rhsResult.findCommit(repoDir);
                         Repository repository = localVcs.getRepository(repoDir);
                         try {
-                            strategy.invoke(repo, repository, lhsVersion, mhsVersion, rhsVersion);
+                            strategy.invoke(repo, repository, lhsVersion.get(), mhsVersion.get(), rhsVersion.get());
                         }
                         catch(RuntimeException e) {
                             LOGGER.error("[" + repo + "]", e);
