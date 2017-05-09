@@ -3,6 +3,7 @@ package qbt.mains;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import misc1.commons.concurrent.ctree.ComputationTree;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
@@ -75,8 +76,12 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
-            VcsVersionDigest version = repoManifest.version;
-
+            Optional<VcsVersionDigest> maybeVersion = repoManifest.___version;
+            if(!maybeVersion.isPresent()) {
+                LOGGER.debug("[" + repo + "] Doesn't have version");
+                return ObjectUtils.NULL;
+            }
+            VcsVersionDigest version = maybeVersion.get();
             if(config.localPinsRepo.findPin(repo, version) != null) {
                 LOGGER.debug("[" + repo + "] Already have " + version);
                 return ObjectUtils.NULL;

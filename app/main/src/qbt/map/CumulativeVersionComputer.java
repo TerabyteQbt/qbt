@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
 import misc1.commons.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
@@ -49,11 +50,11 @@ public abstract class CumulativeVersionComputer<K> {
         this.dependencyComputer = new DependencyComputer(manifest);
     }
 
-    private final LoadingCache<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>> repoCache = CacheBuilder.newBuilder().build(new CacheLoader<Pair<RepoTip, VcsVersionDigest>, Pair<CommonRepoAccessor, VcsTreeDigest>>() {
+    private final LoadingCache<Pair<RepoTip, Optional<VcsVersionDigest>>, Pair<CommonRepoAccessor, VcsTreeDigest>> repoCache = CacheBuilder.newBuilder().build(new CacheLoader<Pair<RepoTip, Optional<VcsVersionDigest>>, Pair<CommonRepoAccessor, VcsTreeDigest>>() {
         @Override
-        public Pair<CommonRepoAccessor, VcsTreeDigest> load(Pair<RepoTip, VcsVersionDigest> input) {
+        public Pair<CommonRepoAccessor, VcsTreeDigest> load(Pair<RepoTip, Optional<VcsVersionDigest>> input) {
             RepoTip repo = input.getLeft();
-            VcsVersionDigest version = input.getRight();
+            Optional<VcsVersionDigest> version = input.getRight();
 
             CommonRepoAccessor commonRepoAccessor = config.requireCommonRepo(repo, version);
             VcsTreeDigest repoTree = commonRepoAccessor.getEffectiveTree(Maybe.of(""));
@@ -69,7 +70,7 @@ public abstract class CumulativeVersionComputer<K> {
             RepoTip repo = result.repo;
             RepoManifest repoManifest = result.repoManifest;
             PackageManifest packageManifest = result.packageManifest;
-            VcsVersionDigest version = repoManifest.version;
+            Optional<VcsVersionDigest> version = repoManifest.___version;
 
             Pair<CommonRepoAccessor, VcsTreeDigest> repoCacheResult = repoCache.getUnchecked(Pair.of(repo, version));
             CommonRepoAccessor commonRepoAccessor = repoCacheResult.getLeft();

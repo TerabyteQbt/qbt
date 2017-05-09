@@ -34,6 +34,7 @@ my @IMPORTS = (
     'com.google.gson.JsonElement',
     'com.google.gson.JsonObject',
     'java.util.Map',
+    'java.util.Optional',
     'misc1.commons.Maybe',
     'misc1.commons.ds.ImmutableSalvagingMap',
     'misc1.commons.ds.MapStruct',
@@ -164,7 +165,7 @@ my @DATA = (
             ),
             'RepoManifest' => struct_type(
                 'fields' => {
-                    'version' => external_value('VcsVersionDigest', 'JsonSerializers.VCS_VERSION_DIGEST'),
+                    'version' => external_value('VcsVersionDigest', 'JsonSerializers.VCS_VERSION_DIGEST', undef, 'ExternalUpgrades.version'),
                     'packages' => link_value('RepoManifestPackages'),
                 },
             ),
@@ -216,11 +217,11 @@ my @DATA = (
             ),
             'RepoManifest' => struct_type(
                 'fields' => {
-                    'version' => external_value('VcsVersionDigest', 'JsonSerializers.VCS_VERSION_DIGEST'),
+                    'version' => external_value('Optional<VcsVersionDigest>', 'JsonSerializers.OPTIONAL_VCS_VERSION_DIGEST'),
                     'packages' => link_value('RepoManifestPackages'),
                 },
                 'extraFields' => [
-                    ['version', 'VcsVersionDigest', 'get(VERSION)'],
+                    ['___version', 'Optional<VcsVersionDigest>', 'get(VERSION)'],
                     ['packages', 'ImmutableMap<String, PackageManifest>', 'get(PACKAGES).map'],
                 ],
             ),

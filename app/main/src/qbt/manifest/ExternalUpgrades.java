@@ -2,7 +2,9 @@ package qbt.manifest;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import misc1.commons.Maybe;
+import qbt.VcsVersionDigest;
 
 public final class ExternalUpgrades {
     private ExternalUpgrades() {
@@ -15,5 +17,9 @@ public final class ExternalUpgrades {
             b.put(key, Maybe.not());
         }
         return b.build();
+    }
+
+    public static Optional<VcsVersionDigest> version(VcsVersionDigest old) {
+        return Optional.of(old);
     }
 }
