@@ -23,7 +23,6 @@ abstract class JsonQbtManifestParser<M, B> implements QbtManifestParser<M> {
     @Override
     public ImmutableList<String> deparse(M manifest) {
         ImmutableList.Builder<String> b = ImmutableList.builder();
-        b.add("@" + version.version);
         JsonUtils.deparse(b, serializer().toJson(version.builder(manifest)));
         return b.build();
     }
@@ -34,7 +33,6 @@ abstract class JsonQbtManifestParser<M, B> implements QbtManifestParser<M> {
         JsonElement mhsJson = serializer().toJson(version.builder(mhs));
         JsonElement rhsJson = serializer().toJson(version.builder(rhs));
         JsonUtils.DeparseResultBuilder b = new JsonUtils.DeparseResultBuilder();
-        b.add("@" + version.version);
         JsonUtils.deparse(b, lhsName, lhsJson, mhsName, mhsJson, rhsName, rhsJson);
         return b.build();
     }
