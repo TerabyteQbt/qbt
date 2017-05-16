@@ -20,7 +20,6 @@ import qbt.QbtCommandOptions;
 import qbt.QbtUtils;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.QbtManifestVersions;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
@@ -77,7 +76,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
 
     public static <O extends RunOverridesCommonOptions> int run(final OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         final QbtConfig config = RunOverridesCommonOptions.config.getConfig(options);
-        final QbtManifest manifest = RunOverridesCommonOptions.manifest.getResult(options).parse();
+        final QbtManifest manifest = RunOverridesCommonOptions.manifest.getResult(options).parse(config.manifestParser);
         Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         final ShellActionOptionsResult shellActionOptionsResult = RunOverridesCommonOptions.shellAction.getResults(options);
 
@@ -87,7 +86,7 @@ public final class RunOverridesPlumbing extends QbtCommand<RunOverridesPlumbing.
             if(idx == -1) {
                 throw new IllegalArgumentException("Invalid --extra-manifest: " + arg);
             }
-            extraManifestsBuilder.put(arg.substring(0, idx), QbtManifestVersions.parse(QbtUtils.readLines(Paths.get(arg.substring(idx + 1)))));
+            extraManifestsBuilder.put(arg.substring(0, idx), config.manifestParser.parse(QbtUtils.readLines(Paths.get(arg.substring(idx + 1)))));
         }
         final Map<String, QbtManifest> extraManifests = extraManifestsBuilder.build();
 

@@ -2,6 +2,7 @@ package qbt.mains;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import misc1.commons.options.OptionsFragment;
 import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
@@ -13,8 +14,6 @@ import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.LegacyQbtManifest;
-import qbt.manifest.QbtManifestVersions;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
@@ -33,7 +32,6 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
         public static final OptionsLibrary<UpdateManifestCommonOptions> o = OptionsLibrary.of();
         public static final ConfigOptionsDelegate<UpdateManifestCommonOptions> config = new ConfigOptionsDelegate<UpdateManifestCommonOptions>();
         public static final ManifestOptionsDelegate<UpdateManifestCommonOptions> manifest = new ManifestOptionsDelegate<UpdateManifestCommonOptions>();
-        public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> upgrade = o.zeroArg("upgrade").transform(o.flag()).helpDesc("Upgrade the manifest");
         public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> allowNonFf = o.zeroArg("allow-non-ff").transform(o.flag()).helpDesc("Update even if the update is not fast-forward.");
         public static final OptionsFragment<UpdateManifestCommonOptions, Boolean> allowDirty = o.zeroArg("allow-dirty").transform(o.flag()).helpDesc("Update even if a repo is dirty");
     }
@@ -66,16 +64,12 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
     public static <O extends UpdateManifestCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = UpdateManifestCommonOptions.config.getConfig(options);
         ManifestOptionsResult manifestResult = UpdateManifestCommonOptions.manifest.getResult(options);
-        LegacyQbtManifest<?, ?> manifestLegacy = manifestResult.parseLegacy();
-        QbtManifest manifestCurrent = manifestLegacy.current();
-        if(options.get(Options.upgrade)) {
-            manifestLegacy = QbtManifestVersions.toLegacy(manifestLegacy.current());
-        }
-        Collection<RepoTip> repos = reposOption.getRepos(config, manifestCurrent, options);
-        LegacyQbtManifest.Builder<?, ?> newManifest = manifestLegacy.builder();
+        QbtManifest manifest = manifestResult.parse(config.manifestParser);
+        Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
+        QbtManifest.Builder newManifest = manifest.builder();
         boolean fail = false;
         for(RepoTip repo : repos) {
-            RepoManifest repoManifest = manifestCurrent.repos.get(repo);
+            RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
             }
@@ -115,7 +109,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
                     continue;
                 }
                 config.localPinsRepo.addPin(repo, localRepoAccessor.dir, newVersion);
-                newManifest = newManifest.withRepoVersion(repo, newVersion);
+                newManifest = newManifest.transform(repo, (rmb) -> rmb.set(RepoManifest.VERSION, Optional.of(newVersion)));
                 LOGGER.info(String.format("Updated repo %s from %s to %s...", repo, version.getRawDigest(), newVersion.getRawDigest()));
             }
         }
@@ -125,7 +119,7 @@ public final class UpdateManifestPlumbing extends QbtCommand<UpdateManifestPlumb
         }
 
         LOGGER.info("All update(s) successful, writing manifest.");
-        manifestResult.deparse(newManifest.build());
+        manifestResult.deparse(config.manifestParser, newManifest.build());
 
         return 0;
     }

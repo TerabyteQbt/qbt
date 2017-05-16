@@ -129,7 +129,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
 
     public static <O extends BuildCommonOptions> int run(final OptionsResults<? extends O> options, PackageActionOptionsDelegate<? super O> packagesOption) throws IOException {
         final QbtConfig config = BuildCommonOptions.config.getConfig(options);
-        final QbtManifest manifest = BuildCommonOptions.manifest.getResult(options).parse();
+        final QbtManifest manifest = BuildCommonOptions.manifest.getResult(options).parse(config.manifestParser);
         final Collection<PackageTip> packages = packagesOption.getPackages(config, manifest, options);
 
         ImmutableMultimap.Builder<PublishTime, Pair<PublishFormat, String>> outputsBuilder = ImmutableMultimap.builder();

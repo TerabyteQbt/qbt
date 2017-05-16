@@ -6,6 +6,8 @@ import java.util.Optional;
 import misc1.commons.ExceptionUtils;
 import qbt.VcsVersionDigest;
 import qbt.artifactcacher.ArtifactCacher;
+import qbt.manifest.QbtManifestParser;
+import qbt.manifest.current.CurrentQbtManifestParser;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
 import qbt.tip.RepoTip;
@@ -15,6 +17,7 @@ public final class QbtConfig {
     public final LocalPinsRepo localPinsRepo;
     public final QbtRemoteFinder qbtRemoteFinder;
     public final ArtifactCacher artifactCacher;
+    public final QbtManifestParser manifestParser = new CurrentQbtManifestParser();
 
     public QbtConfig(LocalRepoFinder localRepoFinder, LocalPinsRepo localPinsRepo, QbtRemoteFinder qbtRemoteFinder, ArtifactCacher artifactCacher) {
         this.localRepoFinder = localRepoFinder;

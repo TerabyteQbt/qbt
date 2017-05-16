@@ -63,7 +63,7 @@ public final class UpdateOverridesPlumbing extends QbtCommand<UpdateOverridesPlu
 
     public static <O extends UpdateOverridesCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = Options.config.getConfig(options);
-        QbtManifest manifest = Options.manifest.getResult(options).parse();
+        QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         boolean fail = false;
         for(RepoTip repo : repos) {

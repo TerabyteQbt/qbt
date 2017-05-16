@@ -60,7 +60,7 @@ public class PushPins extends QbtCommand<PushPins.Options> {
     @Override
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
-        final QbtManifest manifest = Options.manifest.getResult(options).parse();
+        final QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         final Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
 
         ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), (qbtRemoteString) -> {

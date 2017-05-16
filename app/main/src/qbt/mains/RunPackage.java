@@ -70,7 +70,7 @@ public class RunPackage extends QbtCommand<RunPackage.Options> {
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
         QbtConfig config = Options.config.getConfig(options);
-        QbtManifest manifest = Options.manifest.getResult(options).parse();
+        QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
         CumulativeVersionComputer<?> cumulativeVersionComputer = new BuildCumulativeVersionComputer(config, manifest) {
             @Override

@@ -21,8 +21,6 @@ import qbt.QbtCommandOptions;
 import qbt.QbtTempDir;
 import qbt.VcsVersionDigest;
 import qbt.config.QbtConfig;
-import qbt.manifest.LegacyQbtManifest;
-import qbt.manifest.QbtManifestVersion;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
 import qbt.options.ConfigOptionsDelegate;
@@ -143,136 +141,115 @@ public final class MergeManifests extends QbtCommand<MergeManifests.Options> {
         return rets.get(0);
     }
 
-    public static QbtManifestVersion<?, ?> chooseTargetVersion(LegacyQbtManifest<?, ?> lhs, LegacyQbtManifest<?, ?> mhs, LegacyQbtManifest<?, ?> rhs) {
-        // These had both better be upgrades or you're doing something bad
-        // (e.g.  CP of something in new format onto old format branch)
-        mhs.upgrade(lhs.version);
-        mhs.upgrade(rhs.version);
-
-        return lhs.version.max(rhs.version);
-    }
-
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
-        final QbtConfig config = Options.config.getConfig(options);
-        final Strategy strategy = parseStrategyOptions(options);
+        QbtConfig config = Options.config.getConfig(options);
+        Strategy strategy = parseStrategyOptions(options);
 
-        final LegacyQbtManifest<?, ?> lhsLegacyResult = Options.lhs.getResult(options).parseLegacy();
-        final LegacyQbtManifest<?, ?> mhsLegacyResult = Options.mhs.getResult(options).parseLegacy();
-        final LegacyQbtManifest<?, ?> rhsLegacyResult = Options.rhs.getResult(options).parseLegacy();
-        final String lhsName = options.get(Options.lhsName);
-        final String mhsName = options.get(Options.mhsName);
-        final String rhsName = options.get(Options.rhsName);
-        QbtManifestVersion<?, ?> targetVersion = chooseTargetVersion(lhsLegacyResult, mhsLegacyResult, rhsLegacyResult);
-        return new Object() {
-            public <M, B> int run(QbtManifestVersion<M, B> targetVersion) {
-                M lhs = lhsLegacyResult.upgrade(targetVersion).manifest;
-                M mhs = mhsLegacyResult.upgrade(targetVersion).manifest;
-                M rhs = rhsLegacyResult.upgrade(targetVersion).manifest;
+        QbtManifest lhs = Options.lhs.getResult(options).parse(config.manifestParser);
+        QbtManifest mhs = Options.mhs.getResult(options).parse(config.manifestParser);
+        QbtManifest rhs = Options.rhs.getResult(options).parse(config.manifestParser);
+        String lhsName = options.get(Options.lhsName);
+        String mhsName = options.get(Options.mhsName);
+        String rhsName = options.get(Options.rhsName);
 
-                // First: merge anything automatic
-                {
-                    Triple<M, M, M> merged = targetVersion.merge().merge(lhs, mhs, rhs);
-                    lhs = merged.getLeft();
-                    mhs = merged.getMiddle();
-                    rhs = merged.getRight();
-                }
+        // First: merge anything automatic
+        {
+            Triple<QbtManifest, QbtManifest, QbtManifest> merged = QbtManifest.TYPE.merge().merge(lhs, mhs, rhs);
+            lhs = merged.getLeft();
+            mhs = merged.getMiddle();
+            rhs = merged.getRight();
+        }
 
-                QbtManifest lhsCurrent = targetVersion.current(lhs);
-                QbtManifest mhsCurrent = targetVersion.current(mhs);
-                QbtManifest rhsCurrent = targetVersion.current(rhs);
+        // Second: EDIT/EDIT conflicts in version are put through strategy
+        ImmutableSet.Builder<RepoTip> repos = ImmutableSet.builder();
+        repos.addAll(lhs.repos.keySet());
+        repos.addAll(mhs.repos.keySet());
+        repos.addAll(rhs.repos.keySet());
 
-                // Second: EDIT/EDIT conflicts in version are put through strategy
-                ImmutableSet.Builder<RepoTip> repos = ImmutableSet.builder();
-                repos.addAll(lhsCurrent.repos.keySet());
-                repos.addAll(mhsCurrent.repos.keySet());
-                repos.addAll(rhsCurrent.repos.keySet());
-
-                B lhsBuilder = targetVersion.builder(lhs);
-                B mhsBuilder = targetVersion.builder(mhs);
-                B rhsBuilder = targetVersion.builder(rhs);
-                for(RepoTip repo : repos.build()) {
-                    RepoManifest lhsRepoManifest = lhsCurrent.repos.get(repo);
-                    if(lhsRepoManifest == null) {
-                        continue;
-                    }
-                    RepoManifest mhsRepoManifest = mhsCurrent.repos.get(repo);
-                    if(mhsRepoManifest == null) {
-                        continue;
-                    }
-                    RepoManifest rhsRepoManifest = rhsCurrent.repos.get(repo);
-                    if(rhsRepoManifest == null) {
-                        continue;
-                    }
-
-                    Optional<VcsVersionDigest> lhsVersion = lhsRepoManifest.version;
-                    Optional<VcsVersionDigest> mhsVersion = mhsRepoManifest.version;
-                    Optional<VcsVersionDigest> rhsVersion = rhsRepoManifest.version;
-
-                    if(lhsVersion.equals(mhsVersion) && mhsVersion.equals(rhsVersion)) {
-                        continue;
-                    }
-
-                    if(!lhsVersion.isPresent()) {
-                        continue;
-                    }
-                    if(!mhsVersion.isPresent()) {
-                        continue;
-                    }
-                    if(!rhsVersion.isPresent()) {
-                        continue;
-                    }
-
-                    PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion.get());
-                    LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
-
-                    PinnedRepoAccessor mhsResult = config.localPinsRepo.requirePin(repo, mhsVersion.get());
-                    LocalVcs mhsLocalVcs = mhsResult.getLocalVcs();
-
-                    PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion.get());
-                    LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
-
-                    if(!lhsLocalVcs.equals(mhsLocalVcs) || !rhsLocalVcs.equals(mhsLocalVcs)) {
-                        LOGGER.error("[" + repo + "] Found mis-matched VCS: " + lhsLocalVcs + ", " + mhsLocalVcs + ", " + rhsLocalVcs);
-                        continue;
-                    }
-                    LocalVcs localVcs = lhsLocalVcs;
-
-                    VcsVersionDigest result;
-                    try(QbtTempDir tempDir = new QbtTempDir()) {
-                        Path repoDir = tempDir.path;
-                        localVcs.createWorkingRepo(repoDir);
-                        lhsResult.findCommit(repoDir);
-                        mhsResult.findCommit(repoDir);
-                        rhsResult.findCommit(repoDir);
-                        Repository repository = localVcs.getRepository(repoDir);
-                        try {
-                            strategy.invoke(repo, repository, lhsVersion.get(), mhsVersion.get(), rhsVersion.get());
-                        }
-                        catch(RuntimeException e) {
-                            LOGGER.error("[" + repo + "]", e);
-                            continue;
-                        }
-                        result = repository.getCurrentCommit();
-                        config.localPinsRepo.addPin(repo, repoDir, result);
-                    }
-
-                    lhsBuilder = targetVersion.withRepoVersion(lhsBuilder, repo, result);
-                    mhsBuilder = targetVersion.withRepoVersion(mhsBuilder, repo, result);
-                    rhsBuilder = targetVersion.withRepoVersion(rhsBuilder, repo, result);
-                }
-                M lhsMerged = targetVersion.build(lhsBuilder);
-                M mhsMerged = targetVersion.build(mhsBuilder);
-                M rhsMerged = targetVersion.build(rhsBuilder);
-
-                ImmutableList<Pair<String, String>> conflicts = Options.out.getResult(options).deparseConflict(targetVersion, lhsName, lhsMerged, mhsName, mhsMerged, rhsName, rhsMerged);
-
-                for(Pair<String, String> conflict : conflicts) {
-                    LOGGER.error(conflict.getRight() + " conflict at " + conflict.getLeft());
-                }
-
-                return conflicts.isEmpty() ? 0 : 1;
+        QbtManifest.Builder lhsBuilder = lhs.builder();
+        QbtManifest.Builder mhsBuilder = mhs.builder();
+        QbtManifest.Builder rhsBuilder = rhs.builder();
+        for(RepoTip repo : repos.build()) {
+            RepoManifest lhsRepoManifest = lhs.repos.get(repo);
+            if(lhsRepoManifest == null) {
+                continue;
             }
-        }.run(targetVersion);
+            RepoManifest mhsRepoManifest = mhs.repos.get(repo);
+            if(mhsRepoManifest == null) {
+                continue;
+            }
+            RepoManifest rhsRepoManifest = rhs.repos.get(repo);
+            if(rhsRepoManifest == null) {
+                continue;
+            }
+
+            Optional<VcsVersionDigest> lhsVersion = lhsRepoManifest.version;
+            Optional<VcsVersionDigest> mhsVersion = mhsRepoManifest.version;
+            Optional<VcsVersionDigest> rhsVersion = rhsRepoManifest.version;
+
+            if(lhsVersion.equals(mhsVersion) && mhsVersion.equals(rhsVersion)) {
+                continue;
+            }
+
+            if(!lhsVersion.isPresent()) {
+                continue;
+            }
+            if(!mhsVersion.isPresent()) {
+                continue;
+            }
+            if(!rhsVersion.isPresent()) {
+                continue;
+            }
+
+            PinnedRepoAccessor lhsResult = config.localPinsRepo.requirePin(repo, lhsVersion.get());
+            LocalVcs lhsLocalVcs = lhsResult.getLocalVcs();
+
+            PinnedRepoAccessor mhsResult = config.localPinsRepo.requirePin(repo, mhsVersion.get());
+            LocalVcs mhsLocalVcs = mhsResult.getLocalVcs();
+
+            PinnedRepoAccessor rhsResult = config.localPinsRepo.requirePin(repo, rhsVersion.get());
+            LocalVcs rhsLocalVcs = rhsResult.getLocalVcs();
+
+            if(!lhsLocalVcs.equals(mhsLocalVcs) || !rhsLocalVcs.equals(mhsLocalVcs)) {
+                LOGGER.error("[" + repo + "] Found mis-matched VCS: " + lhsLocalVcs + ", " + mhsLocalVcs + ", " + rhsLocalVcs);
+                continue;
+            }
+            LocalVcs localVcs = lhsLocalVcs;
+
+            VcsVersionDigest result;
+            try(QbtTempDir tempDir = new QbtTempDir()) {
+                Path repoDir = tempDir.path;
+                localVcs.createWorkingRepo(repoDir);
+                lhsResult.findCommit(repoDir);
+                mhsResult.findCommit(repoDir);
+                rhsResult.findCommit(repoDir);
+                Repository repository = localVcs.getRepository(repoDir);
+                try {
+                    strategy.invoke(repo, repository, lhsVersion.get(), mhsVersion.get(), rhsVersion.get());
+                }
+                catch(RuntimeException e) {
+                    LOGGER.error("[" + repo + "]", e);
+                    continue;
+                }
+                result = repository.getCurrentCommit();
+                config.localPinsRepo.addPin(repo, repoDir, result);
+            }
+
+            lhsBuilder = lhsBuilder.transform(repo, (rmb) -> rmb.set(RepoManifest.VERSION, Optional.of(result)));
+            mhsBuilder = mhsBuilder.transform(repo, (rmb) -> rmb.set(RepoManifest.VERSION, Optional.of(result)));
+            rhsBuilder = rhsBuilder.transform(repo, (rmb) -> rmb.set(RepoManifest.VERSION, Optional.of(result)));
+        }
+        QbtManifest lhsMerged = lhsBuilder.build();
+        QbtManifest mhsMerged = mhsBuilder.build();
+        QbtManifest rhsMerged = rhsBuilder.build();
+
+        ImmutableList<Pair<String, String>> conflicts = Options.out.getResult(options).deparseConflict(config.manifestParser, lhsName, lhsMerged, mhsName, mhsMerged, rhsName, rhsMerged);
+
+        for(Pair<String, String> conflict : conflicts) {
+            LOGGER.error(conflict.getRight() + " conflict at " + conflict.getLeft());
+        }
+
+        return conflicts.isEmpty() ? 0 : 1;
     }
 }

@@ -13,9 +13,7 @@ import misc1.commons.options.OptionsLibrary;
 import misc1.commons.options.OptionsResults;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.QbtUtils;
-import qbt.manifest.LegacyQbtManifest;
-import qbt.manifest.QbtManifestVersion;
-import qbt.manifest.QbtManifestVersions;
+import qbt.manifest.QbtManifestParser;
 import qbt.manifest.current.QbtManifest;
 
 public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
@@ -103,28 +101,18 @@ public class ManifestOptionsDelegate<O> implements OptionsDelegate<O> {
             }
 
             @Override
-            public LegacyQbtManifest<?, ?> parseLegacy() throws IOException {
-                return QbtManifestVersions.parseLegacy(getLines());
+            public QbtManifest parse(QbtManifestParser parser) throws IOException {
+                return parser.parse(getLines());
             }
 
             @Override
-            public QbtManifest parse() throws IOException {
-                return QbtManifestVersions.parse(getLines());
+            public void deparse(QbtManifestParser parser, QbtManifest manifest) {
+                setLines(parser.deparse(manifest));
             }
 
             @Override
-            public void deparse(QbtManifest manifest) {
-                setLines(QbtManifestVersions.toLegacy(manifest).deparse());
-            }
-
-            @Override
-            public void deparse(LegacyQbtManifest<?, ?> manifest) {
-                setLines(manifest.deparse());
-            }
-
-            @Override
-            public <M, B> ImmutableList<Pair<String, String>> deparseConflict(QbtManifestVersion<M, B> version, String lhsName, M lhs, String mhsName, M mhs, String rhsName, M rhs) {
-                Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = version.parser().deparse(lhsName, lhs, mhsName, mhs, rhsName, rhs);
+            public ImmutableList<Pair<String, String>> deparseConflict(QbtManifestParser parser, String lhsName, QbtManifest lhs, String mhsName, QbtManifest mhs, String rhsName, QbtManifest rhs) {
+                Pair<ImmutableList<Pair<String, String>>, ImmutableList<String>> deparse = parser.deparse(lhsName, lhs, mhsName, mhs, rhsName, rhs);
                 setLines(deparse.getRight());
                 return deparse.getLeft();
             }

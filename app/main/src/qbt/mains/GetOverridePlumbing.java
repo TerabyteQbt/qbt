@@ -56,7 +56,7 @@ public final class GetOverridePlumbing extends QbtCommand<GetOverridePlumbing.Op
 
     public static <O extends GetOverrideCommonOptions> int run(OptionsResults<? extends O> options, RepoActionOptionsDelegate<? super O> reposOption) throws IOException {
         QbtConfig config = GetOverrideCommonOptions.config.getConfig(options);
-        QbtManifest manifest = GetOverrideCommonOptions.manifest.getResult(options).parse();
+        QbtManifest manifest = GetOverrideCommonOptions.manifest.getResult(options).parse(config.manifestParser);
         Collection<RepoTip> repos = reposOption.getRepos(config, manifest, options);
         for(RepoTip repo : repos) {
             LocalRepoAccessor localRepoAccessor = config.localRepoFinder.findLocalRepo(repo);

@@ -20,6 +20,7 @@ import qbt.NormalDependencyType;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
+import qbt.config.QbtConfig;
 import qbt.manifest.PackageBuildType;
 import qbt.manifest.current.PackageManifest;
 import qbt.manifest.current.PackageMetadata;
@@ -27,6 +28,7 @@ import qbt.manifest.current.PackageNormalDeps;
 import qbt.manifest.current.PackageVerifyDeps;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
+import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
 import qbt.tip.PackageTip;
@@ -38,6 +40,7 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
     @QbtCommandName("updatePackage")
     public static interface Options extends QbtCommandOptions {
         public static final OptionsLibrary<Options> o = OptionsLibrary.of();
+        public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Package to update");
 
@@ -78,8 +81,9 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
 
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
+        final QbtConfig config = Options.config.getConfig(options);
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
-        QbtManifest manifest = manifestResult.parse();
+        QbtManifest manifest = manifestResult.parse(config.manifestParser);
 
         PackageTip pt = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         if(!manifest.packageToRepo.containsKey(pt)) {
@@ -189,7 +193,7 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
         repoManifest = repoManifest.transform(RepoManifest.PACKAGES, (pkgs) -> pkgs.with(pt.name, pmb));
 
         manifest = manifest.builder().with(rt, repoManifest).build();
-        manifestResult.deparse(manifest);
+        manifestResult.deparse(config.manifestParser, manifest);
         LOGGER.info("Package " + pt + " successfully updated and manifest written successfully");
         return 0;
     }

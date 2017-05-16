@@ -66,7 +66,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
     @Override
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
-        final QbtManifest manifest = Options.manifest.getResult(options).parse();
+        final QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         Collection<RepoTip> repos = Options.repos.getRepos(config, manifest, options);
         final String qbtRemoteString = options.get(Options.remote);
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);

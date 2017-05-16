@@ -72,7 +72,7 @@ public final class RunArtifact extends QbtCommand<RunArtifact.Options> {
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
-        final QbtManifest manifest = Options.manifest.getResult(options).parse();
+        final QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         final PackageTip packageTip = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
 

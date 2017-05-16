@@ -51,8 +51,8 @@ public class CheckManifestFastForward extends QbtCommand<CheckManifestFastForwar
     public int run(OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
 
-        QbtManifest lhs = Options.lhs.getResult(options).parse();
-        QbtManifest rhs = Options.rhs.getResult(options).parse();
+        QbtManifest lhs = Options.lhs.getResult(options).parse(config.manifestParser);
+        QbtManifest rhs = Options.rhs.getResult(options).parse(config.manifestParser);
 
         new MapDiffer<RepoTip, RepoManifest>(lhs.repos, rhs.repos, RepoTip.TYPE.COMPARATOR) {
             @Override

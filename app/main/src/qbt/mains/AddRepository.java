@@ -57,7 +57,7 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
     public int run(final OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
-        QbtManifest manifest = manifestResult.parse();
+        QbtManifest manifest = manifestResult.parse(config.manifestParser);
 
         RepoTip newRepoTip = RepoTip.TYPE.parseRequire(options.get(Options.repo));
 
@@ -75,7 +75,7 @@ public final class AddRepository extends QbtCommand<AddRepository.Options> {
         manifest = manifest.builder().with(newRepoTip, rmb).build();
         LOGGER.info("Added new repository " + newRepoTip + " (" + currentCommit.getRawDigest() + ") to manifest");
         // write out updated manifest
-        manifestResult.deparse(manifest);
+        manifestResult.deparse(config.manifestParser, manifest);
         return 0;
     }
 }

@@ -52,7 +52,7 @@ public class ResolveManifestCumulativeVersions extends QbtCommand<ResolveManifes
     @Override
     public int run(OptionsResults<? extends Options> options) throws IOException {
         QbtConfig config = Options.config.getConfig(options);
-        QbtManifest manifest = Options.manifest.getResult(options).parse();
+        QbtManifest manifest = Options.manifest.getResult(options).parse(config.manifestParser);
         Collection<PackageTip> packages = Options.packages.getPackages(config, manifest, options);
         final CumulativeVersionComputerOptionsResult cumulativeVersionComputerOptionsResult = Options.cumulativeVersionComputerOptions.getResults(options);
 

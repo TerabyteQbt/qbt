@@ -10,8 +10,10 @@ import qbt.HelpTier;
 import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
+import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
+import qbt.options.ConfigOptionsDelegate;
 import qbt.options.ManifestOptionsDelegate;
 import qbt.options.ManifestOptionsResult;
 import qbt.tip.PackageTip;
@@ -22,6 +24,7 @@ public final class RemovePackage extends QbtCommand<RemovePackage.Options> {
     @QbtCommandName("removePackage")
     public static interface Options extends QbtCommandOptions {
         public static final OptionsLibrary<Options> o = OptionsLibrary.of();
+        public static final ConfigOptionsDelegate<Options> config = new ConfigOptionsDelegate<Options>();
         public static final ManifestOptionsDelegate<Options> manifest = new ManifestOptionsDelegate<Options>();
         public static final OptionsFragment<Options, String> pkg = o.oneArg("package").transform(o.singleton()).helpDesc("Package to remove");
     }
@@ -48,8 +51,9 @@ public final class RemovePackage extends QbtCommand<RemovePackage.Options> {
 
     @Override
     public int run(final OptionsResults<? extends Options> options) throws IOException {
+        final QbtConfig config = Options.config.getConfig(options);
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
-        QbtManifest manifest = manifestResult.parse();
+        QbtManifest manifest = manifestResult.parse(config.manifestParser);
         PackageTip pt = PackageTip.TYPE.parseRequire(options.get(Options.pkg));
 
         if(!manifest.packageToRepo.containsKey(pt)) {
@@ -57,7 +61,7 @@ public final class RemovePackage extends QbtCommand<RemovePackage.Options> {
         }
 
         manifest = manifest.builder().transform(manifest.packageToRepo.get(pt), (rm) -> rm.transform(RepoManifest.PACKAGES, (pkgs) -> pkgs.without(pt.name))).build();
-        manifestResult.deparse(manifest);
+        manifestResult.deparse(config.manifestParser, manifest);
         LOGGER.info("Package " + pt + " removed and manifest written successfully");
         return 0;
     }

@@ -52,7 +52,7 @@ public final class RemoveRepository extends QbtCommand<RemoveRepository.Options>
     public int run(final OptionsResults<? extends Options> options) throws IOException {
         final QbtConfig config = Options.config.getConfig(options);
         final ManifestOptionsResult manifestResult = Options.manifest.getResult(options);
-        QbtManifest manifest = manifestResult.parse();
+        QbtManifest manifest = manifestResult.parse(config.manifestParser);
 
         RepoTip removeRepoTip = RepoTip.TYPE.parseRequire(options.get(Options.repo));
 
@@ -63,7 +63,7 @@ public final class RemoveRepository extends QbtCommand<RemoveRepository.Options>
         manifest = manifest.builder().without(removeRepoTip).build();
         LOGGER.info("Removed repository " + removeRepoTip + " from manifest");
         // write out updated manifest
-        manifestResult.deparse(manifest);
+        manifestResult.deparse(config.manifestParser, manifest);
         return 0;
     }
 }
