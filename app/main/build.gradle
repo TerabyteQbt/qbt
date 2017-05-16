@@ -9,10 +9,10 @@ version = "$System.env.PACKAGE_CUMULATIVE_VERSION"
 sourceSets {
     main {
         java {
-            srcDirs = ['src', '.src.gen']
+            srcDir 'src'
         }
         resources {
-            srcDirs = ['src', '.src.gen']
+            srcDir 'src'
         }
     }
     test {
