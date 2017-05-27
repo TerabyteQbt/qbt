@@ -6,7 +6,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
-import misc1.commons.Maybe;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.VcsTreeDigest;
@@ -57,7 +56,7 @@ public abstract class CumulativeVersionComputer<K> {
             Optional<VcsVersionDigest> version = input.getRight();
 
             CommonRepoAccessor commonRepoAccessor = config.requireCommonRepo(repo, version);
-            VcsTreeDigest repoTree = commonRepoAccessor.getEffectiveTree(Maybe.of(""));
+            VcsTreeDigest repoTree = commonRepoAccessor.getEffectiveTree("");
 
             return Pair.of(commonRepoAccessor, repoTree);
         }
@@ -76,14 +75,8 @@ public abstract class CumulativeVersionComputer<K> {
             CommonRepoAccessor commonRepoAccessor = repoCacheResult.getLeft();
             VcsTreeDigest repoTree = repoCacheResult.getRight();
 
-            Maybe<String> prefix = packageManifest.metadata.get(PackageMetadata.PREFIX);
-            VcsTreeDigest packageTree;
-            if(prefix.isPresent()) {
-                packageTree = commonRepoAccessor.getSubtree(repoTree, prefix.get(null));
-            }
-            else {
-                packageTree = commonRepoAccessor.getEffectiveTree(prefix);
-            }
+            String prefix = packageManifest.metadata.get(PackageMetadata.PREFIX);
+            VcsTreeDigest packageTree = commonRepoAccessor.getSubtree(repoTree, prefix);
             CumulativeVersionNodeData cumulativeVersionNodeData = new CumulativeVersionNodeData(packageTip.name, packageTree, CumulativeVersionDigest.QBT_VERSION, packageManifest.metadata, getQbtEnv());
             return new Result(packageTip, commonRepoAccessor, packageManifest, cumulativeVersionNodeData);
         }

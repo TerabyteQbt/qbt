@@ -1,7 +1,5 @@
 package qbt;
 
-import java.nio.file.Path;
-import misc1.commons.Maybe;
 import qbt.build.BuildData;
 import qbt.manifest.current.PackageMetadata;
 import qbt.map.CumulativeVersionComputer;
@@ -21,23 +19,7 @@ public final class PackageDirectories {
     }
 
     private static PackageDirectory forCommon(PackageMetadata metadata, CommonRepoAccessor commonRepoAccessor) {
-        Maybe<String> prefix = metadata.get(PackageMetadata.PREFIX);
-        if(prefix.isPresent()) {
-            return commonRepoAccessor.makePackageDirectory(prefix.get(null));
-        }
-        else {
-            final QbtTempDir packageDir = new QbtTempDir();
-            return new PackageDirectory() {
-                @Override
-                public Path getDir() {
-                    return packageDir.path;
-                }
-
-                @Override
-                public void close() {
-                    packageDir.close();
-                }
-            };
-        }
+        String prefix = metadata.get(PackageMetadata.PREFIX);
+        return commonRepoAccessor.makePackageDirectory(prefix);
     }
 }

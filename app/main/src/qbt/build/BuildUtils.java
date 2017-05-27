@@ -172,11 +172,6 @@ public final class BuildUtils {
     }
 
     private static void runNormalBuild(final Path artifactsDir, final Path reportsDir, final BuildData bd) {
-        Maybe<String> prefix = bd.metadata.get(PackageMetadata.PREFIX);
-        if(!prefix.isPresent()) {
-            return;
-        }
-
         String buildWrapper = System.getenv("QBT_BUILD_WRAPPER");
         String[] command;
         if(buildWrapper == null) {

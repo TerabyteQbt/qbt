@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import java.util.Map;
 import misc1.commons.Maybe;
 import misc1.commons.ds.ImmutableSalvagingMap;
@@ -30,7 +31,7 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
 
     public static final StructKey<PackageMetadata, Boolean, Boolean> ARCH_INDEPENDENT;
     public static final StructKey<PackageMetadata, PackageBuildType, PackageBuildType> BUILD_TYPE;
-    public static final StructKey<PackageMetadata, Maybe<String>, Maybe<String>> PREFIX;
+    public static final StructKey<PackageMetadata, String, String> PREFIX;
     public static final StructKey<PackageMetadata, ImmutableMap<String, Maybe<String>>, ImmutableMap<String, Maybe<String>>> QBT_ENV;
     public static final StructType<PackageMetadata, Builder> TYPE;
     static {
@@ -68,20 +69,20 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
                 return Merges.<PackageBuildType>trivial();
             }
         });
-        b.add(PREFIX = new StructKey<PackageMetadata, Maybe<String>, Maybe<String>>("prefix", Maybe.of("")) {
+        b.add(PREFIX = new StructKey<PackageMetadata, String, String>("prefix", "") {
             @Override
-            public Maybe<String> toStruct(Maybe<String> vb) {
+            public String toStruct(String vb) {
                 return vb;
             }
 
             @Override
-            public Maybe<String> toBuilder(Maybe<String> vs) {
+            public String toBuilder(String vs) {
                 return vs;
             }
 
             @Override
-            public Merge<Maybe<String>> merge() {
-                return Merges.<Maybe<String>>trivial();
+            public Merge<String> merge() {
+                return Merges.<String>trivial();
             }
         });
         b.add(QBT_ENV = new StructKey<PackageMetadata, ImmutableMap<String, Maybe<String>>, ImmutableMap<String, Maybe<String>>>("qbtEnv", ImmutableMap.<String, Maybe<String>>of()) {
@@ -116,9 +117,9 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
             if(!buildType.equals(PackageBuildType.NORMAL)) {
                 r.add("buildType", (JsonSerializers.forEnum(PackageBuildType.class)).toJson(buildType));
             }
-            Maybe<String> prefix = b.get(PREFIX);
-            if(!prefix.equals(Maybe.of(""))) {
-                r.add("prefix", (JsonSerializers.MAYBE_STRING).toJson(prefix));
+            String prefix = b.get(PREFIX);
+            if(!prefix.equals("")) {
+                r.add("prefix", new JsonPrimitive(prefix));
             }
             ImmutableMap<String, Maybe<String>> qbtEnv = b.get(QBT_ENV);
             if(!qbtEnv.equals(ImmutableMap.<String, Maybe<String>>of())) {
@@ -141,7 +142,7 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
                         break;
 
                     case "prefix":
-                        b = b.set(PREFIX, (JsonSerializers.MAYBE_STRING).fromJson(e2.getValue()));
+                        b = b.set(PREFIX, e2.getValue().getAsString());
                         break;
 
                     case "qbtEnv":

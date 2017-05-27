@@ -1,7 +1,6 @@
 package qbt.repo;
 
 import java.nio.file.Path;
-import misc1.commons.Maybe;
 import qbt.PackageDirectory;
 import qbt.QbtTempDir;
 import qbt.VcsTreeDigest;
@@ -44,13 +43,8 @@ public final class PinnedRepoAccessor implements CommonRepoAccessor {
     }
 
     @Override
-    public VcsTreeDigest getEffectiveTree(Maybe<String> prefix) {
-        if(prefix.isPresent()) {
-            return cacheRepo.getSubtree(version, prefix.get(null));
-        }
-        else {
-            return vcs.getLocalVcs().emptyTree();
-        }
+    public VcsTreeDigest getEffectiveTree(String prefix) {
+        return cacheRepo.getSubtree(version, prefix);
     }
 
     @Override

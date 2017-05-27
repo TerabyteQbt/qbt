@@ -99,7 +99,7 @@ public final class UpdatePackage extends QbtCommand<UpdatePackage.Options> {
 
         String prefix = options.get(Options.prefix);
         if(prefix != null) {
-            pmd = pmd.set(PackageMetadata.PREFIX, Maybe.of(prefix));
+            pmd = pmd.set(PackageMetadata.PREFIX, prefix);
         }
 
         Maybe<Boolean> arch = options.get(Options.archIndependent);
