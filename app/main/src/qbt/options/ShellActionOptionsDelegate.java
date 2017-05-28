@@ -28,14 +28,22 @@ public class ShellActionOptionsDelegate<O> implements OptionsDelegate<O> {
         }
 
         if(optionsShell != null) {
-            b.add(new ShellActionOptionsResult(ImmutableList.of(System.getenv("SHELL"), "-c", optionsShell), optionsIsInteractive));
+            b.add(new ShellActionOptionsResult(ImmutableList.of(getShell(), "-c", optionsShell), optionsIsInteractive));
         }
 
         if(optionsInteractiveShell) {
-            b.add(new ShellActionOptionsResult(ImmutableList.of(System.getenv("SHELL"), "-i"), true));
+            b.add(new ShellActionOptionsResult(ImmutableList.of(getShell(), "-i"), true));
         }
 
         return b.build();
+    }
+
+    private static String getShell() {
+        String shell = System.getenv("SHELL");
+        if(shell == null || shell.equals("")) {
+            throw new IllegalArgumentException("SHELL must be set and not empty!");
+        }
+        return shell;
     }
 
     public ShellActionOptionsResult getResultsOptional(OptionsResults<? extends O> options) {
