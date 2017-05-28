@@ -212,7 +212,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
                                         if(reports != null) {
                                             reports.materializeDirectory(Maybe.<FreeScope>not(), reportsDir);
                                         }
-                                        BuildUtils.runPackageCommand(new String[] {System.getenv("SHELL")}, bd, (p) -> {
+                                        BuildUtils.runPackageCommand(new String[] {getShell()}, bd, (p) -> {
                                             p = p.putEnv("OUTPUT_REPORTS_DIR", reportsDir.toAbsolutePath().toString());
                                             p = p.inheritInput();
                                             p = p.inheritOutput();
@@ -311,6 +311,14 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
             }
         });
         return 0;
+    }
+
+    private static String getShell() {
+        String shell = System.getenv("SHELL");
+        if(shell == null || shell.equals("")) {
+            throw new IllegalArgumentException("SHELL must be set and not empty!");
+        }
+        return shell;
     }
 
     private static class VerifyNotingPredicate implements Predicate<Triple<PackageTip, String, PackageTip>> {
