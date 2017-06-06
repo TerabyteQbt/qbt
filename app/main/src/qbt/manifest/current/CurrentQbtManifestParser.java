@@ -1,8 +1,8 @@
 package qbt.manifest.current;
 
 import com.google.gson.JsonElement;
+import misc1.commons.json.JsonSerializer;
 import qbt.manifest.JsonQbtManifestParser;
-import qbt.manifest.JsonSerializer;
 
 public final class CurrentQbtManifestParser extends JsonQbtManifestParser {
     @Override

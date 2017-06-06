@@ -3,7 +3,7 @@ package qbt.tip;
 import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import qbt.manifest.StringSerializer;
+import misc1.commons.json.StringSerializer;
 
 public abstract class AbstractTip<T extends AbstractTip<T>> {
     private static final Pattern PATTERN = Pattern.compile("^[0-9a-zA-Z._]*$");

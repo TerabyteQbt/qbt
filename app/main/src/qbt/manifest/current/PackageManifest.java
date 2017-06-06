@@ -11,10 +11,10 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.json.JsonSerializer;
 import misc1.commons.merge.Merge;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
-import qbt.manifest.JsonSerializer;
 import qbt.tip.PackageTip;
 
 public final class PackageManifest extends Struct<PackageManifest, PackageManifest.Builder> {

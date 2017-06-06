@@ -8,13 +8,13 @@ import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
+import misc1.commons.json.JsonSerializer;
+import misc1.commons.json.StringSerializers;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
-import qbt.manifest.JsonSerializer;
-import qbt.manifest.JsonSerializers;
-import qbt.manifest.StringSerializer;
+import qbt.manifest.QbtJsonSerializers;
 
 public final class PackageNormalDeps extends MapStruct<PackageNormalDeps, PackageNormalDeps.Builder, String, Pair<NormalDependencyType, String>, Pair<NormalDependencyType, String>> {
     private PackageNormalDeps(ImmutableMap<String, Pair<NormalDependencyType, String>> map) {
@@ -59,7 +59,7 @@ public final class PackageNormalDeps extends MapStruct<PackageNormalDeps, Packag
         public JsonElement toJson(Builder b) {
             JsonObject r = new JsonObject();
             for(Map.Entry<String, Pair<NormalDependencyType, String>> e : b.map.entries()) {
-                r.add(StringSerializer.STRING.toString(e.getKey()), JsonSerializers.NORMAL_DEP_VALUE.toJson(e.getValue()));
+                r.add(StringSerializers.STRING.toString(e.getKey()), QbtJsonSerializers.NORMAL_DEP_VALUE.toJson(e.getValue()));
             }
             return r;
         }
@@ -68,7 +68,7 @@ public final class PackageNormalDeps extends MapStruct<PackageNormalDeps, Packag
         public Builder fromJson(JsonElement e) {
             Builder b = TYPE.builder();
             for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
-                b = b.with(StringSerializer.STRING.fromString(e2.getKey()), JsonSerializers.NORMAL_DEP_VALUE.fromJson(e2.getValue()));
+                b = b.with(StringSerializers.STRING.fromString(e2.getKey()), QbtJsonSerializers.NORMAL_DEP_VALUE.fromJson(e2.getValue()));
             }
             return b;
         }

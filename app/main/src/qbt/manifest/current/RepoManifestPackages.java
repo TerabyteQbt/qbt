@@ -8,9 +8,9 @@ import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
+import misc1.commons.json.JsonSerializer;
+import misc1.commons.json.StringSerializers;
 import misc1.commons.merge.Merge;
-import qbt.manifest.JsonSerializer;
-import qbt.manifest.StringSerializer;
 
 public final class RepoManifestPackages extends MapStruct<RepoManifestPackages, RepoManifestPackages.Builder, String, PackageManifest, PackageManifest.Builder> {
     private RepoManifestPackages(ImmutableMap<String, PackageManifest> map) {
@@ -55,7 +55,7 @@ public final class RepoManifestPackages extends MapStruct<RepoManifestPackages, 
         public JsonElement toJson(Builder b) {
             JsonObject r = new JsonObject();
             for(Map.Entry<String, PackageManifest.Builder> e : b.map.entries()) {
-                r.add(StringSerializer.STRING.toString(e.getKey()), PackageManifest.SERIALIZER.toJson(e.getValue()));
+                r.add(StringSerializers.STRING.toString(e.getKey()), PackageManifest.SERIALIZER.toJson(e.getValue()));
             }
             return r;
         }
@@ -64,7 +64,7 @@ public final class RepoManifestPackages extends MapStruct<RepoManifestPackages, 
         public Builder fromJson(JsonElement e) {
             Builder b = TYPE.builder();
             for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
-                b = b.with(StringSerializer.STRING.fromString(e2.getKey()), PackageManifest.SERIALIZER.fromJson(e2.getValue()));
+                b = b.with(StringSerializers.STRING.fromString(e2.getKey()), PackageManifest.SERIALIZER.fromJson(e2.getValue()));
             }
             return b;
         }

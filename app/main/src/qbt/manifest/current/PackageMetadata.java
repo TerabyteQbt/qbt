@@ -12,11 +12,12 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.json.JsonSerializer;
+import misc1.commons.json.JsonSerializers;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
-import qbt.manifest.JsonSerializer;
-import qbt.manifest.JsonSerializers;
 import qbt.manifest.PackageBuildType;
+import qbt.manifest.QbtJsonSerializers;
 
 public final class PackageMetadata extends Struct<PackageMetadata, PackageMetadata.Builder> {
     private PackageMetadata(ImmutableMap<StructKey<PackageMetadata, ?, ?>, Object> map) {
@@ -123,7 +124,7 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
             }
             ImmutableMap<String, Maybe<String>> qbtEnv = b.get(QBT_ENV);
             if(!qbtEnv.equals(ImmutableMap.<String, Maybe<String>>of())) {
-                r.add("qbtEnv", (JsonSerializers.QBT_ENV).toJson(qbtEnv));
+                r.add("qbtEnv", (QbtJsonSerializers.QBT_ENV).toJson(qbtEnv));
             }
             return r;
         }
@@ -146,7 +147,7 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
                         break;
 
                     case "qbtEnv":
-                        b = b.set(QBT_ENV, (JsonSerializers.QBT_ENV).fromJson(e2.getValue()));
+                        b = b.set(QBT_ENV, (QbtJsonSerializers.QBT_ENV).fromJson(e2.getValue()));
                         break;
 
                     default:

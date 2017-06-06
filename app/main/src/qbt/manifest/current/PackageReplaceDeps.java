@@ -8,10 +8,10 @@ import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
+import misc1.commons.json.JsonSerializer;
+import misc1.commons.json.JsonSerializers;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
-import qbt.manifest.JsonSerializer;
-import qbt.manifest.JsonSerializers;
 import qbt.tip.PackageTip;
 
 public final class PackageReplaceDeps extends MapStruct<PackageReplaceDeps, PackageReplaceDeps.Builder, PackageTip, String, String> {

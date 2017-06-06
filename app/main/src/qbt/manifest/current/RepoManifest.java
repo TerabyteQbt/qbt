@@ -11,11 +11,11 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.json.JsonSerializer;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
 import qbt.VcsVersionDigest;
-import qbt.manifest.JsonSerializer;
-import qbt.manifest.JsonSerializers;
+import qbt.manifest.QbtJsonSerializers;
 
 public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builder> {
     public final Optional<VcsVersionDigest> version;
@@ -84,7 +84,7 @@ public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builde
             if(!packages.equals(RepoManifestPackages.TYPE.builder())) {
                 r.add("packages", (RepoManifestPackages.SERIALIZER).toJson(packages));
             }
-            r.add("version", (JsonSerializers.OPTIONAL_VCS_VERSION_DIGEST).toJson(b.get(VERSION)));
+            r.add("version", (QbtJsonSerializers.OPTIONAL_VCS_VERSION_DIGEST).toJson(b.get(VERSION)));
             return r;
         }
 
@@ -98,7 +98,7 @@ public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builde
                         break;
 
                     case "version":
-                        b = b.set(VERSION, (JsonSerializers.OPTIONAL_VCS_VERSION_DIGEST).fromJson(e2.getValue()));
+                        b = b.set(VERSION, (QbtJsonSerializers.OPTIONAL_VCS_VERSION_DIGEST).fromJson(e2.getValue()));
                         break;
 
                     default:
