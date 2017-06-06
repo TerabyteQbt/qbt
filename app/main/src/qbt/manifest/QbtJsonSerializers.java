@@ -17,18 +17,6 @@ public final class QbtJsonSerializers {
         // nope
     }
 
-    public static final JsonSerializer<VcsVersionDigest> VCS_VERSION_DIGEST = new JsonSerializer<VcsVersionDigest>() {
-        @Override
-        public JsonElement toJson(VcsVersionDigest commit) {
-            return new JsonPrimitive(VcsVersionDigest.DEPARSE_FUNCTION.apply(commit));
-        }
-
-        @Override
-        public VcsVersionDigest fromJson(JsonElement e) {
-            return VcsVersionDigest.PARSE_FUNCTION.apply(e.getAsString());
-        }
-    };
-
     public static final JsonSerializer<Optional<VcsVersionDigest>> OPTIONAL_VCS_VERSION_DIGEST = new JsonSerializer<Optional<VcsVersionDigest>>() {
         @Override
         public JsonElement toJson(Optional<VcsVersionDigest> commit) {
