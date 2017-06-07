@@ -1,17 +1,16 @@
 package qbt.config;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import groovy.lang.GroovyShell;
 import java.nio.file.Path;
 import java.util.Optional;
 import misc1.commons.ExceptionUtils;
 import misc1.commons.ds.ImmutableSalvagingMap;
-import misc1.commons.ds.SimpleStructKey;
 import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.ds.StructTypeBuilder;
 import qbt.VcsVersionDigest;
 import qbt.artifactcacher.ArtifactCacher;
 import qbt.manifest.QbtManifestParser;
@@ -79,21 +78,21 @@ public final class QbtConfig extends Struct<QbtConfig, QbtConfig.Builder> {
         }
     }
 
-    public static final SimpleStructKey<QbtConfig, LocalRepoFinder> LOCAL_REPO_FINDER;
-    public static final SimpleStructKey<QbtConfig, LocalPinsRepo> LOCAL_PINS_REPO;
-    public static final SimpleStructKey<QbtConfig, QbtRemoteFinder> QBT_REMOTE_FINDER;
-    public static final SimpleStructKey<QbtConfig, ArtifactCacher> ARTIFACT_CACHER;
-    public static final SimpleStructKey<QbtConfig, QbtManifestParser> MANIFEST_PARSER;
+    public static final StructKey<QbtConfig, LocalRepoFinder, LocalRepoFinder> LOCAL_REPO_FINDER;
+    public static final StructKey<QbtConfig, LocalPinsRepo, LocalPinsRepo> LOCAL_PINS_REPO;
+    public static final StructKey<QbtConfig, QbtRemoteFinder, QbtRemoteFinder> QBT_REMOTE_FINDER;
+    public static final StructKey<QbtConfig, ArtifactCacher, ArtifactCacher> ARTIFACT_CACHER;
+    public static final StructKey<QbtConfig, QbtManifestParser, QbtManifestParser> MANIFEST_PARSER;
     public static final StructType<QbtConfig, Builder> TYPE;
     static {
-        ImmutableList.Builder<StructKey<QbtConfig, ?, ?>> b = ImmutableList.builder();
+        StructTypeBuilder<QbtConfig, Builder> b = new StructTypeBuilder<>(QbtConfig::new, Builder::new);
 
-        b.add(LOCAL_REPO_FINDER = new SimpleStructKey<QbtConfig, LocalRepoFinder>("localRepoFinder"));
-        b.add(LOCAL_PINS_REPO = new SimpleStructKey<QbtConfig, LocalPinsRepo>("localPinsRepo"));
-        b.add(QBT_REMOTE_FINDER = new SimpleStructKey<QbtConfig, QbtRemoteFinder>("qbtRemoteFinder"));
-        b.add(ARTIFACT_CACHER = new SimpleStructKey<QbtConfig, ArtifactCacher>("artifactCacher"));
-        b.add(MANIFEST_PARSER = new SimpleStructKey<QbtConfig, QbtManifestParser>("manifestParser", new CurrentQbtManifestParser()));
+        LOCAL_REPO_FINDER = b.<LocalRepoFinder>key("localRepoFinder").add();
+        LOCAL_PINS_REPO   = b.<LocalPinsRepo>key("localPinsRepo").add();
+        QBT_REMOTE_FINDER = b.<QbtRemoteFinder>key("qbtRemoteFinder").add();
+        ARTIFACT_CACHER   = b.<ArtifactCacher>key("artifactCacher").add();
+        MANIFEST_PARSER   = b.<QbtManifestParser>key("manifestParser").def(new CurrentQbtManifestParser()).add();
 
-        TYPE = new StructType<QbtConfig, Builder>(b.build(), QbtConfig::new, Builder::new);
+        TYPE = b.build();
     }
 }

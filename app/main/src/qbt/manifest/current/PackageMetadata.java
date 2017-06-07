@@ -1,6 +1,5 @@
 package qbt.manifest.current;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -12,10 +11,9 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.ds.StructTypeBuilder;
 import misc1.commons.json.JsonSerializer;
 import misc1.commons.json.JsonSerializers;
-import misc1.commons.merge.Merge;
-import misc1.commons.merge.Merges;
 import qbt.manifest.PackageBuildType;
 import qbt.manifest.QbtJsonSerializers;
 
@@ -36,74 +34,14 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
     public static final StructKey<PackageMetadata, ImmutableMap<String, Maybe<String>>, ImmutableMap<String, Maybe<String>>> QBT_ENV;
     public static final StructType<PackageMetadata, Builder> TYPE;
     static {
-        ImmutableList.Builder<StructKey<PackageMetadata, ?, ?>> b = ImmutableList.builder();
+        StructTypeBuilder<PackageMetadata, Builder> b = new StructTypeBuilder<>(PackageMetadata::new, Builder::new);
 
-        b.add(ARCH_INDEPENDENT = new StructKey<PackageMetadata, Boolean, Boolean>("archIndependent", false) {
-            @Override
-            public Boolean toStruct(Boolean vb) {
-                return vb;
-            }
+        ARCH_INDEPENDENT = b.<Boolean>key("archIndependent").def(false).add();
+        BUILD_TYPE = b.<PackageBuildType>key("buildType").def(PackageBuildType.NORMAL).add();
+        PREFIX = b.<String>key("prefix").def("").add();
+        QBT_ENV = b.<ImmutableMap<String, Maybe<String>>>key("qbtEnv").def(ImmutableMap.<String, Maybe<String>>of()).add();
 
-            @Override
-            public Boolean toBuilder(Boolean vs) {
-                return vs;
-            }
-
-            @Override
-            public Merge<Boolean> merge() {
-                return Merges.<Boolean>trivial();
-            }
-        });
-        b.add(BUILD_TYPE = new StructKey<PackageMetadata, PackageBuildType, PackageBuildType>("buildType", PackageBuildType.NORMAL) {
-            @Override
-            public PackageBuildType toStruct(PackageBuildType vb) {
-                return vb;
-            }
-
-            @Override
-            public PackageBuildType toBuilder(PackageBuildType vs) {
-                return vs;
-            }
-
-            @Override
-            public Merge<PackageBuildType> merge() {
-                return Merges.<PackageBuildType>trivial();
-            }
-        });
-        b.add(PREFIX = new StructKey<PackageMetadata, String, String>("prefix", "") {
-            @Override
-            public String toStruct(String vb) {
-                return vb;
-            }
-
-            @Override
-            public String toBuilder(String vs) {
-                return vs;
-            }
-
-            @Override
-            public Merge<String> merge() {
-                return Merges.<String>trivial();
-            }
-        });
-        b.add(QBT_ENV = new StructKey<PackageMetadata, ImmutableMap<String, Maybe<String>>, ImmutableMap<String, Maybe<String>>>("qbtEnv", ImmutableMap.<String, Maybe<String>>of()) {
-            @Override
-            public ImmutableMap<String, Maybe<String>> toStruct(ImmutableMap<String, Maybe<String>> vb) {
-                return vb;
-            }
-
-            @Override
-            public ImmutableMap<String, Maybe<String>> toBuilder(ImmutableMap<String, Maybe<String>> vs) {
-                return vs;
-            }
-
-            @Override
-            public Merge<ImmutableMap<String, Maybe<String>>> merge() {
-                return Merges.<ImmutableMap<String, Maybe<String>>>trivial();
-            }
-        });
-
-        TYPE = new StructType<PackageMetadata, Builder>(b.build(), PackageMetadata::new, Builder::new);
+        TYPE = b.build();
     }
 
     public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {

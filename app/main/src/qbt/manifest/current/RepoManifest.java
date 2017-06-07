@@ -1,6 +1,5 @@
 package qbt.manifest.current;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -11,9 +10,8 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.ds.StructTypeBuilder;
 import misc1.commons.json.JsonSerializer;
-import misc1.commons.merge.Merge;
-import misc1.commons.merge.Merges;
 import qbt.VcsVersionDigest;
 import qbt.manifest.QbtJsonSerializers;
 
@@ -38,42 +36,12 @@ public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builde
     public static final StructKey<RepoManifest, Optional<VcsVersionDigest>, Optional<VcsVersionDigest>> VERSION;
     public static final StructType<RepoManifest, Builder> TYPE;
     static {
-        ImmutableList.Builder<StructKey<RepoManifest, ?, ?>> b = ImmutableList.builder();
+        StructTypeBuilder<RepoManifest, Builder> b = new StructTypeBuilder<>(RepoManifest::new, Builder::new);
 
-        b.add(PACKAGES = new StructKey<RepoManifest, RepoManifestPackages, RepoManifestPackages.Builder>("packages", RepoManifestPackages.TYPE.builder()) {
-            @Override
-            public RepoManifestPackages toStruct(RepoManifestPackages.Builder vb) {
-                return (vb).build();
-            }
+        PACKAGES = b.key("packages", RepoManifestPackages.TYPE).add();
+        VERSION = b.<Optional<VcsVersionDigest>>key("version").add();
 
-            @Override
-            public RepoManifestPackages.Builder toBuilder(RepoManifestPackages vs) {
-                return (vs).builder();
-            }
-
-            @Override
-            public Merge<RepoManifestPackages> merge() {
-                return RepoManifestPackages.TYPE.merge();
-            }
-        });
-        b.add(VERSION = new StructKey<RepoManifest, Optional<VcsVersionDigest>, Optional<VcsVersionDigest>>("version") {
-            @Override
-            public Optional<VcsVersionDigest> toStruct(Optional<VcsVersionDigest> vb) {
-                return vb;
-            }
-
-            @Override
-            public Optional<VcsVersionDigest> toBuilder(Optional<VcsVersionDigest> vs) {
-                return vs;
-            }
-
-            @Override
-            public Merge<Optional<VcsVersionDigest>> merge() {
-                return Merges.<Optional<VcsVersionDigest>>trivial();
-            }
-        });
-
-        TYPE = new StructType<RepoManifest, Builder>(b.build(), RepoManifest::new, Builder::new);
+        TYPE = b.build();
     }
 
     public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {

@@ -1,6 +1,5 @@
 package qbt.manifest.current;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
@@ -11,8 +10,8 @@ import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
 import misc1.commons.ds.StructKey;
 import misc1.commons.ds.StructType;
+import misc1.commons.ds.StructTypeBuilder;
 import misc1.commons.json.JsonSerializer;
-import misc1.commons.merge.Merge;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.tip.PackageTip;
@@ -44,74 +43,14 @@ public final class PackageManifest extends Struct<PackageManifest, PackageManife
     public static final StructKey<PackageManifest, PackageVerifyDeps, PackageVerifyDeps.Builder> VERIFY_DEPS;
     public static final StructType<PackageManifest, Builder> TYPE;
     static {
-        ImmutableList.Builder<StructKey<PackageManifest, ?, ?>> b = ImmutableList.builder();
+        StructTypeBuilder<PackageManifest, Builder> b = new StructTypeBuilder<>(PackageManifest::new, Builder::new);
 
-        b.add(METADATA = new StructKey<PackageManifest, PackageMetadata, PackageMetadata.Builder>("metadata", PackageMetadata.TYPE.builder()) {
-            @Override
-            public PackageMetadata toStruct(PackageMetadata.Builder vb) {
-                return (vb).build();
-            }
+        METADATA = b.key("metadata", PackageMetadata.TYPE).add();
+        NORMAL_DEPS = b.key("normalDeps", PackageNormalDeps.TYPE).add();
+        REPLACE_DEPS = b.key("replaceDeps", PackageReplaceDeps.TYPE).add();
+        VERIFY_DEPS = b.key("verifyDeps", PackageVerifyDeps.TYPE).add();
 
-            @Override
-            public PackageMetadata.Builder toBuilder(PackageMetadata vs) {
-                return (vs).builder();
-            }
-
-            @Override
-            public Merge<PackageMetadata> merge() {
-                return PackageMetadata.TYPE.merge();
-            }
-        });
-        b.add(NORMAL_DEPS = new StructKey<PackageManifest, PackageNormalDeps, PackageNormalDeps.Builder>("normalDeps", PackageNormalDeps.TYPE.builder()) {
-            @Override
-            public PackageNormalDeps toStruct(PackageNormalDeps.Builder vb) {
-                return (vb).build();
-            }
-
-            @Override
-            public PackageNormalDeps.Builder toBuilder(PackageNormalDeps vs) {
-                return (vs).builder();
-            }
-
-            @Override
-            public Merge<PackageNormalDeps> merge() {
-                return PackageNormalDeps.TYPE.merge();
-            }
-        });
-        b.add(REPLACE_DEPS = new StructKey<PackageManifest, PackageReplaceDeps, PackageReplaceDeps.Builder>("replaceDeps", PackageReplaceDeps.TYPE.builder()) {
-            @Override
-            public PackageReplaceDeps toStruct(PackageReplaceDeps.Builder vb) {
-                return (vb).build();
-            }
-
-            @Override
-            public PackageReplaceDeps.Builder toBuilder(PackageReplaceDeps vs) {
-                return (vs).builder();
-            }
-
-            @Override
-            public Merge<PackageReplaceDeps> merge() {
-                return PackageReplaceDeps.TYPE.merge();
-            }
-        });
-        b.add(VERIFY_DEPS = new StructKey<PackageManifest, PackageVerifyDeps, PackageVerifyDeps.Builder>("verifyDeps", PackageVerifyDeps.TYPE.builder()) {
-            @Override
-            public PackageVerifyDeps toStruct(PackageVerifyDeps.Builder vb) {
-                return (vb).build();
-            }
-
-            @Override
-            public PackageVerifyDeps.Builder toBuilder(PackageVerifyDeps vs) {
-                return (vs).builder();
-            }
-
-            @Override
-            public Merge<PackageVerifyDeps> merge() {
-                return PackageVerifyDeps.TYPE.merge();
-            }
-        });
-
-        TYPE = new StructType<PackageManifest, Builder>(b.build(), PackageManifest::new, Builder::new);
+        TYPE = b.build();
     }
 
     public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {
