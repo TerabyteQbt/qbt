@@ -51,15 +51,16 @@ public final class CumulativeVersionNodeData {
         throw new IllegalArgumentException(key.name);
     }
 
-    private static <VS, VB> PackageMetadata.Builder copy(PackageMetadata.Builder b, PackageMetadata metadata, StructKey<PackageMetadata, VS, VB> key) {
-        return b.set(key, key.toBuilder(metadata.get(key)));
+    private static <VS, VB> PackageMetadata.Builder copy(PackageMetadata.Builder b, PackageMetadata.Builder metadataB, StructKey<PackageMetadata, VS, VB> key) {
+        return b.set(key, metadataB.get(key));
     }
 
     private static PackageMetadata stripForCumulativeVersion(PackageMetadata metadata) {
+        PackageMetadata.Builder metadataB = metadata.builder();
         PackageMetadata.Builder b = PackageMetadata.TYPE.builder();
         for(StructKey<PackageMetadata, ?, ?> key : PackageMetadata.TYPE.keys) {
             if(includeInCumulativeVersion(key)) {
-                b = copy(b, metadata, key);
+                b = copy(b, metadataB, key);
             }
         }
         return b.build();
