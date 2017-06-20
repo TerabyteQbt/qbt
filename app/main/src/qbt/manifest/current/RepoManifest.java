@@ -39,7 +39,7 @@ public final class RepoManifest extends Struct<RepoManifest, RepoManifest.Builde
         StructTypeBuilder<RepoManifest, Builder> b = new StructTypeBuilder<>(RepoManifest::new, Builder::new);
 
         PACKAGES = b.key("packages", RepoManifestPackages.TYPE).add();
-        VERSION = b.<Optional<VcsVersionDigest>>key("version").add();
+        VERSION = b.<Optional<VcsVersionDigest>>key("version").serializer(QbtJsonSerializers.OPTIONAL_VCS_VERSION_DIGEST).add();
 
         TYPE = b.build();
     }

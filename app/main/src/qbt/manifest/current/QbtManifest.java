@@ -1,5 +1,6 @@
 package qbt.manifest.current;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,6 +10,7 @@ import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
 import misc1.commons.json.JsonSerializer;
+import misc1.commons.json.StringSerializer;
 import misc1.commons.merge.Merge;
 import qbt.manifest.QbtManifestUtils;
 import qbt.tip.PackageTip;
@@ -56,7 +58,21 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         protected Merge<RepoManifest> mergeValue() {
             return RepoManifest.TYPE.merge();
         }
+
+        @Override
+        protected Optional<StringSerializer<RepoTip>> keySerializer() {
+            return Optional.of(RepoTip.TYPE.STRING_SERIALIZER);
+        }
+
+        @Override
+        protected Optional<JsonSerializer<RepoManifest.Builder>> valueSerializer() {
+            return Optional.of(RepoManifest.TYPE.serializerB());
+        }
     };
+
+    static {
+        TYPE.serializer();
+    }
 
     public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {
         @Override

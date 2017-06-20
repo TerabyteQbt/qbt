@@ -1,5 +1,6 @@
 package qbt.manifest.current;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -10,6 +11,7 @@ import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
 import misc1.commons.json.JsonSerializer;
 import misc1.commons.json.JsonSerializers;
+import misc1.commons.json.StringSerializer;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
 import qbt.tip.PackageTip;
@@ -49,6 +51,16 @@ public final class PackageReplaceDeps extends MapStruct<PackageReplaceDeps, Pack
         @Override
         protected Merge<String> mergeValue() {
             return Merges.<String>trivial();
+        }
+
+        @Override
+        protected Optional<StringSerializer<PackageTip>> keySerializer() {
+            return Optional.of(PackageTip.TYPE.STRING_SERIALIZER);
+        }
+
+        @Override
+        protected Optional<JsonSerializer<String>> valueSerializer() {
+            return Optional.of(JsonSerializers.STRING);
         }
     };
 

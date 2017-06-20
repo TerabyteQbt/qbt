@@ -36,10 +36,10 @@ public final class PackageMetadata extends Struct<PackageMetadata, PackageMetada
     static {
         StructTypeBuilder<PackageMetadata, Builder> b = new StructTypeBuilder<>(PackageMetadata::new, Builder::new);
 
-        ARCH_INDEPENDENT = b.<Boolean>key("archIndependent").def(false).add();
-        BUILD_TYPE = b.<PackageBuildType>key("buildType").def(PackageBuildType.NORMAL).add();
-        PREFIX = b.<String>key("prefix").def("").add();
-        QBT_ENV = b.<ImmutableMap<String, Maybe<String>>>key("qbtEnv").def(ImmutableMap.<String, Maybe<String>>of()).add();
+        ARCH_INDEPENDENT = b.<Boolean>key("archIndependent").def(false).serializer(JsonSerializers.BOOLEAN).add();
+        BUILD_TYPE = b.<PackageBuildType>key("buildType").def(PackageBuildType.NORMAL).serializer(JsonSerializers.forEnum(PackageBuildType.class)).add();
+        PREFIX = b.<String>key("prefix").def("").serializer(JsonSerializers.STRING).add();
+        QBT_ENV = b.<ImmutableMap<String, Maybe<String>>>key("qbtEnv").def(ImmutableMap.<String, Maybe<String>>of()).serializer(QbtJsonSerializers.QBT_ENV).add();
 
         TYPE = b.build();
     }

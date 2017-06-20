@@ -1,5 +1,6 @@
 package qbt.manifest.current;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -10,6 +11,7 @@ import misc1.commons.ds.MapStructBuilder;
 import misc1.commons.ds.MapStructType;
 import misc1.commons.json.JsonSerializer;
 import misc1.commons.json.JsonSerializers;
+import misc1.commons.json.StringSerializer;
 import misc1.commons.merge.Merge;
 import misc1.commons.merge.Merges;
 import org.apache.commons.lang3.ObjectUtils;
@@ -52,6 +54,16 @@ public final class PackageVerifyDeps extends MapStruct<PackageVerifyDeps, Packag
         @Override
         protected Merge<ObjectUtils.Null> mergeValue() {
             return Merges.<ObjectUtils.Null>trivial();
+        }
+
+        @Override
+        protected Optional<StringSerializer<Pair<PackageTip, String>>> keySerializer() {
+            return Optional.of(QbtStringSerializers.VERIFY_DEP_KEY);
+        }
+
+        @Override
+        protected Optional<JsonSerializer<ObjectUtils.Null>> valueSerializer() {
+            return Optional.of(JsonSerializers.OU_NULL);
         }
     };
 
