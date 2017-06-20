@@ -2,9 +2,6 @@ package qbt.manifest.current;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.Map;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
@@ -70,27 +67,8 @@ public final class QbtManifest extends MapStruct<QbtManifest, QbtManifest.Builde
         }
     };
 
-    static {
-        TYPE.serializer();
-    }
-
-    public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {
-        @Override
-        public JsonElement toJson(Builder b) {
-            JsonObject r = new JsonObject();
-            for(Map.Entry<RepoTip, RepoManifest.Builder> e : b.map.entries()) {
-                r.add(RepoTip.TYPE.STRING_SERIALIZER.toString(e.getKey()), RepoManifest.SERIALIZER.toJson(e.getValue()));
-            }
-            return r;
-        }
-
-        @Override
-        public Builder fromJson(JsonElement e) {
-            Builder b = TYPE.builder();
-            for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
-                b = b.with(RepoTip.TYPE.STRING_SERIALIZER.fromString(e2.getKey()), RepoManifest.SERIALIZER.fromJson(e2.getValue()));
-            }
-            return b;
-        }
-    };
+    // this is both (a) an optimization to only construct it once, and (b) an
+    // important high-level check that this serializer is defined all the way
+    // down.
+    public static final JsonSerializer<Builder> SERIALIZER = TYPE.serializerB();
 }

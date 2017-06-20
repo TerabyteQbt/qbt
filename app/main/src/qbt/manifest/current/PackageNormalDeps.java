@@ -2,9 +2,6 @@ package qbt.manifest.current;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.Map;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
@@ -63,26 +60,6 @@ public final class PackageNormalDeps extends MapStruct<PackageNormalDeps, Packag
         @Override
         protected Optional<JsonSerializer<Pair<NormalDependencyType, String>>> valueSerializer() {
             return Optional.of(QbtJsonSerializers.NORMAL_DEP_VALUE);
-        }
-    };
-
-    public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {
-        @Override
-        public JsonElement toJson(Builder b) {
-            JsonObject r = new JsonObject();
-            for(Map.Entry<String, Pair<NormalDependencyType, String>> e : b.map.entries()) {
-                r.add(StringSerializers.STRING.toString(e.getKey()), QbtJsonSerializers.NORMAL_DEP_VALUE.toJson(e.getValue()));
-            }
-            return r;
-        }
-
-        @Override
-        public Builder fromJson(JsonElement e) {
-            Builder b = TYPE.builder();
-            for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
-                b = b.with(StringSerializers.STRING.fromString(e2.getKey()), QbtJsonSerializers.NORMAL_DEP_VALUE.fromJson(e2.getValue()));
-            }
-            return b;
         }
     };
 }

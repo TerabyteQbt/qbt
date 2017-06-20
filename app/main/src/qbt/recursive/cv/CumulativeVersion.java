@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import misc1.commons.json.JsonSerializer;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
 import qbt.QbtHashUtils;
@@ -169,8 +170,10 @@ public final class CumulativeVersion extends RecursivePackageData<CumulativeVers
         }
     }
 
+    private static final JsonSerializer<PackageMetadata> PACKAGE_METADATA_SERIALIZER = PackageMetadata.TYPE.serializer();
+
     private static Collection<Map.Entry<String, String>> toStringMap(PackageMetadata metadata) {
-        JsonElement e = PackageMetadata.SERIALIZER.toJson(metadata.builder());
+        JsonElement e = PACKAGE_METADATA_SERIALIZER.toJson(metadata);
         TreeMap<String, String> m = Maps.newTreeMap();
         for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
             m.put(e2.getKey(), e2.getValue().getAsString());

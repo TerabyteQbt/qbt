@@ -2,9 +2,6 @@ package qbt.manifest.current;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.util.Map;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.MapStruct;
 import misc1.commons.ds.MapStructBuilder;
@@ -64,26 +61,6 @@ public final class PackageVerifyDeps extends MapStruct<PackageVerifyDeps, Packag
         @Override
         protected Optional<JsonSerializer<ObjectUtils.Null>> valueSerializer() {
             return Optional.of(JsonSerializers.OU_NULL);
-        }
-    };
-
-    public static final JsonSerializer<Builder> SERIALIZER = new JsonSerializer<Builder>() {
-        @Override
-        public JsonElement toJson(Builder b) {
-            JsonObject r = new JsonObject();
-            for(Map.Entry<Pair<PackageTip, String>, ObjectUtils.Null> e : b.map.entries()) {
-                r.add(QbtStringSerializers.VERIFY_DEP_KEY.toString(e.getKey()), JsonSerializers.OU_NULL.toJson(e.getValue()));
-            }
-            return r;
-        }
-
-        @Override
-        public Builder fromJson(JsonElement e) {
-            Builder b = TYPE.builder();
-            for(Map.Entry<String, JsonElement> e2 : e.getAsJsonObject().entrySet()) {
-                b = b.with(QbtStringSerializers.VERIFY_DEP_KEY.fromString(e2.getKey()), JsonSerializers.OU_NULL.fromJson(e2.getValue()));
-            }
-            return b;
         }
     };
 }
