@@ -410,4 +410,12 @@ public class GitUtils {
     public static List<String> getUserVisibleStatus(Path dir) {
         return ph(dir, "git", "status", "--short").run().requireSuccess().stdout;
     }
+
+    public static VcsTreeDigest getIndexTree(Path repo) {
+        return new VcsTreeDigest(sha1(ph(repo, "git", "write-tree")));
+    }
+
+    public static void setIndexTree(Path repo, VcsTreeDigest tree) {
+        runQuiet(repo, "git", "read-tree", String.valueOf(tree.getRawDigest()));
+    }
 }

@@ -143,4 +143,14 @@ public class GitRepository implements Repository {
     public TreeAccessor getTreeAccessor(VcsTreeDigest tree) {
         return new ColdGitTreeAccessor(repositoryPath, tree);
     }
+
+    @Override
+    public VcsTreeDigest getIndexTree() {
+        return GitUtils.getIndexTree(repositoryPath);
+    }
+
+    @Override
+    public void setIndexTree(VcsTreeDigest tree) {
+        GitUtils.setIndexTree(repositoryPath, tree);
+    }
 }

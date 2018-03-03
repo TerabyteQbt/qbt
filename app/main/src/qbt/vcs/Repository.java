@@ -31,6 +31,8 @@ public interface Repository {
     public void checkout(VcsVersionDigest version);
     public void checkoutTree(VcsTreeDigest tree, Path dest);
     public VcsVersionDigest commit(boolean amend, String message, CommitLevel level);
+    public VcsTreeDigest getIndexTree();
+    public void setIndexTree(VcsTreeDigest tree);
 
     // before: repo is somewhere, clean
     // after: [failure] throw, repo state unclear
