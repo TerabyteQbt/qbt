@@ -3,6 +3,7 @@ package qbt;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteSource;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -248,5 +249,23 @@ public final class QbtUtils {
             // Now, no matter what happened we'll clean up that temp directory.
             QbtUtils.deleteRecursively(sibling, !returning);
         }
+    }
+
+    public static Iterable<String> bytesToLines(byte[] bytes) {
+        try {
+            return ByteSource.wrap(bytes).asCharSource(Charsets.UTF_8).readLines();
+        }
+        catch(IOException e) {
+            throw ExceptionUtils.commute(e);
+        }
+    }
+
+    public static byte[] linesToBytes(Iterable<String> lines) {
+        StringBuffer sb = new StringBuffer();
+        for(String line : lines) {
+            sb.append(line);
+            sb.append('\n');
+        }
+        return sb.toString().getBytes();
     }
 }
