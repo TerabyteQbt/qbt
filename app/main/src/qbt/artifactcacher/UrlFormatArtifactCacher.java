@@ -29,7 +29,7 @@ import qbt.QbtTempDir;
 import qbt.QbtUtils;
 import qbt.recursive.cv.CumulativeVersionDigest;
 
-public class UrlFormatArtifactCacher implements ArtifactCacher {
+public class UrlFormatArtifactCacher implements BasicArtifactCacher {
     private static final Logger LOGGER = LoggerFactory.getLogger(UrlFormatArtifactCacher.class);
 
     public static final class AuthConfiguration {
@@ -131,16 +131,7 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public void touch(CumulativeVersionDigest key, Architecture arch) {
-    }
-
-    @Override
-    public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
-        simplePut(p.getLeft(), key, p.getRight());
-        return p;
-    }
-
-    private void simplePut(Architecture arch, final CumulativeVersionDigest key, ArtifactReference artifact) {
+    public void put(Architecture arch, CumulativeVersionDigest key, ArtifactReference artifact) {
         final String url = url(putBaseUrl, arch, key);
         if(url == null) {
             return;
@@ -167,10 +158,6 @@ public class UrlFormatArtifactCacher implements ArtifactCacher {
         catch(Exception e) {
             LOGGER.warn("Cache put for " + key + " at " + url + " failed", e);
         }
-    }
-
-    @Override
-    public void cleanup() {
     }
 
     protected HttpClientBuilder clientBuilder() {

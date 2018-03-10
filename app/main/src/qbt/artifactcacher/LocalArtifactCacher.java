@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import qbt.QbtUtils;
 import qbt.recursive.cv.CumulativeVersionDigest;
 
-public class LocalArtifactCacher implements ArtifactCacher {
+public class LocalArtifactCacher implements BasicArtifactCacher {
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalArtifactCacher.class);
 
     private static final Pattern TARBALL_PATTERN = Pattern.compile("^[0-9a-f]{40}.tar.gz$");
@@ -58,12 +58,7 @@ public class LocalArtifactCacher implements ArtifactCacher {
     }
 
     @Override
-    public Pair<Architecture, ArtifactReference> intercept(FreeScope scope, CumulativeVersionDigest key, Pair<Architecture, ArtifactReference> p) {
-        simplePut(p.getLeft(), key, p.getRight());
-        return p;
-    }
-
-    private void simplePut(Architecture arch, CumulativeVersionDigest key, ArtifactReference artifact) {
+    public void put(Architecture arch, CumulativeVersionDigest key, ArtifactReference artifact) {
         Path cacheFile = root.resolve(key.getRawDigest().toString() + ".tar.gz");
         if(Files.isRegularFile(cacheFile)) {
             return;
