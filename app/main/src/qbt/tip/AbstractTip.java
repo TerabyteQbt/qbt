@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 import misc1.commons.json.StringSerializer;
 
 public abstract class AbstractTip<T extends AbstractTip<T>> {
-    private static final Pattern PATTERN = Pattern.compile("^[0-9a-zA-Z._]*$");
-    private static final Pattern TIP_PATTERN = Pattern.compile("^([0-9a-zA-Z._]*)\\^\\{([0-9a-zA-Z._]*)\\}$");
+    private static final Pattern PATTERN = Pattern.compile("^[-0-9a-zA-Z._]*$");
+    private static final Pattern TIP_PATTERN = Pattern.compile("^([-0-9a-zA-Z._]*)\\^\\{([-0-9a-zA-Z._]*)\\}$");
 
     private final Type<T> type;
     public final String name;
