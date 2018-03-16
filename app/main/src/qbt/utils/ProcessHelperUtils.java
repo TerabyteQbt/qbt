@@ -12,8 +12,14 @@ public final class ProcessHelperUtils {
         // is so bad at handling environment variables if `qbt` is run
         // underneath git at any point (e.g.  mergeDriver) all hell breaks
         // loose.
-        p = p.removeEnv("GIT_DIR");
-        p = p.removeEnv("GIT_WORK_TREE");
+        p = p.transform(ProcessHelper.ENV, (env) -> {
+            for(String key : env.keys()) {
+                if(key.startsWith("GIT_")) {
+                    env = env.simpleRemove(key);
+                }
+            }
+            return env;
+        });
         return p;
     }
 
