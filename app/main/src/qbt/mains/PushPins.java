@@ -17,6 +17,7 @@ import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.VcsVersionDigest;
+import qbt.config.LocalPinsRepo;
 import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
@@ -65,23 +66,7 @@ public class PushPins extends QbtCommand<PushPins.Options> {
 
         ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), (qbtRemoteString) -> {
             final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
-            return ComputationTree.transformIterable(repos, (repo) -> {
-                RepoManifest repoManifest = manifest.repos.get(repo);
-                if(repoManifest == null) {
-                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
-                }
-                Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
-                if(!maybeVersion.isPresent()) {
-                    return ObjectUtils.NULL;
-                }
-                VcsVersionDigest version = maybeVersion.get();
-                PinnedRepoAccessor pinnedAccessor = config.localPinsRepo.requirePin(repo, version);
-                RawRemote remote = qbtRemote.findRemote(repo, true);
-
-                pinnedAccessor.pushToRemote(remote);
-
-                return ObjectUtils.NULL;
-            }).ignore().transform((input) -> {
+            return pushCt(config.localPinsRepo, qbtRemote, manifest, repos).transform((input) -> {
                 LOGGER.info("Completed pushing to remote " + qbtRemoteString);
                 return input;
             });
@@ -89,5 +74,25 @@ public class PushPins extends QbtCommand<PushPins.Options> {
 
         Options.parallelism.getResult(options, false).runComputationTree(computationTree);
         return 0;
+    }
+
+    public static ComputationTree<?> pushCt(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, QbtManifest manifest, Iterable<RepoTip> repos) {
+        return ComputationTree.transformIterable(repos, (repo) -> {
+            RepoManifest repoManifest = manifest.repos.get(repo);
+            if(repoManifest == null) {
+                throw new IllegalArgumentException("No such repo [tip]: " + repo);
+            }
+            Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
+            if(!maybeVersion.isPresent()) {
+                return ObjectUtils.NULL;
+            }
+            VcsVersionDigest version = maybeVersion.get();
+            PinnedRepoAccessor pinnedAccessor = localPinsRepo.requirePin(repo, version);
+            RawRemote remote = qbtRemote.findRemote(repo, true);
+
+            pinnedAccessor.pushToRemote(remote);
+
+            return ObjectUtils.NULL;
+        });
     }
 }
