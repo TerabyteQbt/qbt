@@ -16,6 +16,7 @@ import qbt.QbtCommand;
 import qbt.QbtCommandName;
 import qbt.QbtCommandOptions;
 import qbt.VcsVersionDigest;
+import qbt.config.LocalPinsRepo;
 import qbt.config.QbtConfig;
 import qbt.manifest.current.QbtManifest;
 import qbt.manifest.current.RepoManifest;
@@ -71,7 +72,14 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         final String qbtRemoteString = options.get(Options.remote);
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
-        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, (repo) -> {
+        ComputationTree<?> computationTree = fetchCt(config.localPinsRepo, qbtRemote, manifest, repos);
+
+        Options.parallelism.getResult(options, false).runComputationTree(computationTree);
+        return 0;
+    }
+
+    public static ComputationTree<?> fetchCt(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, QbtManifest manifest, Iterable<RepoTip> repos) {
+        return ComputationTree.transformIterable(repos, (repo) -> {
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
@@ -82,7 +90,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 return ObjectUtils.NULL;
             }
             VcsVersionDigest version = maybeVersion.get();
-            if(config.localPinsRepo.findPin(repo, version) != null) {
+            if(localPinsRepo.findPin(repo, version) != null) {
                 LOGGER.debug("[" + repo + "] Already have " + version);
                 return ObjectUtils.NULL;
             }
@@ -91,17 +99,14 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
 
             if(remote != null) {
                 LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
-                config.localPinsRepo.fetchPins(repo, remote);
+                localPinsRepo.fetchPins(repo, remote);
             }
             else {
-                LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemoteString + "'");
+                LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemote + "'");
             }
 
-            config.localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
+            localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
             return ObjectUtils.NULL;
         });
-
-        Options.parallelism.getResult(options, false).runComputationTree(computationTree);
-        return 0;
     }
 }
