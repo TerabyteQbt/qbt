@@ -72,14 +72,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         final String qbtRemoteString = options.get(Options.remote);
         final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
 
-        ComputationTree<?> computationTree = fetchCt(config.localPinsRepo, qbtRemote, manifest, repos);
-
-        Options.parallelism.getResult(options, false).runComputationTree(computationTree);
-        return 0;
-    }
-
-    public static ComputationTree<?> fetchCt(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, QbtManifest manifest, Iterable<RepoTip> repos) {
-        return ComputationTree.transformIterable(repos, (repo) -> {
+        ComputationTree<?> computationTree = ComputationTree.transformIterable(repos, (repo) -> {
             RepoManifest repoManifest = manifest.repos.get(repo);
             if(repoManifest == null) {
                 throw new IllegalArgumentException("No such repo [tip]: " + repo);
@@ -89,24 +82,40 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 LOGGER.debug("[" + repo + "] Doesn't have version");
                 return ObjectUtils.NULL;
             }
-            VcsVersionDigest version = maybeVersion.get();
-            if(localPinsRepo.findPin(repo, version) != null) {
-                LOGGER.debug("[" + repo + "] Already have " + version);
-                return ObjectUtils.NULL;
-            }
-
-            RawRemote remote = qbtRemote.findRemote(repo, false);
-
-            if(remote != null) {
-                LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
-                localPinsRepo.fetchPins(repo, remote);
-            }
-            else {
-                LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemote + "'");
-            }
-
-            localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
+            fetch(config.localPinsRepo, qbtRemote, repo, ImmutableSet.of(maybeVersion.get()));
             return ObjectUtils.NULL;
         });
+
+        Options.parallelism.getResult(options, false).runComputationTree(computationTree);
+        return 0;
+    }
+
+    public static void fetch(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, RepoTip repo, Iterable<VcsVersionDigest> versions) {
+        ImmutableSet.Builder<VcsVersionDigest> missingBuilder = ImmutableSet.builder();
+        for(VcsVersionDigest version : versions) {
+            if(localPinsRepo.findPin(repo, version) != null) {
+                LOGGER.debug("[" + repo + "] Already have " + version);
+                continue;
+            }
+            missingBuilder.add(version);
+        }
+        ImmutableSet<VcsVersionDigest> missing = missingBuilder.build();
+        if(missing.isEmpty()) {
+            return;
+        }
+
+        RawRemote remote = qbtRemote.findRemote(repo, false);
+
+        if(remote != null) {
+            LOGGER.info("[" + repo + "] Fetching from " + remote + "...");
+            localPinsRepo.fetchPins(repo, remote);
+        }
+        else {
+            LOGGER.info("[" + repo + "] Repo does not exist in remote '" + qbtRemote + "'");
+        }
+
+        for(VcsVersionDigest version : missing) {
+            localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
+        }
     }
 }

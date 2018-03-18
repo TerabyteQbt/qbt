@@ -1,6 +1,7 @@
 package qbt.mains;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.Collection;
@@ -66,7 +67,18 @@ public class PushPins extends QbtCommand<PushPins.Options> {
 
         ComputationTree<?> computationTree = ComputationTree.list(Iterables.transform(options.get(Options.remotes), (qbtRemoteString) -> {
             final QbtRemote qbtRemote = config.qbtRemoteFinder.requireQbtRemote(qbtRemoteString);
-            return pushCt(config.localPinsRepo, qbtRemote, manifest, repos).transform((input) -> {
+            return ComputationTree.transformIterable(repos, (repo) -> {
+                RepoManifest repoManifest = manifest.repos.get(repo);
+                if(repoManifest == null) {
+                    throw new IllegalArgumentException("No such repo [tip]: " + repo);
+                }
+                Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
+                if(!maybeVersion.isPresent()) {
+                    return ObjectUtils.NULL;
+                }
+                push(config.localPinsRepo, qbtRemote, repo, ImmutableSet.of(maybeVersion.get()));
+                return ObjectUtils.NULL;
+            }).transform((input) -> {
                 LOGGER.info("Completed pushing to remote " + qbtRemoteString);
                 return input;
             });
@@ -76,23 +88,12 @@ public class PushPins extends QbtCommand<PushPins.Options> {
         return 0;
     }
 
-    public static ComputationTree<?> pushCt(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, QbtManifest manifest, Iterable<RepoTip> repos) {
-        return ComputationTree.transformIterable(repos, (repo) -> {
-            RepoManifest repoManifest = manifest.repos.get(repo);
-            if(repoManifest == null) {
-                throw new IllegalArgumentException("No such repo [tip]: " + repo);
-            }
-            Optional<VcsVersionDigest> maybeVersion = repoManifest.version;
-            if(!maybeVersion.isPresent()) {
-                return ObjectUtils.NULL;
-            }
-            VcsVersionDigest version = maybeVersion.get();
+    public static void push(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, RepoTip repo, Iterable<VcsVersionDigest> versions) {
+        for(VcsVersionDigest version : ImmutableSet.copyOf(versions)) {
             PinnedRepoAccessor pinnedAccessor = localPinsRepo.requirePin(repo, version);
             RawRemote remote = qbtRemote.findRemote(repo, true);
 
             pinnedAccessor.pushToRemote(remote);
-
-            return ObjectUtils.NULL;
-        });
+        }
     }
 }
