@@ -82,7 +82,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
                 LOGGER.debug("[" + repo + "] Doesn't have version");
                 return ObjectUtils.NULL;
             }
-            fetch(config.localPinsRepo, qbtRemote, repo, ImmutableSet.of(maybeVersion.get()));
+            fetch(config.localPinsRepo, qbtRemote, repo, ImmutableSet.of(maybeVersion.get()), false);
             return ObjectUtils.NULL;
         });
 
@@ -90,7 +90,7 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         return 0;
     }
 
-    public static void fetch(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, RepoTip repo, Iterable<VcsVersionDigest> versions) {
+    public static void fetch(LocalPinsRepo localPinsRepo, QbtRemote qbtRemote, RepoTip repo, Iterable<VcsVersionDigest> versions, boolean bestEffort) {
         ImmutableSet.Builder<VcsVersionDigest> missingBuilder = ImmutableSet.builder();
         for(VcsVersionDigest version : versions) {
             if(localPinsRepo.findPin(repo, version) != null) {
@@ -115,7 +115,15 @@ public class FetchPins extends QbtCommand<FetchPins.Options> {
         }
 
         for(VcsVersionDigest version : missing) {
-            localPinsRepo.requirePin(repo, version, "[" + repo + "] Could not find " + version + "!");
+            if(localPinsRepo.findPin(repo, version) != null) {
+                continue;
+            }
+            String msg = "[" + repo + "] Could not find " + version + "!";
+            if(bestEffort) {
+                LOGGER.warn(msg);
+                continue;
+            }
+            throw new IllegalArgumentException(msg);
         }
     }
 }
