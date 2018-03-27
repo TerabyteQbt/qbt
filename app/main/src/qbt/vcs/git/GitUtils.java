@@ -65,7 +65,7 @@ public class GitUtils {
         ProcessHelper p;
 
         String prefix = getPrefix(dir);
-        p = ph(getRoot(dir), "git", "ls-files", "--", prefix);
+        p = ph(getRoot(dir), "git", "ls-files", "--", (prefix.equals("") ? "." : prefix));
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
