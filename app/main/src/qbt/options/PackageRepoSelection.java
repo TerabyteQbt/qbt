@@ -2,9 +2,6 @@ package qbt.options;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import groovy.lang.Closure;
-import groovy.lang.GroovyShell;
-import misc1.commons.ExceptionUtils;
 import misc1.commons.ds.LazyCollector;
 import org.apache.commons.lang3.tuple.Pair;
 import qbt.NormalDependencyType;
@@ -15,6 +12,7 @@ import qbt.map.DependencyComputer;
 import qbt.map.PackageTipDependenciesMapper;
 import qbt.recursive.srpd.SimpleRecursivePackageData;
 import qbt.recursive.srpd.SimpleRecursivePackageDataMapper;
+import qbt.script.QbtScriptEngine;
 import qbt.tip.AbstractTip;
 import qbt.tip.PackageTip;
 import qbt.tip.RepoTip;
@@ -24,59 +22,24 @@ public final class PackageRepoSelection {
         // no
     }
 
-    public static ImmutableSet<PackageTip> evalPackages(QbtConfig config, QbtManifest manifest, String groovy) {
-        return new PackageCoercer(manifest).coerce(eval(config, manifest, groovy));
+    public static ImmutableSet<PackageTip> evalPackages(QbtConfig config, QbtManifest manifest, String script) {
+        return new PackageCoercer(manifest).coerce(eval(config, manifest, script));
     }
 
-    public static ImmutableSet<RepoTip> evalRepos(QbtConfig config, QbtManifest manifest, String groovy) {
-        return new RepoCoercer(manifest).coerce(eval(config, manifest, groovy));
+    public static ImmutableSet<RepoTip> evalRepos(QbtConfig config, QbtManifest manifest, String script) {
+        return new RepoCoercer(manifest).coerce(eval(config, manifest, script));
     }
 
-    private static Object eval(final QbtConfig config, final QbtManifest manifest, String groovy) {
+    private static Object eval(final QbtConfig config, final QbtManifest manifest, String script) {
         final PackageCoercer packageCoercer = new PackageCoercer(manifest);
-        GroovyShell shell = new GroovyShell();
-        shell.setVariable("all", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return manifest.repos.keySet();
-            }
-        });
-        shell.setVariable("overrides", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return overrides(config, manifest);
-            }
-        });
-        shell.setVariable("inward", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return inwardsClosure(manifest, packageCoercer.coerce(args));
-            }
-        });
-        shell.setVariable("outward", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return outwardsClosure(manifest, packageCoercer.coerce(args));
-            }
-        });
-        shell.setVariable("r", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return RepoTip.TYPE.parseRequire(String.valueOf(args[0]));
-            }
-        });
-        shell.setVariable("p", new Closure<Object>(null) {
-            @Override
-            public Object call(Object... args) {
-                return PackageTip.TYPE.parseRequire(String.valueOf(args[0]));
-            }
-        });
-        try {
-            return shell.evaluate(groovy);
-        }
-        catch(Exception e) {
-            throw ExceptionUtils.commute(e);
-        }
+        QbtScriptEngine.Builder s = QbtScriptEngine.TYPE.builder();
+        s = s.addClosure("all", (args) -> manifest.repos.keySet());
+        s = s.addClosure("overrides", (args) -> overrides(config, manifest));
+        s = s.addClosure("inward", (args) -> inwardsClosure(manifest, packageCoercer.coerce(args)));
+        s = s.addClosure("outward", (args) -> outwardsClosure(manifest, packageCoercer.coerce(args)));
+        s = s.addClosure("r", (args) -> RepoTip.TYPE.parseRequire(String.valueOf(args[0])));
+        s = s.addClosure("p", (args) -> PackageTip.TYPE.parseRequire(String.valueOf(args[0])));
+        return s.build().eval(script);
     }
 
     private static abstract class AbstractCoercer<T extends AbstractTip<T>> {

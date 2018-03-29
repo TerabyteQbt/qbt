@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import groovy.lang.GroovyShell;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,6 +58,7 @@ import qbt.recursive.cv.CumulativeVersion;
 import qbt.recursive.cvrpd.CvRecursivePackageData;
 import qbt.recursive.cvrpd.CvRecursivePackageDataComputationMapper;
 import qbt.recursive.srpd.SimpleRecursivePackageData;
+import qbt.script.QbtScriptEngine;
 import qbt.tip.PackageTip;
 
 public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
@@ -77,7 +77,7 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
         public static final OptionsFragment<BuildCommonOptions, Boolean> verify = o.zeroArg("verify").transform(o.flag()).helpDesc("Include all verify links");
         public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyTypes = o.oneArg("verifyType").helpDesc("Include all verify links of this type");
         public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyRegexes = o.oneArg("verifyRegex").helpDesc("Include all verify links for which \"from/type/to\" matches this regex");
-        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyGroovies = o.oneArg("verifyGroovy").helpDesc("Include all verify links for which this groovy evaluates to true");
+        public static final OptionsFragment<BuildCommonOptions, ImmutableList<String>> verifyScripts = o.oneArg("verifyScripts").helpDesc("Include all verify links for which this script evaluates to true");
     }
 
     @QbtCommandName("buildPlumbing")
@@ -369,13 +369,13 @@ public final class BuildPlumbing extends QbtCommand<BuildPlumbing.Options> {
             final Pattern verifyPattern = Pattern.compile(verifyRegex);
             b.add(new VerifyNotingPredicate("(verify regex /" + verifyRegex + "/)", (input) -> verifyPattern.matcher(input.getLeft() + "/" + input.getMiddle() + "/" + input.getRight()).matches()));
         }
-        for(final String verifyGroovy : options.get(Options.verifyGroovies)) {
-            b.add(new VerifyNotingPredicate("(verify groovy `" + verifyGroovy + "`)", (input) -> {
-                GroovyShell shell = new GroovyShell();
-                shell.setVariable("from", input.getLeft());
-                shell.setVariable("type", input.getMiddle());
-                shell.setVariable("to", input.getRight());
-                return (Boolean)shell.evaluate(verifyGroovy);
+        for(final String verifyScript : options.get(Options.verifyScripts)) {
+            b.add(new VerifyNotingPredicate("(verify script `" + verifyScript + "`)", (input) -> {
+                QbtScriptEngine.Builder s = QbtScriptEngine.TYPE.builder();
+                s = s.addVariable("from", input.getLeft());
+                s = s.addVariable("type", input.getMiddle());
+                s = s.addVariable("to", input.getRight());
+                return s.build().eval(verifyScript);
             }));
         }
         return Predicates.or(b.build());

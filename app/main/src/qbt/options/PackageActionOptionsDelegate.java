@@ -22,7 +22,7 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, Boolean> outward = o.zeroArg("outward").transform(o.flag()).helpDesc("Act on all packages outward of [otherwise] specified packages");
     public final OptionsFragment<O, Boolean> overrides = o.zeroArg("overrides").transform(o.flag()).helpDesc("Act on all overridden packages");
     public final OptionsFragment<O, Boolean> all = o.zeroArg("all").transform(o.flag()).helpDesc("Act on all packages");
-    public final OptionsFragment<O, ImmutableList<String>> groovyPackages = o.oneArg("groovyPackages").helpDesc("Evaluate this groovy to choose packages");
+    public final OptionsFragment<O, ImmutableList<String>> scriptPackages = o.oneArg("scriptPackages").helpDesc("Evaluate this script to choose packages");
 
     private final NoArgsBehaviour noArgsBehaviour;
 
@@ -68,9 +68,9 @@ public class PackageActionOptionsDelegate<O> implements OptionsDelegate<O> {
             hadNoArgs = false;
             packagesBuilder.addAll(manifest.packageToRepo.keySet());
         }
-        for(String groovy : options.get(groovyPackages)) {
+        for(String script : options.get(scriptPackages)) {
             hadNoArgs = false;
-            packagesBuilder.addAll(PackageRepoSelection.evalPackages(config, manifest, groovy));
+            packagesBuilder.addAll(PackageRepoSelection.evalPackages(config, manifest, script));
         }
         if(hadNoArgs) {
             noArgsBehaviour.run(packagesBuilder, config, manifest);

@@ -21,7 +21,7 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
     public final OptionsFragment<O, ImmutableList<String>> packages = o.oneArg("package").helpDesc("Act on the repo containing this package");
     public final OptionsFragment<O, Boolean> overrides = o.zeroArg("overrides").transform(o.flag()).helpDesc("Act on all overridden repos");
     public final OptionsFragment<O, Boolean> all = o.zeroArg("all").transform(o.flag()).helpDesc("Act on all repos");
-    public final OptionsFragment<O, ImmutableList<String>> groovyRepos = o.oneArg("groovyRepos").helpDesc("Evaluate this groovy to choose repos");
+    public final OptionsFragment<O, ImmutableList<String>> scriptRepos = o.oneArg("scriptRepos").helpDesc("Evaluate this script to choose repos");
 
     private final NoArgsBehaviour noArgsBehaviour;
 
@@ -66,9 +66,9 @@ public class RepoActionOptionsDelegate<O> implements OptionsDelegate<O> {
             hadNoArgs = false;
             reposBuilder.addAll(manifest.repos.keySet());
         }
-        for(String groovy : options.get(groovyRepos)) {
+        for(String script : options.get(scriptRepos)) {
             hadNoArgs = false;
-            reposBuilder.addAll(PackageRepoSelection.evalRepos(config, manifest, groovy));
+            reposBuilder.addAll(PackageRepoSelection.evalRepos(config, manifest, script));
         }
         if(hadNoArgs) {
             noArgsBehaviour.run(reposBuilder, config, manifest);

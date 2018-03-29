@@ -1,10 +1,8 @@
 package qbt.config;
 
 import com.google.common.collect.ImmutableMap;
-import groovy.lang.GroovyShell;
 import java.nio.file.Path;
 import java.util.Optional;
-import misc1.commons.ExceptionUtils;
 import misc1.commons.ds.ImmutableSalvagingMap;
 import misc1.commons.ds.Struct;
 import misc1.commons.ds.StructBuilder;
@@ -17,6 +15,7 @@ import qbt.manifest.QbtManifestParser;
 import qbt.manifest.current.CurrentQbtManifestParser;
 import qbt.repo.CommonRepoAccessor;
 import qbt.repo.LocalRepoAccessor;
+import qbt.script.QbtScriptEngine;
 import qbt.tip.RepoTip;
 
 public final class QbtConfig extends Struct<QbtConfig, QbtConfig.Builder> {
@@ -51,14 +50,9 @@ public final class QbtConfig extends Struct<QbtConfig, QbtConfig.Builder> {
     }
 
     public static QbtConfig parse(Path f) {
-        GroovyShell shell = new GroovyShell();
-        shell.setVariable("workspaceRoot", f.getParent());
-        try {
-            return (QbtConfig) shell.evaluate(f.toFile());
-        }
-        catch(Exception e) {
-            throw ExceptionUtils.commute(e);
-        }
+        QbtScriptEngine.Builder s = QbtScriptEngine.TYPE.builder();
+        s = s.addVariable("workspaceRoot", f.getParent());
+        return s.build().eval(f);
     }
 
     public CommonRepoAccessor requireCommonRepo(RepoTip repo, Optional<VcsVersionDigest> version) {
