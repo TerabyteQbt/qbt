@@ -65,7 +65,9 @@ public class GitUtils {
         ProcessHelper p;
 
         String prefix = getPrefix(dir);
-        p = ph(getRoot(dir), "git", "ls-files", "--", prefix);
+        // some time after git 1.9, git ls-files no longer allows this to be empty
+        String gitLsPrefix = (prefix.isEmpty() ? "." : prefix);
+        p = ph(getRoot(dir), "git", "ls-files", "--", gitLsPrefix);
         if(tempIndexFile != null) {
             p = p.putEnv("GIT_INDEX_FILE", tempIndexFile.toAbsolutePath().toString());
         }
